@@ -1,0 +1,7 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { overflow: hidden; height: 100vh; }
+#root { height: 100vh; display: flex; flex-direction: column; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #37415180; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #4b5563; }
