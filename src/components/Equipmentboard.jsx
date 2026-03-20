@@ -18,8 +18,9 @@ import { fetchLocations } from '../store/locationsSlice';
 import { COL } from '../services/mondayMutations';
 import StatusChip from './StatusChip';
 import AddItemRow from './AddItemRow';
-import EquipmentDrawer from './EquipmentDrawer';
+import EquipmentDrawer from './Equipmentdrawer';
 import LocationDrawer from './LocationDrawer';
+import RelationCell from './RelationCell';
 
 // ── Table cell styles ─────────────────────────────────────────────────────────
 const HEAD_CELL = {
@@ -311,79 +312,6 @@ export default function EquipmentBoard() {
           }}
         />
       )}
-    </Box>
-  );
-}
-
-// ── Reusable relation cell (same as WorkOrdersBoard) ─────────────────────────
-function RelationCell({ value, options, placeholder, chipBgColor, chipTextColor, chipBorderColor, createLabel, onSelectExisting, onCreateNew }) {
-  const [editing, setEditing] = useState(false);
-  const mouseDownOnOption = useRef(false);
-
-  if (!editing) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-        {value ? (
-          <Chip
-            label={value}
-            size="small"
-            onClick={() => setEditing(true)}
-            sx={{
-              maxWidth: 150, fontSize: '0.72rem', height: 22,
-              bgcolor: chipBgColor, color: chipTextColor, border: `1px solid ${chipBorderColor}`,
-              cursor: 'pointer',
-            }}
-          />
-        ) : (
-          <Box
-            onClick={() => setEditing(true)}
-            sx={{ color: 'text.disabled', fontSize: '0.75rem', cursor: 'pointer', px: 0.5, '&:hover': { color: 'primary.main' } }}
-          >
-            {placeholder}
-          </Box>
-        )}
-      </Box>
-    );
-  }
-
-  return (
-    <Box>
-      <Autocomplete
-        size="small" open autoFocus
-        options={options}
-        getOptionLabel={(o) => (typeof o === 'string' ? o : o.name)}
-        filterOptions={(opts, { inputValue }) => {
-          const filtered = opts.filter((o) => o.name.toLowerCase().includes(inputValue.toLowerCase()));
-          if (inputValue && !filtered.some((o) => o.name.toLowerCase() === inputValue.toLowerCase())) {
-            filtered.push({ id: '__new__', name: `Add "${inputValue}" as new ${createLabel}`, inputValue });
-          }
-          return filtered;
-        }}
-        onChange={(_, val) => {
-          mouseDownOnOption.current = false;
-          setEditing(false);
-          if (!val) return;
-          if (val.id === '__new__') onCreateNew(val.inputValue);
-          else onSelectExisting(val.id, val.name);
-        }}
-        onBlur={() => { if (!mouseDownOnOption.current) setEditing(false); }}
-        renderInput={(params) => (
-          <TextField {...params} autoFocus placeholder="Search or create…" sx={{ minWidth: 180 }} />
-        )}
-        renderOption={(props, option) => {
-          const { key, ...rest } = props;
-          return (
-            <Box
-              component="li" key={key} {...rest}
-              onMouseDown={() => { mouseDownOnOption.current = true; }}
-              sx={{ fontSize: '0.8rem', ...(option.id === '__new__' ? { color: 'primary.main', fontWeight: 600 } : {}) }}
-            >
-              {option.id === '__new__' ? `+ ${option.name}` : option.name}
-            </Box>
-          );
-        }}
-        sx={{ width: 220 }}
-      />
     </Box>
   );
 }

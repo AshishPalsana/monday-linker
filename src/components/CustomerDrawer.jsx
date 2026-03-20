@@ -178,10 +178,11 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
   const { board: locBoard } = useSelector((s) => s.locations);
   const { board: woBoard } = useSelector((s) => s.workOrders);
   const { creating: apiCreating, saving: apiSaving } = useSelector((s) => s.customers);
+  const [isSaving, setIsSaving] = useState(false);
 
   const isTempId = customer?.id && !/^\d+$/.test(String(customer.id));
   const isNew = !customer?.id || customer?.id === '__new__' || isTempId;
-  const isBusy = apiCreating || apiSaving;
+  const isBusy = apiCreating || apiSaving || isSaving;
 
   // Robust column value reader — matches CustomersBoard's getColumnValue logic
   const getCol = (colId) => {
@@ -233,7 +234,14 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
     setAttempted(true);
     if (!isValid) return;
     if (isNew) {
-      if (onSaveNew) await onSaveNew(form);
+      if (onSaveNew) {
+        setIsSaving(true);
+        try {
+          await onSaveNew(form);
+        } finally {
+          setIsSaving(false);
+        }
+      }
     } else {
       dispatch(updateCustomer({ customerId: customer.id, form }));
       onClose();

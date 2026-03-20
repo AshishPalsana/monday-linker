@@ -179,6 +179,15 @@ const equipmentSlice = createSlice({
       setCol(COL.EQUIPMENT.INSTALL_DATE,  form.installDate);
       setCol(COL.EQUIPMENT.NOTES,         form.notes);
 
+      if (form.locationId && form.locationName) {
+        const locCol = item.column_values.find((cv) => cv.id === COL.EQUIPMENT.LOCATION);
+        if (locCol) {
+          locCol.text = form.locationName;
+          locCol.display_value = form.locationName;
+          locCol.value = JSON.stringify({ linkedPulseIds: [{ linkedPulseId: parseInt(form.locationId) }] });
+        }
+      }
+
       const statusCol = item.column_values.find((cv) => cv.id === COL.EQUIPMENT.STATUS);
       if (statusCol) { statusCol.label = form.status || ''; statusCol.text = form.status || ''; }
     },
@@ -192,6 +201,9 @@ const equipmentSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(fetchEquipment.pending,   (state) => { state.loading = true; state.error = null; })
+      .addCase(fetchEquipment.fulfilled, (state, action) => { state.loading = false; state.board = action.payload; })
+      .addCase(fetchEquipment.rejected,  (state, action) => { state.loading = false; state.error = action.payload; })
       .addCase(createEquipment.pending,   (state) => { state.creating = true; state.error = null; })
       .addCase(createEquipment.fulfilled, (state) => { state.creating = false; })
       .addCase(createEquipment.rejected,  (state, action) => { state.creating = false; state.error = action.payload; })

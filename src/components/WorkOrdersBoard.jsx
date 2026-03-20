@@ -26,6 +26,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import { MONDAY_COLUMN_IDS } from '../constants';
 import StatusChip from './StatusChip';
 import AddItemRow from './AddItemRow';
+import WorkOrderDrawer from './WorkOrderDrawer';
+import RelationCell from './RelationCell';
 
 // Shared header cell style — no wrapping ever
 const HEAD_CELL = {
@@ -53,6 +55,7 @@ export default function WorkOrdersBoard() {
   // pendingNew holds { name, workOrderId } while the drawer is open for a brand-new record
   const [pendingNewCustomer, setPendingNewCustomer] = useState(null);
   const [pendingNewLocation, setPendingNewLocation] = useState(null);
+  const [openWorkOrderDrawer, setOpenWorkOrderDrawer] = useState(false);
 
   useEffect(() => {
     dispatch(fetchWorkOrders());
@@ -203,6 +206,7 @@ export default function WorkOrdersBoard() {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
+            onClick={() => setOpenWorkOrderDrawer(true)}
             sx={{ 
               height: 40, 
               px: 3, 
@@ -212,7 +216,6 @@ export default function WorkOrdersBoard() {
               boxShadow: 'none',
               '&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' }
             }}
-            disabled
           >
             New work order
           </Button>
@@ -402,131 +405,15 @@ export default function WorkOrdersBoard() {
           }}
         />
       )}
+      {openWorkOrderDrawer && (
+        <WorkOrderDrawer
+          open={true}
+          onClose={() => setOpenWorkOrderDrawer(false)}
+          defaultGroupId={groups.find(g => g.title.toLowerCase().includes('active'))?.id || groups[0]?.id}
+        />
+      )}
     </Box>
   );
 }
 
-// ── Reusable relation cell ─────────────────────────────────────────────────────
-function RelationCell({
-  value,
-  options,
-  placeholder,
-  chipBgColor,
-  chipTextColor,
-  chipBorderColor,
-  createLabel,
-  onSelectExisting,
-  onCreateNew,
-}) {
-  const [editing, setEditing] = useState(false);
-  const mouseDownOnOption = useRef(false);
-
-  if (!editing) {
-    return (
-      <Box
-        sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {value ? (
-          <Chip
-            label={value}
-            size="small"
-            onClick={() => setEditing(true)}
-            sx={{
-              maxWidth: 150,
-              fontSize: '0.72rem',
-              height: 22,
-              bgcolor: chipBgColor,
-              color: chipTextColor,
-              border: `1px solid ${chipBorderColor}`,
-              cursor: 'pointer',
-            }}
-          />
-        ) : (
-          <Box
-            onClick={() => setEditing(true)}
-            sx={{
-              color: 'text.disabled',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-              px: 0.5,
-              '&:hover': { color: 'primary.main' },
-            }}
-          >
-            {placeholder}
-          </Box>
-        )}
-      </Box>
-    );
-  }
-
-  return (
-    <Box onClick={(e) => e.stopPropagation()}>
-      <Autocomplete
-        size="small"
-        open
-        autoFocus
-        options={options}
-        getOptionLabel={(o) => (typeof o === 'string' ? o : o.name)}
-        filterOptions={(opts, { inputValue }) => {
-          const filtered = opts.filter((o) =>
-            o.name.toLowerCase().includes(inputValue.toLowerCase()),
-          );
-          if (
-            inputValue &&
-            !filtered.some((o) => o.name.toLowerCase() === inputValue.toLowerCase())
-          ) {
-            filtered.push({
-              id: '__new__',
-              name: `Add "${inputValue}" as new ${createLabel}`,
-              inputValue,
-            });
-          }
-          return filtered;
-        }}
-        onChange={(_, val) => {
-          mouseDownOnOption.current = false;
-          setEditing(false);
-          if (!val) return;
-          if (val.id === '__new__') {
-            onCreateNew(val.inputValue);
-          } else {
-            // Pass both id and name so the thunk can optimistically display the name
-            onSelectExisting(val.id, val.name);
-          }
-        }}
-        onBlur={() => {
-          if (!mouseDownOnOption.current) setEditing(false);
-        }}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            autoFocus
-            placeholder="Search or create…"
-            sx={{ minWidth: 180 }}
-          />
-        )}
-        renderOption={(props, option) => {
-          const { key, ...rest } = props;
-          return (
-            <Box
-              component="li"
-              key={key}
-              {...rest}
-              onMouseDown={() => { mouseDownOnOption.current = true; }}
-              sx={{
-                fontSize: '0.8rem',
-                ...(option.id === '__new__'
-                  ? { color: 'primary.main', fontWeight: 600 }
-                  : {}),
-              }}
-            >
-              {option.id === '__new__' ? `+ ${option.name}` : option.name}
-            </Box>
-          );
-        }}
-        sx={{ width: 220 }}
-      />
-    </Box>
-  );
-}
+// ── Reusable relation cell ─────────────────────────────────────────────────────

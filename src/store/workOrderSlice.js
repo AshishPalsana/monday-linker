@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { mondayClient } from '../services/mondayAPI';
 import { gql } from '@apollo/client';
+import { apiCreateWorkOrder } from '../services/mondayMutations';
 
 export const fetchWorkOrders = createAsyncThunk(
   'workOrders/fetchWorkOrders',
@@ -42,35 +43,12 @@ export const fetchWorkOrders = createAsyncThunk(
 
 export const createWorkOrder = createAsyncThunk(
   'workOrders/createWorkOrder',
-  async ({ name, groupId }, { rejectWithValue }) => {
-    const mutation = gql`
-      mutation CreateItem($boardId: ID!, $groupId: String!, $itemName: String!) {
-        create_item(board_id: $boardId, group_id: $groupId, item_name: $itemName) {
-          id
-          name
-          group { id title color }
-          column_values {
-            id
-            text
-            value
-            ... on StatusValue { label index }
-            ... on BoardRelationValue { display_value }
-          }
-          created_at
-          updated_at
-        }
-      }
-    `;
+  async (form, { dispatch, rejectWithValue }) => {
     try {
-      const { data } = await mondayClient.mutate({
-        mutation,
-        variables: {
-          boardId: "18402613691",
-          groupId,
-          itemName: name,
-        },
-      });
-      return data.create_item;
+      const created = await apiCreateWorkOrder(form);
+      // Wait for refetch so the board is always up to date
+      await dispatch(fetchWorkOrders());
+      return created;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -82,6 +60,7 @@ const workOrderSlice = createSlice({
   initialState: {
     board: null,
     loading: false,
+    creating: false,
     error: null,
   },
   reducers: {
@@ -128,12 +107,15 @@ const workOrderSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      .addCase(createWorkOrder.fulfilled, (state, action) => {
-        if (state.board) {
-          state.board.items_page.items.push(action.payload);
-        }
+      .addCase(createWorkOrder.pending, (state) => {
+        state.creating = true;
+        state.error = null;
+      })
+      .addCase(createWorkOrder.fulfilled, (state) => {
+        state.creating = false;
       })
       .addCase(createWorkOrder.rejected, (state, action) => {
+        state.creating = false;
         state.error = action.payload;
       });
   },

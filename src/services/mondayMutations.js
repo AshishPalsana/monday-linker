@@ -38,8 +38,10 @@ export const COL = {
     EQUIPMENTS_REL:  'board_relation_mm19zxd8',
   },
   WORK_ORDERS: {
-    CUSTOMER: 'board_relation_mm14ngb2',
-    LOCATION: 'board_relation_mm14fdpt',
+    CUSTOMER:    'board_relation_mm14ngb2',
+    LOCATION:    'board_relation_mm14fdpt',
+    DESCRIPTION: 'long_text_mm14ee7h',
+    STATUS:      'color_mm14pf0q',
   },
   // Equipment board (id: 18403226725)
   EQUIPMENT: {
@@ -223,7 +225,13 @@ export async function apiCreateEquipment(form) {
   if (form.status)       cv[COL.EQUIPMENT.STATUS]        = { label: form.status };
   if (form.notes)        cv[COL.EQUIPMENT.NOTES]         = { text: form.notes };
 
-  const { data } = await mondayClient.mutate({
+  if (form.locationId) {
+    cv[COL.EQUIPMENT.LOCATION] = { 
+      linkedPulseIds: [{ linkedPulseId: parseInt(form.locationId) }] 
+    };
+  }
+
+  const { data, errors } = await mondayClient.mutate({
     mutation: gql`
       mutation {
         create_item(
@@ -235,6 +243,11 @@ export async function apiCreateEquipment(form) {
       }
     `,
   });
+
+  if (errors?.length) {
+    throw new Error(errors[0].message);
+  }
+
   return data.create_item;
 }
 
@@ -249,6 +262,12 @@ export async function apiUpdateEquipment(itemId, form) {
   if (form.installDate !== undefined)  cv[COL.EQUIPMENT.INSTALL_DATE]  = form.installDate ? { date: form.installDate } : { date: null };
   if (form.status !== undefined)       cv[COL.EQUIPMENT.STATUS]        = { label: form.status || '' };
   if (form.notes !== undefined)        cv[COL.EQUIPMENT.NOTES]         = { text: form.notes };
+  
+  if (form.locationId) {
+    cv[COL.EQUIPMENT.LOCATION] = { 
+      linkedPulseIds: [{ linkedPulseId: parseInt(form.locationId) }] 
+    };
+  }
 
   const { data, errors } = await mondayClient.mutate({
     mutation: gql`
@@ -300,6 +319,56 @@ export async function apiSetEquipmentLocation(equipmentId, locationId) {
 }
 
 // ── Work Order Relations ───────────────────────────────────────────────────────
+
+export async function apiCreateWorkOrder(form) {
+  const cv = {};
+  if (form.description) cv[COL.WORK_ORDERS.DESCRIPTION] = { text: form.description };
+  if (form.status)      cv[COL.WORK_ORDERS.STATUS]      = { label: form.status };
+  
+  // Board relations require linkedPulseIds
+  if (form.customerId) {
+    cv[COL.WORK_ORDERS.CUSTOMER] = { 
+      linkedPulseIds: [{ linkedPulseId: parseInt(form.customerId) }] 
+    };
+  }
+  if (form.locationId) {
+    cv[COL.WORK_ORDERS.LOCATION] = { 
+      linkedPulseIds: [{ linkedPulseId: parseInt(form.locationId) }] 
+    };
+  }
+
+  const { data, errors } = await mondayClient.mutate({
+    mutation: gql`
+      mutation {
+        create_item(
+          board_id: ${BOARD_IDS.WORK_ORDERS}
+          group_id: "${form.groupId || 'topics'}"
+          item_name: "${esc(form.name)}"
+          column_values: "${esc(JSON.stringify(cv))}"
+        ) {
+          id
+          name
+          group { id title color }
+          column_values {
+            id
+            text
+            value
+            ... on StatusValue { label index }
+            ... on BoardRelationValue { display_value }
+          }
+          created_at
+          updated_at
+        }
+      }
+    `,
+  });
+
+  if (errors?.length) {
+    throw new Error(errors[0].message);
+  }
+
+  return data.create_item;
+}
 
 export async function apiSetWorkOrderRelation(workOrderId, itemId, columnId) {
   const value = itemId

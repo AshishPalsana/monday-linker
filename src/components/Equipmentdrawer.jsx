@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Drawer, Box, Typography, TextField, Button, IconButton, Divider, CircularProgress,
@@ -10,10 +10,14 @@ import NumbersOutlinedIcon from '@mui/icons-material/NumbersOutlined';
 import QrCodeOutlinedIcon from '@mui/icons-material/QrCodeOutlined';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import NotesOutlinedIcon from '@mui/icons-material/NotesOutlined';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import { COL } from '../services/mondayMutations';
 import { updateEquipment } from '../store/equipmentslice';
+import { fetchLocations } from '../store/locationsSlice';
+import RelationCell from './RelationCell';
+import LocationDrawer from './LocationDrawer';
 
-const EQUIPMENT_STATUSES = ['Active', 'Inactive', 'Under Repair', 'Retired'];
+const EQUIPMENT_STATUSES = ['Active', 'Inactive'];
 
 const STATUS_COLORS = {
   Active:        { bg: '#d3f8e2', color: '#0d6e48' },
@@ -68,10 +72,14 @@ const Section = ({ children }) => (
 export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open }) {
   const dispatch = useDispatch();
   const { creating: apiCreating, saving: apiSaving } = useSelector((s) => s.equipment);
+  const locations = useSelector((s) => s.locations.board?.items_page?.items || []);
+  const [isSaving, setIsSaving] = useState(false);
 
   const isTempId = equipment?.id && !/^\d+$/.test(String(equipment.id));
   const isNew = !equipment?.id || equipment?.id === '__new__' || isTempId;
-  const isBusy = apiCreating || apiSaving;
+  const isBusy = apiCreating || apiSaving || isSaving;
+
+  const [pendingNewLocation, setPendingNewLocation] = useState(null);
 
   const getCol = (colId) => {
     const col = equipment?.column_values?.find((cv) => cv.id === colId);
@@ -89,7 +97,25 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
     installDate:     getCol(COL.EQUIPMENT.INSTALL_DATE),
     equipmentStatus: getCol(COL.EQUIPMENT.STATUS) || 'Active',
     notes:           getCol(COL.EQUIPMENT.NOTES),
+    locationId:      '',
+    locationName:    getCol(COL.EQUIPMENT.LOCATION),
   });
+
+  // Initialize locationId from equipment column value
+  useEffect(() => {
+    if (equipment?.column_values) {
+      const locCol = equipment.column_values.find(cv => cv.id === COL.EQUIPMENT.LOCATION);
+      if (locCol?.value) {
+        try {
+          const parsed = JSON.parse(locCol.value);
+          const firstId = parsed.linkedPulseIds?.[0]?.linkedPulseId;
+          if (firstId) setForm(prev => ({ ...prev, locationId: String(firstId) }));
+        } catch (e) { /* ignore */ }
+      }
+    }
+    // Also fetch locations to ensure dropdown is populated
+    dispatch(fetchLocations());
+  }, [equipment, dispatch]);
 
   const [attempted, setAttempted] = useState(false);
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -103,7 +129,14 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
     setAttempted(true);
     if (!isValid) return;
     if (isNew) {
-      if (onSaveNew) await onSaveNew(form);
+      if (onSaveNew) {
+        setIsSaving(true);
+        try {
+          await onSaveNew(form);
+        } finally {
+          setIsSaving(false);
+        }
+      }
     } else {
       dispatch(updateEquipment({ equipmentId: equipment.id, form }));
       onClose();
@@ -197,6 +230,22 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
               placeholder="e.g. Hoshizaki"
             />
           </PropertyRow>
+          <PropertyRow icon={LocationOnOutlinedIcon} label="Location">
+            <RelationCell
+              value={form.locationName}
+              options={locations}
+              placeholder="— add location"
+              chipBgColor="rgba(168,85,247,0.1)"
+              chipTextColor="#c084fc"
+              chipBorderColor="rgba(168,85,247,0.2)"
+              createLabel="location"
+              onSelectExisting={(id, name) => {
+                set('locationId', id);
+                set('locationName', name);
+              }}
+              onCreateNew={(name) => setPendingNewLocation({ name })}
+            />
+          </PropertyRow>
         </Box>
 
         {/* Specs */}
@@ -281,6 +330,25 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
           </Button>
         </Box>
       </Box>
+
+      {/* Nested Location Creation */}
+      {pendingNewLocation && (
+        <LocationDrawer
+          open
+          location={{ id: '__new__', name: pendingNewLocation.name, column_values: [] }}
+          onClose={() => setPendingNewLocation(null)}
+          onSaveNew={async (locForm) => {
+            // Import apiCreateLocation lazily
+            const { apiCreateLocation } = await import('../services/mondayMutations');
+            const created = await apiCreateLocation(locForm);
+            set('locationId', created.id);
+            set('locationName', created.name);
+            setPendingNewLocation(null);
+            // Refresh locations list
+            dispatch(fetchLocations());
+          }}
+        />
+      )}
     </Drawer>
   );
 }

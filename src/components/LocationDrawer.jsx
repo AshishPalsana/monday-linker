@@ -13,13 +13,11 @@ import NotesOutlinedIcon from '@mui/icons-material/NotesOutlined';
 import { COL } from '../services/mondayMutations';
 import { updateLocation } from '../store/locationsSlice';
 
-const LOCATION_STATUSES = ['Active', 'Inactive', 'Pending', 'Closed'];
+const LOCATION_STATUSES = ['Active', 'Inactive'];
 
 const STATUS_COLORS = {
   Active:   { bg: '#d3f8e2', color: '#0d6e48' },
   Inactive: { bg: '#fde8e8', color: '#b91c1c' },
-  Pending:  { bg: '#fef3c7', color: '#92400e' },
-  Closed:   { bg: '#f1f1ef', color: '#787774' },
 };
 
 // ── Notion-style property row ─────────────────────────────────────────────────
@@ -70,10 +68,11 @@ const Section = ({ children }) => (
 export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
   const dispatch = useDispatch();
   const { creating: apiCreating, saving: apiSaving } = useSelector((s) => s.locations);
+  const [isSaving, setIsSaving] = useState(false);
 
   const isTempId = location?.id && !/^\d+$/.test(String(location.id));
   const isNew = !location?.id || location?.id === '__new__' || isTempId;
-  const isBusy = apiCreating || apiSaving;
+  const isBusy = apiCreating || apiSaving || isSaving;
 
   // Read column values using real Monday column IDs
   const getCol = (colId) => {
@@ -107,7 +106,14 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
     if (!isValid) return;
 
     if (isNew) {
-      if (onSaveNew) await onSaveNew(form);
+      if (onSaveNew) {
+        setIsSaving(true);
+        try {
+          await onSaveNew(form);
+        } finally {
+          setIsSaving(false);
+        }
+      }
     } else {
       dispatch(updateLocation({ locationId: location.id, form }));
       onClose();
