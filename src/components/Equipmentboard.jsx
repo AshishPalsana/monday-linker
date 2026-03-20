@@ -3,11 +3,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Chip, Autocomplete, TextField,
-  IconButton, Avatar, Tooltip, CircularProgress,
+  IconButton, Avatar, Tooltip, CircularProgress, Collapse,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import {
   fetchEquipment,
   createEquipment as createEquipmentThunk,
@@ -17,7 +19,6 @@ import {
 import { fetchLocations } from '../store/locationsSlice';
 import { COL } from '../services/mondayMutations';
 import StatusChip from './StatusChip';
-import AddItemRow from './AddItemRow';
 import EquipmentDrawer from './Equipmentdrawer';
 import LocationDrawer from './LocationDrawer';
 import RelationCell from './RelationCell';
@@ -38,7 +39,7 @@ const DASH = <span style={{ color: '#9ba6b4' }}>—</span>;
 function TruncCell({ value, sx }) {
   if (!value) return <TableCell sx={{ ...DATA_CELL, ...sx }}>{DASH}</TableCell>;
   return (
-    <Tooltip title={value} placement="top" enterDelay={600} arrow>
+    <Tooltip title={value} placement="top" enterDelay={400} arrow>
       <TableCell sx={{ ...DATA_CELL, ...sx }}>
         <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {value}
@@ -55,6 +56,14 @@ export default function EquipmentBoard() {
   const [search, setSearch] = useState('');
   const [openDrawer, setOpenDrawer] = useState(null);       // existing equipment item
   const [pendingNewLocation, setPendingNewLocation] = useState(null); // { name, equipmentId }
+  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
+
+  const toggleGroup = (groupId) => {
+    const next = new Set(collapsedGroups);
+    if (next.has(groupId)) next.delete(groupId);
+    else next.add(groupId);
+    setCollapsedGroups(next);
+  };
 
   useEffect(() => {
     dispatch(fetchEquipment());
@@ -119,21 +128,37 @@ export default function EquipmentBoard() {
     return acc;
   }, {});
 
-  const renderTable = (rows, label, color) => (
-    <Box sx={{ mb: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-        <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color }} />
-        <Typography variant="subtitle2" sx={{ color, fontSize: '0.8rem', fontWeight: 700 }}>
-          {label}
-        </Typography>
-        <Chip
-          label={rows.length} size="small"
-          sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700, bgcolor: color + '22', color, border: `1px solid ${color}44` }}
-        />
-      </Box>
+  const renderTable = (rows, label, color, groupId) => {
+    const isCollapsed = collapsedGroups.has(groupId);
+    return (
+      <Box sx={{ mb: 4 }}>
+        <Box 
+          onClick={() => toggleGroup(groupId)}
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1.5, 
+            mb: 1,
+            cursor: 'pointer',
+            '&:hover': { opacity: 0.8 }
+          }}
+        >
+          <IconButton size="small" sx={{ p: 0, color: color }}>
+            {isCollapsed ? <ChevronRightIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+          </IconButton>
+          <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color }} />
+          <Typography variant="subtitle2" sx={{ color, fontSize: '0.8rem', fontWeight: 700 }}>
+            {label}
+          </Typography>
+          <Chip
+            label={rows.length} size="small"
+            sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700, bgcolor: color + '22', color, border: `1px solid ${color}44` }}
+          />
+        </Box>
 
-      <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-        <TableContainer sx={{ overflowX: 'auto' }}>
+        <Collapse in={!isCollapsed}>
+          <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+            <TableContainer sx={{ overflowX: 'auto', maxHeight: '500px', overflowY: 'auto' }}>
           <Table size="small" stickyHeader sx={{ borderCollapse: 'separate', tableLayout: 'fixed', minWidth: 1500 }}>
             <colgroup><col style={{ width: 220 }} /><col style={{ width: 200 }} /><col style={{ width: 150 }} /><col style={{ width: 150 }} /><col style={{ width: 150 }} /><col style={{ width: 130 }} /><col style={{ width: 130 }} /><col style={{ width: 320 }} /></colgroup>
             <TableHead>
@@ -222,10 +247,12 @@ export default function EquipmentBoard() {
               )}
             </TableBody>
           </Table>
-        </TableContainer>
-      </Paper>
+          </TableContainer>
+        </Paper>
+      </Collapse>
     </Box>
   );
+};
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -280,7 +307,7 @@ export default function EquipmentBoard() {
       <Box sx={{ flex: 1, overflow: 'auto', px: 3, py: 2 }}>
         {groups.map((group) => {
           const rows = itemsByGroup[group.id] || [];
-          return renderTable(rows, group.title, group.color || '#6b7280');
+          return renderTable(rows, group.title, group.color || '#6b7280', group.id);
         })}
       </Box>
 

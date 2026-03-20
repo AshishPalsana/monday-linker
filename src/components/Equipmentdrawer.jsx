@@ -138,8 +138,13 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
         }
       }
     } else {
-      dispatch(updateEquipment({ equipmentId: equipment.id, form }));
-      onClose();
+      setIsSaving(true);
+      try {
+        await dispatch(updateEquipment({ equipmentId: equipment.id, form })).unwrap();
+        onClose();
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 

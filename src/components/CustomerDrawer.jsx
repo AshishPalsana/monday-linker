@@ -243,8 +243,13 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
         }
       }
     } else {
-      dispatch(updateCustomer({ customerId: customer.id, form }));
-      onClose();
+      setIsSaving(true);
+      try {
+        await dispatch(updateCustomer({ customerId: customer.id, form })).unwrap();
+        onClose();
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 

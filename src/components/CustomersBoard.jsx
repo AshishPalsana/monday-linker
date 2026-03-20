@@ -17,15 +17,17 @@ import {
   Avatar,
   Tooltip,
   CircularProgress,
+  Collapse,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { fetchCustomers, createCustomer as createCustomerThunk } from '../store/customersSlice';
 import { MONDAY_COLUMN_IDS } from '../constants';
 import StatusChip from './StatusChip';
 import CustomerDrawer from './CustomerDrawer';
-import AddItemRow from './AddItemRow';
 
 // Shared styles applied to every header cell — prevents any wrapping
 const HEAD_CELL = {
@@ -61,13 +63,13 @@ const DASH = <span style={{ color: '#9ba6b4' }}>—</span>;
 function TruncCell({ value, sx }) {
   if (!value) return <TableCell sx={{ ...DATA_CELL, ...sx }}>{DASH}</TableCell>;
   return (
-    <Tooltip title={value} placement="top" enterDelay={600} arrow>
-      <TableCell sx={{ ...DATA_CELL, ...sx }}>
+    <TableCell sx={{ ...DATA_CELL, ...sx }}>
+      <Tooltip title={value} placement="top" enterDelay={400} arrow>
         <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {value}
         </span>
-      </TableCell>
-    </Tooltip>
+      </Tooltip>
+    </TableCell>
   );
 }
 
@@ -76,6 +78,14 @@ export default function CustomersBoard({ createCustomer }) {
   const { board, loading, error } = useSelector((state) => state.customers);
   const [openDialog, setOpenDialog] = useState(null);
   const [search, setSearch] = useState('');
+  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
+
+  const toggleGroup = (groupId) => {
+    const next = new Set(collapsedGroups);
+    if (next.has(groupId)) next.delete(groupId);
+    else next.add(groupId);
+    setCollapsedGroups(next);
+  };
 
   useEffect(() => {
     dispatch(fetchCustomers());
@@ -128,31 +138,41 @@ export default function CustomersBoard({ createCustomer }) {
     setOpenDialog({ id: '__new__', name: '', column_values: [] });
   };
 
-  const renderTable = (rows, label, color) => (
-    <Box sx={{ mb: 4 }}>
-      {/* Group label */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-        <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color }} />
-        <Typography variant="subtitle2" sx={{ color, fontSize: '0.8rem', fontWeight: 700 }}>
-          {label}
-        </Typography>
-        <Chip
-          label={rows.length}
-          size="small"
-          sx={{
-            height: 18, fontSize: '0.65rem', fontWeight: 700,
-            bgcolor: color + '22', color, border: `1px solid ${color}44`,
+  const renderTable = (rows, label, color, groupId) => {
+    const isCollapsed = collapsedGroups.has(groupId);
+    return (
+      <Box sx={{ mb: 4 }}>
+        <Box 
+          onClick={() => toggleGroup(groupId)}
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1.5, 
+            mb: 1,
+            cursor: 'pointer',
+            '&:hover': { opacity: 0.8 }
           }}
-        />
-      </Box>
+        >
+          <IconButton size="small" sx={{ p: 0, color: color }}>
+            {isCollapsed ? <ChevronRightIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+          </IconButton>
+          <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color }} />
+          <Typography variant="subtitle2" sx={{ color, fontSize: '0.8rem', fontWeight: 700 }}>
+            {label}
+          </Typography>
+          <Chip
+            label={rows.length}
+            size="small"
+            sx={{
+              height: 18, fontSize: '0.65rem', fontWeight: 700,
+              bgcolor: color + '22', color, border: `1px solid ${color}44`,
+            }}
+          />
+        </Box>
 
-      <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-        {/*
-          minWidth forces a horizontal scrollbar on small screens instead of compressing columns.
-          tableLayout fixed + explicit column widths gives every column a guaranteed size
-          so ellipsis can work correctly.
-        */}
-        <TableContainer sx={{ overflowX: 'auto' }}>
+        <Collapse in={!isCollapsed}>
+          <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+            <TableContainer sx={{ overflowX: 'auto', maxHeight: '500px', overflowY: 'auto' }}>
           <Table
             size="small"
             stickyHeader
@@ -255,10 +275,12 @@ export default function CustomersBoard({ createCustomer }) {
 
             </TableBody>
           </Table>
-        </TableContainer>
-      </Paper>
+          </TableContainer>
+        </Paper>
+      </Collapse>
     </Box>
   );
+};
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -315,7 +337,7 @@ export default function CustomersBoard({ createCustomer }) {
       <Box sx={{ flex: 1, overflow: 'auto', px: 3, py: 2 }}>
         {groups.map((group) => {
           const rows = itemsByGroup[group.id] || [];
-          return renderTable(rows, group.title, group.color || '#6b7280');
+          return renderTable(rows, group.title, group.color || '#6b7280', group.id);
         })}
       </Box>
 

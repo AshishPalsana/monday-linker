@@ -17,17 +17,19 @@ import {
   Avatar,
   Tooltip,
   CircularProgress,
+  Collapse,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import SearchIcon from "@mui/icons-material/Search";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { fetchLocations } from "../store/locationsSlice";
 import { fetchCustomers } from "../store/customersSlice";
 import { fetchWorkOrders } from "../store/workOrderSlice";
 import { COL } from "../services/mondayMutations";
 import StatusChip from "./StatusChip";
 import LocationDrawer from "./LocationDrawer";
-import AddItemRow from "./AddItemRow";
 import { createLocation as createLocationThunk } from "../store/locationsSlice";
 
 // Shared header cell style — no wrapping ever
@@ -87,6 +89,14 @@ export default function LocationsBoard({ createLocation }) {
 
   const [openDialog, setOpenDialog] = useState(null);
   const [search, setSearch] = useState("");
+  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
+
+  const toggleGroup = (groupId) => {
+    const next = new Set(collapsedGroups);
+    if (next.has(groupId)) next.delete(groupId);
+    else next.add(groupId);
+    setCollapsedGroups(next);
+  };
 
   useEffect(() => {
     dispatch(fetchLocations());
@@ -157,42 +167,58 @@ export default function LocationsBoard({ createLocation }) {
     setOpenDialog({ id: '__new__', name: '', column_values: [] });
   };
 
-  const renderTable = (rows, label, color) => (
-    <Box sx={{ mb: 4 }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
-        <Box
-          sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: color }}
-        />
-        <Typography
-          variant="subtitle2"
-          sx={{ color, fontSize: "0.8rem", fontWeight: 700 }}
-        >
-          {label}
-        </Typography>
-        <Chip
-          label={rows.length}
-          size="small"
-          sx={{
-            height: 18,
-            fontSize: "0.65rem",
-            fontWeight: 700,
-            bgcolor: color + "22",
-            color,
-            border: `1px solid ${color}44`,
+  const renderTable = (rows, label, color, groupId) => {
+    const isCollapsed = collapsedGroups.has(groupId);
+    return (
+      <Box sx={{ mb: 4 }}>
+        <Box 
+          onClick={() => toggleGroup(groupId)}
+          sx={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: 1.5, 
+            mb: 1,
+            cursor: "pointer",
+            "&:hover": { opacity: 0.8 }
           }}
-        />
-      </Box>
+        >
+          <IconButton size="small" sx={{ p: 0, color: color }}>
+            {isCollapsed ? <ChevronRightIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+          </IconButton>
+          <Box
+            sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: color }}
+          />
+          <Typography
+            variant="subtitle2"
+            sx={{ color, fontSize: "0.8rem", fontWeight: 700 }}
+          >
+            {label}
+          </Typography>
+          <Chip
+            label={rows.length}
+            size="small"
+            sx={{
+              height: 18,
+              fontSize: "0.65rem",
+              fontWeight: 700,
+              bgcolor: color + "22",
+              color,
+              border: `1px solid ${color}44`,
+            }}
+          />
+        </Box>
 
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: "12px",
-          overflow: "hidden",
-          border: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <TableContainer sx={{ overflowX: "auto" }}>
+        <Collapse in={!isCollapsed}>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: "12px",
+              overflow: "hidden",
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <TableContainer sx={{ overflowX: "auto", maxHeight: "500px", overflowY: "auto" }}>
           <Table
             size="small"
             stickyHeader
@@ -400,10 +426,12 @@ export default function LocationsBoard({ createLocation }) {
 
             </TableBody>
           </Table>
-        </TableContainer>
-      </Paper>
+          </TableContainer>
+        </Paper>
+      </Collapse>
     </Box>
   );
+};
 
   return (
     <Box
@@ -488,7 +516,7 @@ export default function LocationsBoard({ createLocation }) {
       <Box sx={{ flex: 1, overflow: "auto", px: 3, py: 2 }}>
         {groups.map((group) => {
           const rows = locationsByGroup[group.id] || [];
-          return renderTable(rows, group.title, group.color || "#6b7280");
+          return renderTable(rows, group.title, group.color || "#6b7280", group.id);
         })}
       </Box>
 

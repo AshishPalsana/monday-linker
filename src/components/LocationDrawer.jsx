@@ -115,8 +115,13 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
         }
       }
     } else {
-      dispatch(updateLocation({ locationId: location.id, form }));
-      onClose();
+      setIsSaving(true);
+      try {
+        await dispatch(updateLocation({ locationId: location.id, form })).unwrap();
+        onClose();
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 

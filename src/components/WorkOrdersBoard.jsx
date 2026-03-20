@@ -20,12 +20,15 @@ import {
   Autocomplete,
   TextField,
   CircularProgress,
+  Collapse,
+  IconButton,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { MONDAY_COLUMN_IDS } from '../constants';
 import StatusChip from './StatusChip';
-import AddItemRow from './AddItemRow';
 import WorkOrderDrawer from './WorkOrderDrawer';
 import RelationCell from './RelationCell';
 
@@ -56,6 +59,14 @@ export default function WorkOrdersBoard() {
   const [pendingNewCustomer, setPendingNewCustomer] = useState(null);
   const [pendingNewLocation, setPendingNewLocation] = useState(null);
   const [openWorkOrderDrawer, setOpenWorkOrderDrawer] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
+
+  const toggleGroup = (groupId) => {
+    const next = new Set(collapsedGroups);
+    if (next.has(groupId)) next.delete(groupId);
+    else next.add(groupId);
+    setCollapsedGroups(next);
+  };
 
   useEffect(() => {
     dispatch(fetchWorkOrders());
@@ -228,11 +239,25 @@ export default function WorkOrdersBoard() {
           const rows = itemsByGroup[group.id] || [];
           const label = group.title;
           const color = group.color || '#6b7280';
+          const isCollapsed = collapsedGroups.has(group.id);
 
           return (
             <Box key={group.id} sx={{ mb: 4 }}>
               {/* Group header */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+              <Box 
+                onClick={() => toggleGroup(group.id)}
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1.5, 
+                  mb: 1,
+                  cursor: 'pointer',
+                  '&:hover': { opacity: 0.8 }
+                }}
+              >
+                <IconButton size="small" sx={{ p: 0, color: color }}>
+                  {isCollapsed ? <ChevronRightIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+                </IconButton>
                 <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color }} />
                 <Typography
                   variant="subtitle2"
@@ -254,17 +279,18 @@ export default function WorkOrdersBoard() {
                 />
               </Box>
 
-              <Paper
-                elevation={0}
-                sx={{
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                }}
-              >
-                <TableContainer sx={{ overflowX: 'auto' }}>
-                  <Table size="small" stickyHeader sx={{ borderCollapse: 'separate', tableLayout: 'fixed', minWidth: 1200 }}>
+              <Collapse in={!isCollapsed}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <TableContainer sx={{ overflowX: 'auto', maxHeight: '500px', overflowY: 'auto' }}>
+                    <Table size="small" stickyHeader sx={{ borderCollapse: 'separate', tableLayout: 'fixed', minWidth: 1200 }}>
                     <colgroup>
                       <col style={{ width: 220 }} /> {/* Work order */}
                       <col style={{ width: 200 }} /> {/* Customers */}
@@ -363,16 +389,15 @@ export default function WorkOrdersBoard() {
                           </TableRow>
                         ))
                       )}
-                      {/* New Inline Add Row */}
-                      <AddItemRow groupId={group.id} onAdd={(name) => dispatch(createWorkOrder({ name, groupId: group.id }))} />
                     </TableBody>
                   </Table>
                 </TableContainer>
               </Paper>
-            </Box>
-          );
-        })}
-      </Box>
+            </Collapse>
+          </Box>
+        );
+      })}
+    </Box>
 
       {/* ── New Customer Drawer ── opens when user picks "+ Add X as new customer" */}
       {pendingNewCustomer && (

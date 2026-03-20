@@ -262,11 +262,11 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
           <Divider sx={{ my: 2 }} />
 
           {/* Description */}
-          <PropertyRow icon={NotesOutlinedIcon} label="Notes">
+          <PropertyRow icon={NotesOutlinedIcon} label="Description">
             <InlineField
               multiline
               rows={4}
-              placeholder="Add notes..."
+              placeholder="Add description..."
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
