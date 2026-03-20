@@ -45,19 +45,16 @@ export const fetchEquipment = createAsyncThunk(
 
 export const createEquipment = createAsyncThunk(
   'equipment/createEquipment',
-  async (name, { dispatch, rejectWithValue }) => {
+  async (form, { dispatch, rejectWithValue }) => {
     try {
-      const created = await apiCreateEquipment({ name });
-      // If Monday returns a temp "c{timestamp}" ID, refetch to get the real numeric ID
-      if (!/^\d+$/.test(String(created.id))) {
-        await dispatch(fetchEquipment());
-        return null;
-      }
+      const created = await apiCreateEquipment(form);
+      // Wait for refetch so board shows the new item immediately after drawer closes
+      await dispatch(fetchEquipment());
       return created;
     } catch (e) {
       return rejectWithValue(e.message);
     }
-  },
+  }
 );
 
 // Link an existing location to an equipment item — optimistic update + API call
@@ -195,21 +192,9 @@ const equipmentSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchEquipment.pending,   (state) => { state.loading = true; state.error = null; })
-      .addCase(fetchEquipment.fulfilled, (state, action) => { state.loading = false; state.board = action.payload; })
-      .addCase(fetchEquipment.rejected,  (state, action) => { state.loading = false; state.error = action.payload; })
-      .addCase(createEquipment.fulfilled, (state, action) => {
-        if (!action.payload || !state.board) return;
-        if (!/^\d+$/.test(String(action.payload.id))) return;
-        state.board.items_page.items.push({
-          id: action.payload.id,
-          name: action.payload.name,
-          group: { id: 'topics', title: 'Active Equipment' },
-          column_values: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-      })
+      .addCase(createEquipment.pending,   (state) => { state.creating = true; state.error = null; })
+      .addCase(createEquipment.fulfilled, (state) => { state.creating = false; })
+      .addCase(createEquipment.rejected,  (state, action) => { state.creating = false; state.error = action.payload; })
       .addCase(createLocationAndLink.pending,   (state) => { state.creating = true; })
       .addCase(createLocationAndLink.fulfilled,  (state) => { state.creating = false; })
       .addCase(createLocationAndLink.rejected,   (state) => { state.creating = false; })

@@ -45,13 +45,10 @@ export const fetchLocations = createAsyncThunk(
 
 export const createLocation = createAsyncThunk(
   'locations/createLocation',
-  async (name, { dispatch, rejectWithValue }) => {
+  async (form, { dispatch, rejectWithValue }) => {
     try {
-      const created = await apiCreateLocation({ name });
-      if (!/^\d+$/.test(String(created.id))) {
-        await dispatch(fetchLocations());
-        return null;
-      }
+      const created = await apiCreateLocation(form);
+      await dispatch(fetchLocations());
       return created;
     } catch (e) {
       return rejectWithValue(e.message);
@@ -177,22 +174,12 @@ const locationsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchLocations.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(fetchLocations.pending,   (state) => { state.loading = true; state.error = null; })
       .addCase(fetchLocations.fulfilled, (state, action) => { state.loading = false; state.board = action.payload; })
-      .addCase(fetchLocations.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
-      .addCase(createLocation.fulfilled, (state, action) => {
-        if (!action.payload || !state.board) return;
-        if (!/^\d+$/.test(String(action.payload.id))) return;
-        const newItem = {
-          id: action.payload.id,
-          name: action.payload.name,
-          group: { id: 'topics', title: 'Active Locations' },
-          column_values: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        state.board.items_page.items.push(newItem);
-      })
+      .addCase(fetchLocations.rejected,  (state, action) => { state.loading = false; state.error = action.payload; })
+      .addCase(createLocation.pending,   (state) => { state.creating = true; state.error = null; })
+      .addCase(createLocation.fulfilled, (state) => { state.creating = false; })
+      .addCase(createLocation.rejected,  (state, action) => { state.creating = false; state.error = action.payload; })
       .addCase(createLocationAndLink.pending, (state) => { state.creating = true; })
       .addCase(createLocationAndLink.fulfilled, (state) => { state.creating = false; })
       .addCase(createLocationAndLink.rejected, (state) => { state.creating = false; })

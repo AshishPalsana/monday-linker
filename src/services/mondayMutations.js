@@ -70,14 +70,18 @@ function isValidMondayId(id) {
 // ── Customers ──────────────────────────────────────────────────────────────────
 
 export async function apiCreateCustomer(form) {
+  console.log('API: Creating customer with form:', form);
   const cv = {};
   if (form.email)          cv[COL.CUSTOMERS.EMAIL]           = { text: form.email, email: form.email };
   if (form.phone)          cv[COL.CUSTOMERS.PHONE]           = { phone: form.phone, countryShortName: 'US' };
   if (form.accountNumber)  cv[COL.CUSTOMERS.ACCOUNT_NUMBER]  = form.accountNumber;
   if (form.billingAddress) cv[COL.CUSTOMERS.BILLING_ADDRESS] = { text: form.billingAddress };
+  if (form.status)         cv[COL.CUSTOMERS.STATUS]          = { label: form.status };
   if (form.notes)          cv[COL.CUSTOMERS.NOTES]           = { text: form.notes };
 
-  const { data } = await mondayClient.mutate({
+  console.log('API: Column values prepared:', cv);
+
+  const { data, errors } = await mondayClient.mutate({
     mutation: gql`
       mutation {
         create_item(
@@ -89,6 +93,12 @@ export async function apiCreateCustomer(form) {
       }
     `,
   });
+  
+  if (errors?.length) {
+    console.error('API: Monday Error creating customer:', errors);
+    throw new Error(errors[0].message);
+  }
+  console.log('API: Customer created successfully:', data.create_item);
   return data.create_item;
 }
 
@@ -142,8 +152,9 @@ export async function apiCreateLocation(form) {
   const cv = {};
   if (form.streetAddress) cv[COL.LOCATIONS.STREET_ADDRESS] = form.streetAddress;
   if (form.city)          cv[COL.LOCATIONS.CITY]           = form.city;
-  if (form.zip)           cv[COL.LOCATIONS.ZIP]            = form.zip;
-  if (form.notes)         cv[COL.LOCATIONS.NOTES]          = { text: form.notes };
+  if (form.zip)            cv[COL.LOCATIONS.ZIP]            = form.zip;
+  if (form.locationStatus) cv[COL.LOCATIONS.STATUS]         = { label: form.locationStatus };
+  if (form.notes)          cv[COL.LOCATIONS.NOTES]          = { text: form.notes };
 
   const { data } = await mondayClient.mutate({
     mutation: gql`
@@ -209,6 +220,7 @@ export async function apiCreateEquipment(form) {
   if (form.modelNumber)  cv[COL.EQUIPMENT.MODEL_NUMBER]  = form.modelNumber;
   if (form.serialNumber) cv[COL.EQUIPMENT.SERIAL_NUMBER] = form.serialNumber;
   if (form.installDate)  cv[COL.EQUIPMENT.INSTALL_DATE]  = { date: form.installDate };
+  if (form.status)       cv[COL.EQUIPMENT.STATUS]        = { label: form.status };
   if (form.notes)        cv[COL.EQUIPMENT.NOTES]         = { text: form.notes };
 
   const { data } = await mondayClient.mutate({

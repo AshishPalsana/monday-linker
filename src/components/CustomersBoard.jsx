@@ -125,8 +125,7 @@ export default function CustomersBoard({ createCustomer }) {
   }, {});
 
   const handleNew = () => {
-    const name = prompt('Enter customer name:');
-    if (name) createCustomer(name);
+    setOpenDialog({ id: '__new__', name: '', column_values: [] });
   };
 
   const renderTable = (rows, label, color) => (
@@ -157,20 +156,9 @@ export default function CustomersBoard({ createCustomer }) {
           <Table
             size="small"
             stickyHeader
-            sx={{ tableLayout: 'fixed', minWidth: 900 }}
+            sx={{ borderCollapse: 'separate', tableLayout: 'fixed', minWidth: 1600 }}
           >
-            <colgroup>
-              <col style={{ width: '17%' }} /> {/* Customer Name */}
-              <col style={{ width: '13%' }} /> {/* Email */}
-              <col style={{ width: '10%' }} /> {/* Phone */}
-              <col style={{ width: '8%' }}  /> {/* Account # */}
-              <col style={{ width: '8%' }}  /> {/* Status */}
-              <col style={{ width: '14%' }} /> {/* Billing Address */}
-              <col style={{ width: '8%' }}  /> {/* Billing Terms */}
-              <col style={{ width: '10%' }} /> {/* Xero Contact ID */}
-              <col style={{ width: '8%' }}  /> {/* Xero Sync Status */}
-              <col style={{ width: '4%' }}  /> {/* Edit button */}
-            </colgroup>
+            <colgroup><col style={{ width: 220 }} /><col style={{ width: 200 }} /><col style={{ width: 140 }} /><col style={{ width: 160 }} /><col style={{ width: 160 }} /><col style={{ width: 220 }} /><col style={{ width: 130 }} /><col style={{ width: 140 }} /><col style={{ width: 140 }} /><col style={{ width: 250 }} /></colgroup>
 
             <TableHead>
               <TableRow>
@@ -183,7 +171,7 @@ export default function CustomersBoard({ createCustomer }) {
                 <TableCell sx={HEAD_CELL}>Billing Terms</TableCell>
                 <TableCell sx={HEAD_CELL}>Xero Contact ID</TableCell>
                 <TableCell sx={HEAD_CELL}>Xero Sync Status</TableCell>
-                <TableCell sx={{ ...HEAD_CELL, width: 40 }} />
+                <TableCell sx={HEAD_CELL}>Notes</TableCell>
               </TableRow>
             </TableHead>
 
@@ -258,26 +246,13 @@ export default function CustomersBoard({ createCustomer }) {
                         {xeroStatus ? <StatusChip status={xeroStatus} /> : DASH}
                       </TableCell>
 
-                      {/* Edit button */}
-                      <TableCell
-                        sx={{ ...DATA_CELL, overflow: 'visible', px: 0.5 }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <IconButton size="small" onClick={() => setOpenDialog(c)}>
-                          <EditIcon sx={{ fontSize: 14 }} />
-                        </IconButton>
-                      </TableCell>
+                      {/* Notes */}
+                      <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.NOTES)} />
                     </TableRow>
                   );
                 })
               )}
 
-              {/* New Inline Add Row */}
-              <AddItemRow
-                placeholder="Add customer name"
-                colSpan={10}
-                onAdd={(name) => dispatch(createCustomerThunk(name))}
-              />
             </TableBody>
           </Table>
         </TableContainer>
@@ -309,9 +284,29 @@ export default function CustomersBoard({ createCustomer }) {
             InputProps={{
               startAdornment: <SearchIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 0.5 }} />,
             }}
-            sx={{ width: 220 }}
+            sx={{ 
+              width: 260,
+              '& .MuiOutlinedInput-root': {
+                height: 40,
+                borderRadius: '8px',
+                bgcolor: '#fff',
+              }
+            }}
           />
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleNew} size="small" sx={{ px: 2 }}>
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />} 
+            onClick={handleNew} 
+            sx={{ 
+              height: 40, 
+              px: 3, 
+              borderRadius: '8px', 
+              textTransform: 'none', 
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' }
+            }}
+          >
             New customer
           </Button>
         </Box>
@@ -329,6 +324,10 @@ export default function CustomersBoard({ createCustomer }) {
           open={true}
           customer={openDialog}
           onClose={() => setOpenDialog(null)}
+          onSaveNew={async (form) => {
+            await dispatch(createCustomerThunk(form));
+            setOpenDialog(null);
+          }}
         />
       )}
     </Box>

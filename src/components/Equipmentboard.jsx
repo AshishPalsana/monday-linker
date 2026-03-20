@@ -60,6 +60,11 @@ export default function EquipmentBoard() {
     dispatch(fetchLocations());
   }, [dispatch]);
 
+  const handleNew = () => {
+    setOpenDrawer({ id: '__new__', name: '', column_values: [] });
+  };
+
+
   // ── Column value reader ───────────────────────────────────────────────────
   const getCol = (item, colId) => {
     const col = item.column_values?.find((cv) => cv.id === colId);
@@ -128,18 +133,8 @@ export default function EquipmentBoard() {
 
       <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
         <TableContainer sx={{ overflowX: 'auto' }}>
-          <Table size="small" stickyHeader sx={{ tableLayout: 'fixed', minWidth: 900 }}>
-            <colgroup>
-              <col style={{ width: '18%' }} /> {/* Name */}
-              <col style={{ width: '14%' }} /> {/* Location */}
-              <col style={{ width: '10%' }} /> {/* Manufacturer */}
-              <col style={{ width: '10%' }} /> {/* Model Number */}
-              <col style={{ width: '10%' }} /> {/* Serial Number */}
-              <col style={{ width: '8%' }}  /> {/* Install Date */}
-              <col style={{ width: '8%' }}  /> {/* Status */}
-              <col style={{ width: '18%' }} /> {/* Notes */}
-              <col style={{ width: '4%' }}  /> {/* Edit */}
-            </colgroup>
+          <Table size="small" stickyHeader sx={{ borderCollapse: 'separate', tableLayout: 'fixed', minWidth: 1500 }}>
+            <colgroup><col style={{ width: 220 }} /><col style={{ width: 200 }} /><col style={{ width: 150 }} /><col style={{ width: 150 }} /><col style={{ width: 150 }} /><col style={{ width: 130 }} /><col style={{ width: 130 }} /><col style={{ width: 320 }} /></colgroup>
             <TableHead>
               <TableRow>
                 <TableCell sx={HEAD_CELL}>Equipment Name</TableCell>
@@ -150,13 +145,12 @@ export default function EquipmentBoard() {
                 <TableCell sx={HEAD_CELL}>Install Date</TableCell>
                 <TableCell sx={HEAD_CELL}>Status</TableCell>
                 <TableCell sx={HEAD_CELL}>Notes</TableCell>
-                <TableCell sx={{ ...HEAD_CELL, width: 40 }} />
               </TableRow>
             </TableHead>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} sx={{ textAlign: 'center', py: 4, color: 'text.disabled' }}>
+                  <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4, color: 'text.disabled' }}>
                     No equipment
                   </TableCell>
                 </TableRow>
@@ -221,27 +215,10 @@ export default function EquipmentBoard() {
                       </TableCell>
 
                       <TruncCell value={getCol(item, COL.EQUIPMENT.NOTES)} />
-
-                      {/* Edit */}
-                      <TableCell
-                        sx={{ ...DATA_CELL, overflow: 'visible', px: 0.5 }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <IconButton size="small" onClick={() => setOpenDrawer(item)}>
-                          <EditIcon sx={{ fontSize: 14 }} />
-                        </IconButton>
-                      </TableCell>
                     </TableRow>
                   );
                 })
               )}
-              <AddItemRow
-                placeholder="Add equipment name"
-                colSpan={9}
-                bgcolor="rgba(34,197,94,0.06)"
-                hoverColor="rgba(34,197,94,0.03)"
-                onAdd={(name) => dispatch(createEquipmentThunk(name))}
-              />
             </TableBody>
           </Table>
         </TableContainer>
@@ -266,11 +243,36 @@ export default function EquipmentBoard() {
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto' }}>
           <TextField
-            size="small" placeholder="Search equipment…" value={search}
+            size="small" 
+            placeholder="Search equipment…" 
+            value={search}
             onChange={(e) => setSearch(e.target.value)}
             InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 0.5 }} /> }}
-            sx={{ width: 220 }}
+            sx={{ 
+              width: 260,
+              '& .MuiOutlinedInput-root': {
+                height: 40,
+                borderRadius: '8px',
+                bgcolor: '#fff',
+              }
+            }}
           />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleNew}
+            sx={{ 
+              height: 40, 
+              px: 3, 
+              borderRadius: '8px', 
+              textTransform: 'none', 
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' }
+            }}
+          >
+            New equipment
+          </Button>
         </Box>
       </Box>
 
@@ -287,6 +289,10 @@ export default function EquipmentBoard() {
           open
           equipment={openDrawer}
           onClose={() => setOpenDrawer(null)}
+          onSaveNew={async (form) => {
+            await dispatch(createEquipmentThunk(form));
+            setOpenDrawer(null);
+          }}
         />
       )}
 

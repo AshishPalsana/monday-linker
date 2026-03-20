@@ -154,8 +154,7 @@ export default function LocationsBoard({ createLocation }) {
   }, {});
 
   const handleNew = () => {
-    const name = prompt("Enter location name:");
-    if (name) createLocation(name);
+    setOpenDialog({ id: '__new__', name: '', column_values: [] });
   };
 
   const renderTable = (rows, label, color) => (
@@ -197,21 +196,9 @@ export default function LocationsBoard({ createLocation }) {
           <Table
             size="small"
             stickyHeader
-            sx={{ tableLayout: "fixed", minWidth: 1000 }}
+            sx={{ borderCollapse: 'separate', tableLayout: 'fixed', minWidth: 1600 }}
           >
-            <colgroup>
-              <col style={{ width: "16%" }} /> {/* Location Name */}
-              <col style={{ width: "12%" }} /> {/* Street Address */}
-              <col style={{ width: "7%" }} /> {/* City */}
-              <col style={{ width: "5%" }} /> {/* State */}
-              <col style={{ width: "5%" }} /> {/* ZIP */}
-              <col style={{ width: "7%" }} /> {/* Status */}
-              <col style={{ width: "10%" }} /> {/* Customer */}
-              <col style={{ width: "10%" }} /> {/* Work Orders */}
-              <col style={{ width: "10%" }} /> {/* Equipments */}
-              <col style={{ width: "14%" }} /> {/* Notes */}
-              <col style={{ width: "4%" }} /> {/* Edit */}
-            </colgroup>
+            <colgroup><col style={{ width: 200 }} /><col style={{ width: 220 }} /><col style={{ width: 130 }} /><col style={{ width: 80 }}  /><col style={{ width: 80 }}  /><col style={{ width: 130 }} /><col style={{ width: 250 }} /><col style={{ width: 160 }} /><col style={{ width: 160 }} /><col style={{ width: 160 }} /></colgroup>
             <TableHead>
               <TableRow>
                 <TableCell sx={HEAD_CELL}>Location Name</TableCell>
@@ -224,14 +211,13 @@ export default function LocationsBoard({ createLocation }) {
                 <TableCell sx={HEAD_CELL}>Work Orders</TableCell>
                 <TableCell sx={HEAD_CELL}>Customer</TableCell>
                 <TableCell sx={HEAD_CELL}>Equipments</TableCell>
-                <TableCell sx={{ ...HEAD_CELL, width: 40 }} />
               </TableRow>
             </TableHead>
             <TableBody>
               {rows.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={11}
+                    colSpan={10}
                     sx={{ textAlign: "center", py: 4, color: "text.disabled" }}
                   >
                     No locations
@@ -407,30 +393,11 @@ export default function LocationsBoard({ createLocation }) {
                       </TableCell>
 
                       {/* Edit */}
-                      <TableCell
-                        sx={{ ...DATA_CELL, overflow: "visible", px: 0.5 }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <IconButton
-                          size="small"
-                          onClick={() => setOpenDialog(l)}
-                        >
-                          <EditIcon sx={{ fontSize: 14 }} />
-                        </IconButton>
-                      </TableCell>
                     </TableRow>
                   );
                 })
               )}
 
-              {/* New Inline Add Row */}
-              <AddItemRow
-                placeholder="Add location name"
-                colSpan={11}
-                bgcolor="rgba(168, 85, 247, 0.08)"
-                hoverColor="rgba(168, 85, 247, 0.04)"
-                onAdd={(name) => dispatch(createLocationThunk(name))}
-              />
             </TableBody>
           </Table>
         </TableContainer>
@@ -490,17 +457,31 @@ export default function LocationsBoard({ createLocation }) {
                 />
               ),
             }}
-            sx={{ width: 220 }}
+            sx={{ 
+              width: 260,
+              '& .MuiOutlinedInput-root': {
+                height: 40,
+                borderRadius: '8px',
+                bgcolor: '#fff',
+              }
+            }}
           />
-          {/* <Button
+          <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleNew}
-            size="small"
-            sx={{ px: 2 }}
+            sx={{ 
+              height: 40, 
+              px: 3, 
+              borderRadius: '8px', 
+              textTransform: 'none', 
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' }
+            }}
           >
             New location
-          </Button> */}
+          </Button>
         </Box>
       </Box>
 
@@ -516,6 +497,10 @@ export default function LocationsBoard({ createLocation }) {
           open={true}
           location={openDialog}
           onClose={() => setOpenDialog(null)}
+          onSaveNew={async (form) => {
+            await dispatch(createLocationThunk(form));
+            setOpenDialog(null);
+          }}
         />
       )}
     </Box>

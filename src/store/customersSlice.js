@@ -46,20 +46,16 @@ export const fetchCustomers = createAsyncThunk(
 
 export const createCustomer = createAsyncThunk(
   'customers/createCustomer',
-  async (name, { dispatch, rejectWithValue }) => {
+  async (form, { dispatch, rejectWithValue }) => {
     try {
-      const created = await apiCreateCustomer({ name });
-      // Monday sometimes returns a temp "c{timestamp}" ID before the item is committed.
-      // If that happens, refetch immediately so the board shows the real numeric ID.
-      if (!/^\d+$/.test(String(created.id))) {
-        await dispatch(fetchCustomers());
-        return null; // fetchCustomers already updated state — skip the push below
-      }
+      const created = await apiCreateCustomer(form);
+      // Always refetch to ensure board reflects all columns and correct grouping
+      await dispatch(fetchCustomers());
       return created;
     } catch (e) {
       return rejectWithValue(e.message);
     }
-  }
+  },
 );
 
 export const createCustomerAndLink = createAsyncThunk(
@@ -206,20 +202,16 @@ const customersSlice = createSlice({
       .addCase(fetchCustomers.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(fetchCustomers.fulfilled, (state, action) => { state.loading = false; state.board = action.payload; })
       .addCase(fetchCustomers.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
-      .addCase(createCustomer.fulfilled, (state, action) => {
-        // null payload means a temp ID was returned and fetchCustomers() already refreshed state
-        if (!action.payload || !state.board) return;
-        // Extra guard: never store a non-numeric (temp) ID in state
-        if (!/^\d+$/.test(String(action.payload.id))) return;
-        const newItem = {
-          id: action.payload.id,
-          name: action.payload.name,
-          group: { id: 'topics', title: 'Active Customers' },
-          column_values: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        state.board.items_page.items.push(newItem);
+      .addCase(createCustomer.pending, (state) => {
+        state.creating = true;
+        state.error = null;
+      })
+      .addCase(createCustomer.fulfilled, (state) => {
+        state.creating = false;
+      })
+      .addCase(createCustomer.rejected, (state, action) => {
+        state.creating = false;
+        state.error = action.payload;
       })
       .addCase(createCustomerAndLink.pending, (state) => { state.creating = true; })
       .addCase(createCustomerAndLink.fulfilled, (state) => { state.creating = false; })

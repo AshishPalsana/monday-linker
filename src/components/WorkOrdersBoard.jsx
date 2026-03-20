@@ -27,6 +27,23 @@ import { MONDAY_COLUMN_IDS } from '../constants';
 import StatusChip from './StatusChip';
 import AddItemRow from './AddItemRow';
 
+// Shared header cell style — no wrapping ever
+const HEAD_CELL = {
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  fontSize: '0.7rem',
+  fontWeight: 700,
+  letterSpacing: '0.04em',
+  color: 'text.secondary',
+  bgcolor: 'background.paper',
+  borderBottom: '1px solid',
+  borderColor: 'divider',
+  py: 1,
+  px: 1.5,
+};
+
+
 export default function WorkOrdersBoard() {
   const dispatch = useDispatch();
   const { board, loading, error } = useSelector((s) => s.workOrders);
@@ -174,13 +191,27 @@ export default function WorkOrdersBoard() {
                 <SearchIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 0.5 }} />
               ),
             }}
-            sx={{ width: 220 }}
+            sx={{ 
+              width: 260,
+              '& .MuiOutlinedInput-root': {
+                height: 40,
+                borderRadius: '8px',
+                bgcolor: '#fff',
+              }
+            }}
           />
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            size="small"
-            sx={{ px: 2 }}
+            sx={{ 
+              height: 40, 
+              px: 3, 
+              borderRadius: '8px', 
+              textTransform: 'none', 
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' }
+            }}
             disabled
           >
             New work order
@@ -229,15 +260,22 @@ export default function WorkOrdersBoard() {
                   borderColor: 'divider',
                 }}
               >
-                <TableContainer>
-                  <Table size="small" stickyHeader>
+                <TableContainer sx={{ overflowX: 'auto' }}>
+                  <Table size="small" stickyHeader sx={{ borderCollapse: 'separate', tableLayout: 'fixed', minWidth: 1200 }}>
+                    <colgroup>
+                      <col style={{ width: 220 }} /> {/* Work order */}
+                      <col style={{ width: 200 }} /> {/* Customers */}
+                      <col style={{ width: 200 }} /> {/* Locations */}
+                      <col style={{ width: 440 }} /> {/* Description of Work */}
+                      <col style={{ width: 140 }} /> {/* Status */}
+                    </colgroup>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Work order</TableCell>
-                        <TableCell>Customers</TableCell>
-                        <TableCell>Locations</TableCell>
-                        <TableCell>Description of Work</TableCell>
-                        <TableCell>Status</TableCell>
+                        <TableCell sx={HEAD_CELL}>Work order</TableCell>
+                        <TableCell sx={HEAD_CELL}>Customers</TableCell>
+                        <TableCell sx={HEAD_CELL}>Locations</TableCell>
+                        <TableCell sx={HEAD_CELL}>Description of Work</TableCell>
+                        <TableCell sx={HEAD_CELL}>Status</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>

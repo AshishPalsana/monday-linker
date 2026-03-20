@@ -18,8 +18,7 @@ import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import { MONDAY_COLUMN_IDS } from '../constants';
 import { updateCustomer } from '../store/customersSlice';
 
-const BILLING_TERMS = ['Net 15', 'Net 30', 'Net 45', 'Net 60', 'Due on Receipt', 'COD'];
-const XERO_SYNC_STATUSES = ['Synced', 'Pending', 'Error', 'Not Synced'];
+const XERO_SYNC_STATUSES = ['Synced','Error', 'Not Synced'];
 
 // ── Notion-style property row ─────────────────────────────────────────────────
 const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
@@ -76,29 +75,85 @@ const InlineField = ({ value, onChange, placeholder, error, multiline, rows }) =
   />
 );
 
-// ── Borderless inline select ──────────────────────────────────────────────────
-const InlineSelect = ({ value, onChange, options, placeholder }) => (
+const InlineSelect = ({ value, onChange, options, placeholder, getStatusColor }) => (
   <Select
     value={value}
     onChange={(e) => onChange(e.target.value)}
     displayEmpty
     variant="standard"
     disableUnderline
+    MenuProps={{
+      PaperProps: {
+        sx: {
+          mt: 0.5,
+          borderRadius: '8px',
+          boxShadow: '0 8px 24px rgba(15, 15, 15, 0.12), 0 2px 4px rgba(15, 15, 15, 0.04)',
+          border: '1px solid #e8e6e1',
+          '& .MuiList-root': { p: '4px' },
+        }
+      }
+    }}
     sx={{
       fontSize: '0.875rem',
       color: value ? '#37352f' : '#c1bfbc',
-      '& .MuiSelect-select': { p: 0, lineHeight: 1.55 },
+      width: '100%',
+      '& .MuiSelect-select': { 
+        p: 0, 
+        lineHeight: 1.55,
+        display: 'flex',
+        alignItems: 'center',
+      },
       '& .MuiSvgIcon-root': { fontSize: 15, color: '#9b9a97' },
     }}
+    renderValue={(selected) => {
+      if (!selected) return <em style={{ color: '#c1bfbc', fontStyle: 'normal' }}>{placeholder || 'Select…'}</em>;
+      
+      const colors = getStatusColor ? getStatusColor(selected) : null;
+      if (colors) {
+        return (
+          <Box sx={{ 
+            px: 1, py: '1px', borderRadius: '3px', 
+            bgcolor: colors.bg, color: colors.color,
+            fontSize: '0.75rem', fontWeight: 500,
+            display: 'inline-flex', alignItems: 'center'
+          }}>
+            {selected}
+          </Box>
+        );
+      }
+      return selected;
+    }}
   >
-    <MenuItem value="">
-      <em style={{ color: '#c1bfbc', fontStyle: 'normal' }}>{placeholder || 'Select…'}</em>
+    <MenuItem value="" sx={{ fontSize: '0.875rem', py: '6px', borderRadius: '4px', mb: '2px', color: '#c1bfbc' }}>
+      {placeholder || 'None'}
     </MenuItem>
-    {options.map((opt) => (
-      <MenuItem key={opt} value={opt} sx={{ fontSize: '0.875rem' }}>
-        {opt}
-      </MenuItem>
-    ))}
+    {options.map((opt) => {
+      const colors = getStatusColor ? getStatusColor(opt) : null;
+      return (
+        <MenuItem 
+          key={opt} 
+          value={opt} 
+          sx={{ 
+            fontSize: '0.875rem', 
+            py: '6px', 
+            borderRadius: '4px',
+            mb: '2px',
+            '&:hover': { bgcolor: '#f1f1ef' },
+            '&.Mui-selected': { bgcolor: '#f1f1ef', fontWeight: 600 },
+          }}
+        >
+          {colors ? (
+            <Box sx={{ 
+              px: 1, py: '1px', borderRadius: '3px', 
+              bgcolor: colors.bg, color: colors.color,
+              fontSize: '0.75rem', fontWeight: 500
+            }}>
+              {opt}
+            </Box>
+          ) : opt}
+        </MenuItem>
+      );
+    })}
   </Select>
 );
 
@@ -284,7 +339,7 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
             <InlineField
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
-              placeholder="Full name or company"
+              placeholder="Full name"
               error={err('name')}
             />
           </PropertyRow>
@@ -292,7 +347,7 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
             <InlineField
               value={form.email}
               onChange={(e) => set('email', e.target.value)}
-              placeholder="billing@company.com"
+              placeholder="[EMAIL_ADDRESS]"
               error={err('email')}
             />
           </PropertyRow>
@@ -327,11 +382,10 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
             />
           </PropertyRow>
           <PropertyRow icon={TagIcon} label="Billing Terms">
-            <InlineSelect
+            <InlineField
               value={form.billingTerms}
-              onChange={(v) => set('billingTerms', v)}
-              options={BILLING_TERMS}
-              placeholder="Select terms…"
+              onChange={(e) => set('billingTerms', e.target.value)}
+              placeholder="e.g. Net 30"
             />
           </PropertyRow>
         </Box>
@@ -352,6 +406,12 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
               onChange={(v) => set('xeroSyncStatus', v)}
               options={XERO_SYNC_STATUSES}
               placeholder="Select status…"
+              getStatusColor={(val) => {
+                if (val === 'Synced') return { bg: '#d3f8e2', color: '#0d6e48' };
+                if (val === 'Error') return { bg: '#fde8e8', color: '#b91c1c' };
+                if (val === 'Not Synced') return { bg: '#f1f1ef', color: '#787774' };
+                return null;
+              }}
             />
           </PropertyRow>
         </Box>
