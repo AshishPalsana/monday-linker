@@ -21,13 +21,8 @@ export const fetchWorkOrders = createAsyncThunk(
                 id
                 text
                 value
-                ... on StatusValue {
-                  label
-                  index
-                }
-                ... on BoardRelationValue {
-                  display_value
-                }
+                ... on StatusValue { label index }
+                ... on BoardRelationValue { display_value }
               }
               created_at
               updated_at
@@ -37,8 +32,45 @@ export const fetchWorkOrders = createAsyncThunk(
       }
     `;
     try {
-      const { data } = await mondayClient.query({ query });
-      return data.boards[0];
+      const { data } = await mondayClient.query({ query, fetchPolicy: 'network-only' });
+      return JSON.parse(JSON.stringify(data.boards[0]));
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const createWorkOrder = createAsyncThunk(
+  'workOrders/createWorkOrder',
+  async ({ name, groupId }, { rejectWithValue }) => {
+    const mutation = gql`
+      mutation CreateItem($boardId: ID!, $groupId: String!, $itemName: String!) {
+        create_item(board_id: $boardId, group_id: $groupId, item_name: $itemName) {
+          id
+          name
+          group { id title }
+          column_values {
+            id
+            text
+            value
+            ... on StatusValue { label index }
+            ... on BoardRelationValue { display_value }
+          }
+          created_at
+          updated_at
+        }
+      }
+    `;
+    try {
+      const { data } = await mondayClient.mutate({
+        mutation,
+        variables: {
+          boardId: "18402613691",
+          groupId,
+          itemName: name,
+        },
+      });
+      return data.create_item;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -52,10 +84,39 @@ const workOrderSlice = createSlice({
     loading: false,
     error: null,
   },
-  reducers: {},
-  extraReducers: builder => {
+  reducers: {
+    // Optimistically update a board_relation column's display text on a single item
+    optimisticUpdateRelation(state, action) {
+      const { itemId, columnId, displayText, linkedId } = action.payload;
+      if (!state.board) return;
+      const item = state.board.items_page.items.find((i) => i.id === itemId);
+      if (!item) return;
+      const col = item.column_values.find((cv) => cv.id === columnId);
+      if (!col) return;
+      col.display_value = displayText;
+      col.text = displayText;
+      // Store linkedPulseIds so getColumnValue resolver also works
+      col.value = JSON.stringify({
+        linkedPulseIds: [{ linkedPulseId: parseInt(linkedId) }],
+      });
+    },
+    // Revert a single item's column back to previous values on API failure
+    revertRelation(state, action) {
+      const { itemId, columnId, previousValue, previousText, previousDisplay } =
+        action.payload;
+      if (!state.board) return;
+      const item = state.board.items_page.items.find((i) => i.id === itemId);
+      if (!item) return;
+      const col = item.column_values.find((cv) => cv.id === columnId);
+      if (!col) return;
+      col.value = previousValue;
+      col.text = previousText;
+      col.display_value = previousDisplay;
+    },
+  },
+  extraReducers: (builder) => {
     builder
-      .addCase(fetchWorkOrders.pending, state => {
+      .addCase(fetchWorkOrders.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
@@ -66,8 +127,17 @@ const workOrderSlice = createSlice({
       .addCase(fetchWorkOrders.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(createWorkOrder.fulfilled, (state, action) => {
+        if (state.board) {
+          state.board.items_page.items.push(action.payload);
+        }
+      })
+      .addCase(createWorkOrder.rejected, (state, action) => {
+        state.error = action.payload;
       });
   },
 });
 
+export const { optimisticUpdateRelation, revertRelation } = workOrderSlice.actions;
 export default workOrderSlice.reducer;

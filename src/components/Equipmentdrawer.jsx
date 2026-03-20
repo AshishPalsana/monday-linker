@@ -4,25 +4,24 @@ import {
   Drawer, Box, Typography, TextField, Button, IconButton, Divider, CircularProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
-import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import LocationCityOutlinedIcon from '@mui/icons-material/LocationCityOutlined';
-import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
-import MarkunreadMailboxOutlinedIcon from '@mui/icons-material/MarkunreadMailboxOutlined';
+import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined';
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
+import NumbersOutlinedIcon from '@mui/icons-material/NumbersOutlined';
+import QrCodeOutlinedIcon from '@mui/icons-material/QrCodeOutlined';
+import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import NotesOutlinedIcon from '@mui/icons-material/NotesOutlined';
 import { COL } from '../services/mondayMutations';
-import { updateLocation } from '../store/locationsSlice';
+import { updateEquipment } from '../store/equipmentslice';
 
-const LOCATION_STATUSES = ['Active', 'Inactive', 'Pending', 'Closed'];
+const EQUIPMENT_STATUSES = ['Active', 'Inactive', 'Under Repair', 'Retired'];
 
 const STATUS_COLORS = {
-  Active:   { bg: '#d3f8e2', color: '#0d6e48' },
-  Inactive: { bg: '#fde8e8', color: '#b91c1c' },
-  Pending:  { bg: '#fef3c7', color: '#92400e' },
-  Closed:   { bg: '#f1f1ef', color: '#787774' },
+  Active:        { bg: '#d3f8e2', color: '#0d6e48' },
+  Inactive:      { bg: '#fde8e8', color: '#b91c1c' },
+  'Under Repair':{ bg: '#fef3c7', color: '#92400e' },
+  Retired:       { bg: '#f1f1ef', color: '#787774' },
 };
 
-// ── Notion-style property row ─────────────────────────────────────────────────
 const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
   <Box sx={{
     display: 'grid', gridTemplateColumns: '152px 1fr',
@@ -43,17 +42,16 @@ const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
   </Box>
 );
 
-const InlineField = ({ value, onChange, placeholder, error, multiline, rows }) => (
+const InlineField = ({ value, onChange, placeholder, error, type }) => (
   <TextField
     fullWidth size="small" value={value} onChange={onChange}
-    placeholder={placeholder} multiline={multiline} rows={rows} variant="standard"
+    placeholder={placeholder} type={type || 'text'} variant="standard"
     sx={{
       '& .MuiInput-root': { fontSize: '0.875rem', color: '#37352f', '&:before, &:after': { display: 'none' } },
       '& .MuiInputBase-input': {
         p: 0, lineHeight: 1.55,
         '&::placeholder': { color: error ? '#f5b8b8' : '#c1bfbc', opacity: 1 },
       },
-      '& .MuiInputBase-inputMultiline': { p: 0 },
     }}
   />
 );
@@ -67,17 +65,16 @@ const Section = ({ children }) => (
   </Typography>
 );
 
-export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
+export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open }) {
   const dispatch = useDispatch();
-  const { creating: apiCreating, saving: apiSaving } = useSelector((s) => s.locations);
+  const { creating: apiCreating, saving: apiSaving } = useSelector((s) => s.equipment);
 
-  const isTempId = location?.id && !/^\d+$/.test(String(location.id));
-  const isNew = !location?.id || location?.id === '__new__' || isTempId;
+  const isTempId = equipment?.id && !/^\d+$/.test(String(equipment.id));
+  const isNew = !equipment?.id || equipment?.id === '__new__' || isTempId;
   const isBusy = apiCreating || apiSaving;
 
-  // Read column values using real Monday column IDs
   const getCol = (colId) => {
-    const col = location?.column_values?.find((cv) => cv.id === colId);
+    const col = equipment?.column_values?.find((cv) => cv.id === colId);
     if (!col) return '';
     if (col.label && col.label.trim()) return col.label;
     if (col.text && col.text.trim()) return col.text;
@@ -85,19 +82,19 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
   };
 
   const [form, setForm] = useState({
-    name:           location?.name || '',
-    streetAddress:  getCol(COL.LOCATIONS.STREET_ADDRESS),
-    city:           getCol(COL.LOCATIONS.CITY),
-    state:          getCol(COL.LOCATIONS.STATE),
-    zip:            getCol(COL.LOCATIONS.ZIP),
-    locationStatus: getCol(COL.LOCATIONS.STATUS) || 'Active',
-    notes:          getCol(COL.LOCATIONS.NOTES),
+    name:            equipment?.name || '',
+    manufacturer:    getCol(COL.EQUIPMENT.MANUFACTURER),
+    modelNumber:     getCol(COL.EQUIPMENT.MODEL_NUMBER),
+    serialNumber:    getCol(COL.EQUIPMENT.SERIAL_NUMBER),
+    installDate:     getCol(COL.EQUIPMENT.INSTALL_DATE),
+    equipmentStatus: getCol(COL.EQUIPMENT.STATUS) || 'Active',
+    notes:           getCol(COL.EQUIPMENT.NOTES),
   });
 
   const [attempted, setAttempted] = useState(false);
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
-  const REQUIRED = [{ key: 'name', label: 'Location Name' }];
+  const REQUIRED = [{ key: 'name', label: 'Equipment Name' }];
   const missing = REQUIRED.filter((f) => !form[f.key]?.trim());
   const isValid = missing.length === 0;
   const err = (k) => attempted && !form[k]?.trim();
@@ -105,11 +102,10 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
   const handleSave = async () => {
     setAttempted(true);
     if (!isValid) return;
-
     if (isNew) {
       if (onSaveNew) await onSaveNew(form);
     } else {
-      dispatch(updateLocation({ locationId: location.id, form }));
+      dispatch(updateEquipment({ equipmentId: equipment.id, form }));
       onClose();
     }
   };
@@ -131,10 +127,10 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>
             <Typography sx={{ fontSize: '1.15rem', fontWeight: 700, color: '#37352f', lineHeight: 1.3 }}>
-              {isNew ? 'New Location' : (form.name || 'Edit Location')}
+              {isNew ? 'New Equipment' : (form.name || 'Edit Equipment')}
             </Typography>
             <Typography sx={{ fontSize: '0.78rem', color: '#9b9a97', mt: 0.3 }}>
-              {isNew ? 'Add a new service location' : 'Location details'}
+              {isNew ? 'Add a new equipment record' : 'Equipment details'}
             </Typography>
           </Box>
           <IconButton
@@ -145,15 +141,15 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
           </IconButton>
         </Box>
 
-        {/* Location Status pills */}
+        {/* Equipment Status pills */}
         <Box sx={{ display: 'flex', gap: 0.75, mt: 2, flexWrap: 'wrap' }}>
-          {LOCATION_STATUSES.map((s) => {
-            const active = form.locationStatus === s;
+          {EQUIPMENT_STATUSES.map((s) => {
+            const active = form.equipmentStatus === s;
             const colors = STATUS_COLORS[s];
             return (
               <Box
                 key={s}
-                onClick={() => set('locationStatus', s)}
+                onClick={() => set('equipmentStatus', s)}
                 sx={{
                   px: 1.5, py: 0.35, borderRadius: '3px',
                   fontSize: '0.75rem', fontWeight: 500,
@@ -176,62 +172,60 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
       {/* ── Body ── */}
       <Box sx={{ flex: 1, overflowY: 'auto', px: 2.5, py: 2.5 }}>
         {attempted && !isValid && (
-          <Box sx={{
-            mb: 2.5, px: 1.5, py: 1, bgcolor: '#fff3f3', borderRadius: '4px', border: '1px solid #fecaca',
-          }}>
+          <Box sx={{ mb: 2.5, px: 1.5, py: 1, bgcolor: '#fff3f3', borderRadius: '4px', border: '1px solid #fecaca' }}>
             <Typography sx={{ fontSize: '0.775rem', color: '#eb5757' }}>
               Missing: <strong>{missing.map((f) => f.label).join(', ')}</strong>
             </Typography>
           </Box>
         )}
 
-        {/* ── Identity ── */}
-        <Section>Location</Section>
+        {/* Identity */}
+        <Section>Equipment</Section>
         <Box sx={{ mb: 3 }}>
-          <PropertyRow icon={LocationOnOutlinedIcon} label="Location Name" required error={err('name')}>
+          <PropertyRow icon={ConstructionOutlinedIcon} label="Equipment Name" required error={err('name')}>
             <InlineField
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
-              placeholder="e.g. Walmart Store #210"
+              placeholder="e.g. Ice Machine"
               error={err('name')}
             />
           </PropertyRow>
+          <PropertyRow icon={CategoryOutlinedIcon} label="Manufacturer">
+            <InlineField
+              value={form.manufacturer}
+              onChange={(e) => set('manufacturer', e.target.value)}
+              placeholder="e.g. Hoshizaki"
+            />
+          </PropertyRow>
         </Box>
 
-        {/* ── Address ── */}
-        <Section>Address</Section>
+        {/* Specs */}
+        <Section>Specifications</Section>
         <Box sx={{ mb: 3 }}>
-          <PropertyRow icon={HomeOutlinedIcon} label="Street Address">
+          <PropertyRow icon={NumbersOutlinedIcon} label="Model Number">
             <InlineField
-              value={form.streetAddress}
-              onChange={(e) => set('streetAddress', e.target.value)}
-              placeholder="123 Main St"
+              value={form.modelNumber}
+              onChange={(e) => set('modelNumber', e.target.value)}
+              placeholder="e.g. T-49-HC"
             />
           </PropertyRow>
-          <PropertyRow icon={LocationCityOutlinedIcon} label="City">
+          <PropertyRow icon={QrCodeOutlinedIcon} label="Serial Number">
             <InlineField
-              value={form.city}
-              onChange={(e) => set('city', e.target.value)}
-              placeholder="City"
+              value={form.serialNumber}
+              onChange={(e) => set('serialNumber', e.target.value)}
+              placeholder="e.g. SN-83749203"
             />
           </PropertyRow>
-          <PropertyRow icon={MapOutlinedIcon} label="State">
+          <PropertyRow icon={CalendarTodayOutlinedIcon} label="Install Date">
             <InlineField
-              value={form.state}
-              onChange={(e) => set('state', e.target.value)}
-              placeholder="e.g. CA"
-            />
-          </PropertyRow>
-          <PropertyRow icon={MarkunreadMailboxOutlinedIcon} label="ZIP">
-            <InlineField
-              value={form.zip}
-              onChange={(e) => set('zip', e.target.value)}
-              placeholder="00000"
+              value={form.installDate}
+              onChange={(e) => set('installDate', e.target.value)}
+              type="date"
             />
           </PropertyRow>
         </Box>
 
-        {/* ── Notes ── */}
+        {/* Notes */}
         <Section>Notes</Section>
         <Box sx={{ px: 1, py: '6px', mb: 2, borderRadius: '4px', '&:hover': { bgcolor: '#f7f6f3' } }}>
           <TextField

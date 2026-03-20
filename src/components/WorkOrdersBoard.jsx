@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchWorkOrders } from "../store/workOrderSlice";
-import { fetchCustomers } from "../store/customersSlice";
-import { fetchLocations } from "../store/locationsSlice";
+import { useState, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchWorkOrders, createWorkOrder } from '../store/workOrderSlice';
+import { fetchCustomers, linkExistingCustomer, createCustomerAndLink } from '../store/customersSlice';
+import { fetchLocations, linkExistingLocation, createLocationAndLink } from '../store/locationsSlice';
+import CustomerDrawer from './CustomerDrawer';
+import LocationDrawer from './LocationDrawer';
 import {
   Box,
   Typography,
@@ -15,45 +17,25 @@ import {
   TableRow,
   Paper,
   Chip,
-  Avatar,
   Autocomplete,
   TextField,
-  IconButton,
-  Tooltip,
-  Select,
-  MenuItem,
-  Divider,
-  Badge,
   CircularProgress,
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import SearchIcon from "@mui/icons-material/Search";
-import { MONDAY_COLUMN_IDS } from "../constants";
-import StatusChip from "./StatusChip";
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import SearchIcon from '@mui/icons-material/Search';
+import { MONDAY_COLUMN_IDS } from '../constants';
+import StatusChip from './StatusChip';
+import AddItemRow from './AddItemRow';
 
-const GROUP_LABELS = {
-  random: "Random Stuff",
-  active: "Active Work Orders",
-  completed: "Completed WO",
-};
-const GROUP_COLORS = {
-  random: "#a855f7",
-  active: "#4f8ef7",
-  completed: "#22c55e",
-};
-
-export default function WorkOrdersBoard({ createCustomer, createLocation }) {
+export default function WorkOrdersBoard() {
   const dispatch = useDispatch();
-  const { board, loading, error } = useSelector((state) => state.workOrders);
-  const customers = useSelector(
-    (state) => state.customers.board?.items_page?.items || [],
-  );
-  const locations = useSelector(
-    (state) => state.locations.board?.items_page?.items || [],
-  );
-  const [openDialog, setOpenDialog] = useState(null);
-  const [search, setSearch] = useState("");
+  const { board, loading, error } = useSelector((s) => s.workOrders);
+  const customers = useSelector((s) => s.customers.board?.items_page?.items || []);
+  const locations = useSelector((s) => s.locations.board?.items_page?.items || []);
+  const [search, setSearch] = useState('');
+  // pendingNew holds { name, workOrderId } while the drawer is open for a brand-new record
+  const [pendingNewCustomer, setPendingNewCustomer] = useState(null);
+  const [pendingNewLocation, setPendingNewLocation] = useState(null);
 
   useEffect(() => {
     dispatch(fetchWorkOrders());
@@ -61,79 +43,86 @@ export default function WorkOrdersBoard({ createCustomer, createLocation }) {
     dispatch(fetchLocations());
   }, [dispatch]);
 
-  // Build ID-to-name maps for customers and locations
-  const customerIdToName = customers.reduce((acc, c) => {
-    acc[c.id] = c.name;
-    return acc;
-  }, {});
-  const locationIdToName = locations.reduce((acc, l) => {
-    acc[l.id] = l.name;
-    return acc;
-  }, {});
+  const customerMap = customers.reduce((acc, c) => { acc[c.id] = c.name; return acc; }, {});
+  const locationMap = locations.reduce((acc, l) => { acc[l.id] = l.name; return acc; }, {});
 
-  // Helper: Get value for a column, with special handling for board_relation
   const getColumnValue = (item, colId) => {
     const col = item.column_values.find((cv) => cv.id === colId);
-    if (!col) return "";
-    // Customers & Locations (Board Relations)
+    if (!col) return '';
     if (
       colId === MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER ||
       colId === MONDAY_COLUMN_IDS.WORK_ORDERS.LOCATION
     ) {
+      // Always prefer display_value/text first — set immediately by optimisticUpdateRelation
+      // so the name shows before customerMap/locationMap is updated after refetch.
+      if (col.display_value && col.display_value.trim()) return col.display_value;
+      if (col.text && col.text.trim()) return col.text;
+      // Fallback: resolve via ID map for records loaded fresh from Monday API
       if (col.value) {
         try {
           const parsed = JSON.parse(col.value);
-          const pulseIds =
-            parsed?.linkedPulseIds || parsed?.linked_item_ids || [];
-          if (Array.isArray(pulseIds) && pulseIds.length > 0) {
-            const idToNameMap =
-              colId === MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER
-                ? customerIdToName
-                : locationIdToName;
-            return pulseIds
+          const ids = parsed?.linkedPulseIds || parsed?.linked_item_ids || [];
+          if (Array.isArray(ids) && ids.length > 0) {
+            const map = colId === MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER ? customerMap : locationMap;
+            const names = ids
               .map((p) => {
-                const id = typeof p === "object" ? p.linkedPulseId || p.id : p;
-                return idToNameMap[id] || id;
+                const id = typeof p === 'object' ? p.linkedPulseId || p.id : p;
+                return map[id]; // undefined if not in map yet — filtered below
               })
-              .join(", ");
+              .filter(Boolean);
+            if (names.length > 0) return names.join(', ');
           }
-        } catch (e) {
-          /* ignore */
-        }
+        } catch (_) {}
       }
-      return col.display_value || col.text || "";
+      return '';
     }
-    // Default: use .label or .text
-    return col.label || col.text || "";
+    return col.label || col.text || '';
   };
 
-  // Parse customers, locations, technicians from board data if available
-  // For now, only work orders are available from API; customers/locations may need separate boards or relations
-  // We'll focus on rendering work orders with available columns
+  // Returns the raw column object for snapshotting before optimistic update
+  const getRawColumn = (item, colId) => {
+    const col = item.column_values.find((cv) => cv.id === colId);
+    if (!col) return { value: null, text: null, display_value: null };
+    return { value: col.value, text: col.text, display_value: col.display_value || null };
+  };
 
-  if (loading) return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100vh",
-      }}
-    >
-      <CircularProgress size={40} />
-    </Box>
-  );
+  const handleLinkCustomer = (item, customerId, customerName) => {
+    const previousSnapshot = getRawColumn(item, MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER);
+    dispatch(
+      linkExistingCustomer({
+        workOrderId: item.id,
+        customerId,
+        customerName,
+        previousSnapshot,
+      }),
+    );
+  };
+
+  const handleLinkLocation = (item, locationId, locationName) => {
+    const previousSnapshot = getRawColumn(item, MONDAY_COLUMN_IDS.WORK_ORDERS.LOCATION);
+    dispatch(
+      linkExistingLocation({
+        workOrderId: item.id,
+        locationId,
+        locationName,
+        previousSnapshot,
+      }),
+    );
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <CircularProgress size={40} />
+      </Box>
+    );
+  }
   if (error) return <div>Error: {error}</div>;
   if (!board) return null;
-  // ...existing code...
 
-  // Map Monday groups to local group keys
   const groups = board.groups.map((g) => g.id);
-  const groupLabels = Object.fromEntries(
-    board.groups.map((g) => [g.id, g.title]),
-  );
+  const groupLabels = Object.fromEntries(board.groups.map((g) => [g.id, g.title]));
 
-  // Filter work orders by search
   const filteredItems = board.items_page.items.filter(
     (item) => !search || item.name.toLowerCase().includes(search.toLowerCase()),
   );
@@ -141,28 +130,27 @@ export default function WorkOrdersBoard({ createCustomer, createLocation }) {
   const itemsByGroup = (groupId) =>
     filteredItems.filter((item) => item.group.id === groupId);
 
-  // New work order and update handlers would require API mutation (not implemented here)
-  // For now, disable add/edit
+  const getGroupColor = (title = '') => {
+    const t = title.toLowerCase();
+    if (t.includes('active')) return '#4f8ef7';
+    if (t.includes('completed')) return '#22c55e';
+    if (t.includes('ready') || t.includes('billing')) return '#f59e0b';
+    if (t.includes('billed')) return '#6b7280';
+    return '#a855f7';
+  };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        overflow: "hidden",
-      }}
-    >
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Header */}
       <Box
         sx={{
           px: 3,
           py: 2,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          bgcolor: "background.paper",
-          display: "flex",
-          alignItems: "center",
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          display: 'flex',
+          alignItems: 'center',
           gap: 2,
           flexShrink: 0,
         }}
@@ -170,11 +158,7 @@ export default function WorkOrdersBoard({ createCustomer, createLocation }) {
         <Box>
           <Typography
             variant="h5"
-            sx={{
-              fontWeight: 800,
-              fontSize: "1.25rem",
-              letterSpacing: "-0.3px",
-            }}
+            sx={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.3px' }}
           >
             Work Orders
           </Typography>
@@ -182,10 +166,7 @@ export default function WorkOrdersBoard({ createCustomer, createLocation }) {
             {board.items_page.items.length} total
           </Typography>
         </Box>
-
-        <Box
-          sx={{ display: "flex", alignItems: "center", gap: 1.5, ml: "auto" }}
-        >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto' }}>
           <TextField
             size="small"
             placeholder="Search work orders…"
@@ -193,14 +174,11 @@ export default function WorkOrdersBoard({ createCustomer, createLocation }) {
             onChange={(e) => setSearch(e.target.value)}
             InputProps={{
               startAdornment: (
-                <SearchIcon
-                  sx={{ fontSize: 16, color: "text.disabled", mr: 0.5 }}
-                />
+                <SearchIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 0.5 }} />
               ),
             }}
             sx={{ width: 220 }}
           />
-          {/* Disabled add for now, as API mutation is not implemented */}
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -213,53 +191,33 @@ export default function WorkOrdersBoard({ createCustomer, createLocation }) {
         </Box>
       </Box>
 
-      {/* Table */}
-      <Box sx={{ flex: 1, overflow: "auto", px: 3, py: 2 }}>
+      {/* Groups + Tables */}
+      <Box sx={{ flex: 1, overflow: 'auto', px: 3, py: 2 }}>
         {groups.map((groupId) => {
           const rows = itemsByGroup(groupId);
-          const title = (groupLabels[groupId] || "").toLowerCase();
-          const color = title.includes("random")
-            ? GROUP_COLORS.random
-            : title.includes("active")
-              ? GROUP_COLORS.active
-              : title.includes("completed")
-                ? GROUP_COLORS.completed
-                : "#4f8ef7";
+          const label = groupLabels[groupId] || '';
+          const color = getGroupColor(label);
 
           return (
             <Box key={groupId} sx={{ mb: 4 }}>
               {/* Group header */}
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}
-              >
-                <Box
-                  sx={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: "3px",
-                    bgcolor: color,
-                  }}
-                />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color }} />
                 <Typography
                   variant="subtitle2"
-                  sx={{
-                    color: color,
-                    fontSize: "0.8rem",
-                    fontWeight: 700,
-                    letterSpacing: "0.3px",
-                  }}
+                  sx={{ color, fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.3px' }}
                 >
-                  {groupLabels[groupId]}
+                  {label}
                 </Typography>
                 <Chip
                   label={rows.length}
                   size="small"
                   sx={{
                     height: 18,
-                    fontSize: "0.65rem",
+                    fontSize: '0.65rem',
                     fontWeight: 700,
-                    bgcolor: color + "22",
-                    color: color,
+                    bgcolor: color + '22',
+                    color,
                     border: `1px solid ${color}44`,
                   }}
                 />
@@ -268,10 +226,10 @@ export default function WorkOrdersBoard({ createCustomer, createLocation }) {
               <Paper
                 elevation={0}
                 sx={{
-                  borderRadius: "12px",
-                  overflow: "hidden",
-                  border: "1px solid",
-                  borderColor: "divider",
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor: 'divider',
                 }}
               >
                 <TableContainer>
@@ -290,80 +248,85 @@ export default function WorkOrdersBoard({ createCustomer, createLocation }) {
                         <TableRow>
                           <TableCell
                             colSpan={5}
-                            sx={{
-                              textAlign: "center",
-                              py: 4,
-                              color: "text.disabled",
-                            }}
+                            sx={{ textAlign: 'center', py: 4, color: 'text.disabled' }}
                           >
                             No work orders in this group
                           </TableCell>
                         </TableRow>
                       ) : (
                         rows.map((item) => (
-                          <TableRow
-                            key={item.id}
-                            hover
-                            sx={{ cursor: "pointer" }}
-                          >
-                            {/* Work order name */}
-                            <TableCell>{item.name}</TableCell>
-                            {/* Customers cell */}
+                          <TableRow key={item.id} hover sx={{ cursor: 'pointer' }}>
+                            {/* Name */}
                             <TableCell>
-                              <CustomerCell
-                                customer={getColumnValue(
-                                  item,
-                                  MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER,
-                                )}
-                                wo={item}
-                                createCustomer={createCustomer}
-                                onUpdate={() => {}}
-                                onClick={() => setOpenDialog(item)}
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 600, fontSize: '0.8rem' }}
+                              >
+                                {item.name}
+                              </Typography>
+                            </TableCell>
+
+                            {/* Customer */}
+                            <TableCell>
+                              <RelationCell
+                                value={getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER)}
+                                options={customers}
+                                placeholder="— add customer"
+                                chipBgColor="rgba(79,142,247,0.1)"
+                                chipTextColor="primary.light"
+                                chipBorderColor="rgba(79,142,247,0.2)"
+                                createLabel="customer"
+                                onSelectExisting={(selectedId, selectedName) =>
+                                  handleLinkCustomer(item, selectedId, selectedName)
+                                }
+                                onCreateNew={(inputValue) =>
+                                  setPendingNewCustomer({ name: inputValue, workOrderId: item.id })
+                                }
                               />
                             </TableCell>
-                            {/* Locations: show dash if empty, else value */}
+
+                            {/* Location */}
                             <TableCell>
-                              <LocationCell
-                                location={getColumnValue(
-                                  item,
-                                  MONDAY_COLUMN_IDS.WORK_ORDERS.LOCATION,
-                                )}
-                                wo={item}
-                                createLocation={createLocation}
-                                onUpdate={() => {}}
-                                onClick={() => setOpenDialog(item)}
+                              <RelationCell
+                                value={getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.LOCATION)}
+                                options={locations}
+                                placeholder="— add location"
+                                chipBgColor="rgba(168,85,247,0.1)"
+                                chipTextColor="#c084fc"
+                                chipBorderColor="rgba(168,85,247,0.2)"
+                                createLabel="location"
+                                onSelectExisting={(selectedId, selectedName) =>
+                                  handleLinkLocation(item, selectedId, selectedName)
+                                }
+                                onCreateNew={(inputValue) =>
+                                  setPendingNewLocation({ name: inputValue, workOrderId: item.id })
+                                }
                               />
                             </TableCell>
-                            {/* Description of Work: show dash if empty, else value */}
-                            <TableCell onClick={() => setOpenDialog(item)}>
+
+                            {/* Description */}
+                            <TableCell>
                               <Typography
                                 variant="body2"
                                 color="text.secondary"
-                                sx={{ fontSize: "0.75rem" }}
+                                sx={{ fontSize: '0.75rem' }}
                               >
-                                {getColumnValue(
-                                  item,
-                                  MONDAY_COLUMN_IDS.WORK_ORDERS.DESCRIPTION,
-                                ) || "-"}
+                                {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.DESCRIPTION) || '—'}
                               </Typography>
                             </TableCell>
-                            {/* Status: show dash if empty, else value, and color if possible */}
+
+                            {/* Status */}
                             <TableCell>
                               {(() => {
-                                const status = getColumnValue(
-                                  item,
-                                  MONDAY_COLUMN_IDS.WORK_ORDERS.STATUS,
-                                );
-                                return status ? (
-                                  <StatusChip status={status} />
-                                ) : (
-                                  "-"
-                                );
+                                const status = getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.STATUS);
+                                return status ? <StatusChip status={status} /> : '—';
                               })()}
                             </TableCell>
                           </TableRow>
                         ))
                       )}
+                      {/* New Inline Add Row */}
+                      <AddItemRow groupId={groupId} onAdd={(name) => dispatch(createWorkOrder({ name, groupId }))} />
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -372,56 +335,90 @@ export default function WorkOrdersBoard({ createCustomer, createLocation }) {
           );
         })}
       </Box>
+
+      {/* ── New Customer Drawer ── opens when user picks "+ Add X as new customer" */}
+      {pendingNewCustomer && (
+        <CustomerDrawer
+          open
+          customer={{ id: '__new__', name: pendingNewCustomer.name, column_values: [] }}
+          onClose={() => setPendingNewCustomer(null)}
+          onSaveNew={async (form) => {
+            await dispatch(createCustomerAndLink({
+              form,
+              workOrderId: pendingNewCustomer.workOrderId,
+            }));
+            setPendingNewCustomer(null);
+          }}
+        />
+      )}
+
+      {/* ── New Location Drawer ── opens when user picks "+ Add X as new location" */}
+      {pendingNewLocation && (
+        <LocationDrawer
+          open
+          location={{ id: '__new__', name: pendingNewLocation.name, column_values: [] }}
+          onClose={() => setPendingNewLocation(null)}
+          onSaveNew={async (form) => {
+            await dispatch(createLocationAndLink({
+              form,
+              workOrderId: pendingNewLocation.workOrderId,
+            }));
+            setPendingNewLocation(null);
+          }}
+        />
+      )}
     </Box>
   );
 }
 
-// Inline Customer Cell with autocomplete + create
-function CustomerCell({ customer, wo, createCustomer, onUpdate, onClick }) {
+// ── Reusable relation cell ─────────────────────────────────────────────────────
+function RelationCell({
+  value,
+  options,
+  placeholder,
+  chipBgColor,
+  chipTextColor,
+  chipBorderColor,
+  createLabel,
+  onSelectExisting,
+  onCreateNew,
+}) {
   const [editing, setEditing] = useState(false);
-  const customers = useSelector(
-    (state) => state.customers.board?.items_page?.items || [],
-  );
+  const mouseDownOnOption = useRef(false);
 
   if (!editing) {
     return (
       <Box
-        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-        onClick={onClick}
+        sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+        onClick={(e) => e.stopPropagation()}
       >
-        {customer ? (
+        {value ? (
           <Chip
-            label={customer.name || customer}
+            label={value}
             size="small"
+            onClick={() => setEditing(true)}
             sx={{
-              maxWidth: 130,
-              fontSize: "0.72rem",
+              maxWidth: 150,
+              fontSize: '0.72rem',
               height: 22,
-              bgcolor: "rgba(79,142,247,0.1)",
-              color: "primary.light",
-              border: "1px solid rgba(79,142,247,0.2)",
-              cursor: "pointer",
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditing(true);
+              bgcolor: chipBgColor,
+              color: chipTextColor,
+              border: `1px solid ${chipBorderColor}`,
+              cursor: 'pointer',
             }}
           />
         ) : (
           <Box
+            onClick={() => setEditing(true)}
             sx={{
-              color: "text.disabled",
-              fontSize: "0.75rem",
-              cursor: "pointer",
-              "&:hover": { color: "primary.main" },
+              color: 'text.disabled',
+              fontSize: '0.75rem',
+              cursor: 'pointer',
               px: 0.5,
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditing(true);
+              '&:hover': { color: 'primary.main' },
             }}
           >
-            — add customer
+            {placeholder}
           </Box>
         )}
       </Box>
@@ -429,44 +426,43 @@ function CustomerCell({ customer, wo, createCustomer, onUpdate, onClick }) {
   }
 
   return (
-    <Box onClick={onClick}>
+    <Box onClick={(e) => e.stopPropagation()}>
       <Autocomplete
         size="small"
         open
         autoFocus
-        options={customers}
-        getOptionLabel={(o) => (typeof o === "string" ? o : o.name)}
-        filterOptions={(options, { inputValue }) => {
-          const filtered = options.filter((o) =>
+        options={options}
+        getOptionLabel={(o) => (typeof o === 'string' ? o : o.name)}
+        filterOptions={(opts, { inputValue }) => {
+          const filtered = opts.filter((o) =>
             o.name.toLowerCase().includes(inputValue.toLowerCase()),
           );
           if (
             inputValue &&
-            !filtered.some(
-              (o) => o.name.toLowerCase() === inputValue.toLowerCase(),
-            )
+            !filtered.some((o) => o.name.toLowerCase() === inputValue.toLowerCase())
           ) {
             filtered.push({
-              id: "__new__",
-              name: `Add "${inputValue}" as new customer`,
+              id: '__new__',
+              name: `Add "${inputValue}" as new ${createLabel}`,
               inputValue,
             });
           }
           return filtered;
         }}
         onChange={(_, val) => {
-          if (!val) {
-            setEditing(false);
-            return;
-          }
-          if (val.id === "__new__") {
-            createCustomer(val.inputValue, wo.id);
-          } else {
-            onUpdate(wo.id, { customerId: val.id });
-          }
+          mouseDownOnOption.current = false;
           setEditing(false);
+          if (!val) return;
+          if (val.id === '__new__') {
+            onCreateNew(val.inputValue);
+          } else {
+            // Pass both id and name so the thunk can optimistically display the name
+            onSelectExisting(val.id, val.name);
+          }
         }}
-        onBlur={() => setEditing(false)}
+        onBlur={() => {
+          if (!mouseDownOnOption.current) setEditing(false);
+        }}
         renderInput={(params) => (
           <TextField
             {...params}
@@ -482,145 +478,19 @@ function CustomerCell({ customer, wo, createCustomer, onUpdate, onClick }) {
               component="li"
               key={key}
               {...rest}
+              onMouseDown={() => { mouseDownOnOption.current = true; }}
               sx={{
-                fontSize: "0.8rem",
-                ...(option.id === "__new__"
-                  ? { color: "primary.main", fontWeight: 600 }
+                fontSize: '0.8rem',
+                ...(option.id === '__new__'
+                  ? { color: 'primary.main', fontWeight: 600 }
                   : {}),
               }}
             >
-              {option.id === "__new__" ? `+ ${option.name}` : option.name}
+              {option.id === '__new__' ? `+ ${option.name}` : option.name}
             </Box>
           );
         }}
         sx={{ width: 220 }}
-      />
-    </Box>
-  );
-}
-
-// Inline Location Cell with autocomplete + create
-function LocationCell({ location, wo, createLocation, onUpdate, onClick }) {
-  const [editing, setEditing] = useState(false);
-  const locations = useSelector(
-    (state) => state.locations.board?.items_page?.items || [],
-  );
-
-  if (!editing) {
-    return (
-      <Box
-        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-        onClick={onClick}
-      >
-        {location ? (
-          <Chip
-            label={location.name || location}
-            size="small"
-            sx={{
-              maxWidth: 130,
-              fontSize: "0.72rem",
-              height: 22,
-              bgcolor: "rgba(168,85,247,0.1)",
-              color: "#c084fc",
-              border: "1px solid rgba(168,85,247,0.2)",
-              cursor: "pointer",
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditing(true);
-            }}
-          />
-        ) : (
-          <Box
-            sx={{
-              color: "text.disabled",
-              fontSize: "0.75rem",
-              cursor: "pointer",
-              "&:hover": { color: "secondary.main" },
-              px: 0.5,
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditing(true);
-            }}
-          >
-            — add location
-          </Box>
-        )}
-      </Box>
-    );
-  }
-
-  return (
-    <Box onClick={onClick}>
-      <Autocomplete
-        size="small"
-        open
-        autoFocus
-        options={locations}
-        getOptionLabel={(o) => (typeof o === "string" ? o : o.name)}
-        filterOptions={(options, { inputValue }) => {
-          const filtered = options.filter((o) =>
-            o.name.toLowerCase().includes(inputValue.toLowerCase()),
-          );
-          if (
-            inputValue &&
-            !filtered.some(
-              (o) => o.name.toLowerCase() === inputValue.toLowerCase(),
-            )
-          ) {
-            filtered.push({
-              id: "__new__",
-              name: `Add "${inputValue}" as new location`,
-              inputValue,
-            });
-          }
-          return filtered;
-        }}
-        onChange={(_, val) => {
-          if (!val) {
-            setEditing(false);
-            return;
-          }
-          if (val.id === "__new__") {
-            // Correctly pass customer ID from column values
-            const custVal = wo.column_values?.find(
-              (cv) => cv.id === "board_relation_mm14ngb2",
-            )?.text;
-            createLocation(val.inputValue, wo.id, custVal);
-          } else {
-            onUpdate(wo.id, { locationId: val.id });
-          }
-          setEditing(false);
-        }}
-        onBlur={() => setEditing(false)}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            autoFocus
-            placeholder="Search or create…"
-            sx={{ minWidth: 180 }}
-          />
-        )}
-        renderOption={(props, option) => {
-          const { key, ...rest } = props;
-          return (
-            <Box
-              component="li"
-              key={key}
-              {...rest}
-              sx={{
-                fontSize: "0.8rem",
-                ...(option.id === "__new__"
-                  ? { color: "secondary.main", fontWeight: 600 }
-                  : {}),
-              }}
-            >
-              {option.id === "__new__" ? `+ ${option.name}` : option.name}
-            </Box>
-          );
-        }}
-        sx={{ width: 200 }}
       />
     </Box>
   );

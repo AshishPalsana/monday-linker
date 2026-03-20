@@ -1,15 +1,14 @@
-
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import theme from './theme';
-
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import WorkOrdersBoard from './components/WorkOrdersBoard';
 import CustomersBoard from './components/CustomersBoard';
 import LocationsBoard from './components/LocationsBoard';
+import EquipmentBoard from './components/Equipmentboard';
 import AppShell from './components/AppShell';
 
-export default function AppRouter({ data, updateData, createCustomer, createLocation }) {
+export default function AppRouter() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -20,12 +19,7 @@ export default function AppRouter({ data, updateData, createCustomer, createLoca
             path="/workorders"
             element={
               <AppShell>
-                <WorkOrdersBoard
-                  data={data}
-                  updateData={updateData}
-                  createCustomer={createCustomer}
-                  createLocation={createLocation}
-                />
+                <WorkOrdersBoard />
               </AppShell>
             }
           />
@@ -33,11 +27,7 @@ export default function AppRouter({ data, updateData, createCustomer, createLoca
             path="/customers"
             element={
               <AppShell>
-                <CustomersBoard
-                  data={data}
-                  updateData={updateData}
-                  createCustomer={createCustomer}
-                />
+                <CustomersBoard />
               </AppShell>
             }
           />
@@ -45,11 +35,15 @@ export default function AppRouter({ data, updateData, createCustomer, createLoca
             path="/locations"
             element={
               <AppShell>
-                <LocationsBoard
-                  data={data}
-                  updateData={updateData}
-                  createLocation={createLocation}
-                />
+                <LocationsBoard />
+              </AppShell>
+            }
+          />
+          <Route
+            path="/equipment"
+            element={
+              <AppShell>
+                <EquipmentBoard />
               </AppShell>
             }
           />

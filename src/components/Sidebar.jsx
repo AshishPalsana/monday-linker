@@ -10,6 +10,7 @@ import {
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import PeopleIcon from "@mui/icons-material/People";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
+import BuildIcon from "@mui/icons-material/Build";
 import { NavLink } from "react-router-dom";
 
 const NAV_MAIN = [
@@ -20,6 +21,9 @@ const NAV_MAIN = [
     path: "/workorders",
   },
   { id: "customers", icon: PeopleIcon, label: "Customers", path: "/customers" },
+  {
+    id: "equipment", icon: BuildIcon, label: "Equipment", path: "/equipment",
+  },
   {
     id: "locations",
     icon: LocationOnIcon,
