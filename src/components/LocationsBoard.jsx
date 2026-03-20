@@ -138,26 +138,20 @@ export default function LocationsBoard({ createLocation }) {
   if (!locBoard) return null;
 
   const allLocations = locBoard.items_page.items;
+  const groups = locBoard.groups || [];
 
-  // Status comes from the group title on Monday (Active Locations / Inactive Locations)
-  // OR from the Location Status column if set
-  const isActive = (l) => {
-    const status = getCol(l, COL.LOCATIONS.STATUS);
-    // If column has a value, use it; otherwise fall back to group title
-    if (status) return status !== "Inactive" && status !== "Closed";
-    return l.group?.title?.toLowerCase().includes("active") ?? true;
-  };
+  // Filter items by search once
+  const filteredLocations = allLocations.filter(loc => 
+    !search || loc.name.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const activeLocations = allLocations.filter(
-    (l) =>
-      isActive(l) &&
-      (!search || l.name.toLowerCase().includes(search.toLowerCase())),
-  );
-  const inactiveLocations = allLocations.filter(
-    (l) =>
-      !isActive(l) &&
-      (!search || l.name.toLowerCase().includes(search.toLowerCase())),
-  );
+  // Group items by group.id
+  const locationsByGroup = filteredLocations.reduce((acc, loc) => {
+    const groupId = loc.group?.id || 'default';
+    if (!acc[groupId]) acc[groupId] = [];
+    acc[groupId].push(loc);
+    return acc;
+  }, {});
 
   const handleNew = () => {
     const name = prompt("Enter location name:");
@@ -478,7 +472,7 @@ export default function LocationsBoard({ createLocation }) {
             Locations
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {activeLocations.length} active locations
+            {filteredLocations.length} total locations
           </Typography>
         </Box>
         <Box
@@ -511,8 +505,10 @@ export default function LocationsBoard({ createLocation }) {
       </Box>
 
       <Box sx={{ flex: 1, overflow: "auto", px: 3, py: 2 }}>
-        {renderTable(activeLocations, "Active Locations", "#a855f7")}
-        {renderTable(inactiveLocations, "Inactive Locations", "#6b7280")}
+        {groups.map((group) => {
+          const rows = locationsByGroup[group.id] || [];
+          return renderTable(rows, group.title, group.color || "#6b7280");
+        })}
       </Box>
 
       {openDialog && (

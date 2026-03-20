@@ -98,15 +98,20 @@ export default function EquipmentBoard() {
   if (!board) return null;
 
   const allItems = board.items_page.items;
+  const groups = board.groups || [];
 
-  const activeItems = allItems.filter((e) => {
-    const isInactive = e.group?.id !== 'topics';
-    return !isInactive && (!search || e.name.toLowerCase().includes(search.toLowerCase()));
-  });
-  const inactiveItems = allItems.filter((e) => {
-    const isInactive = e.group?.id !== 'topics';
-    return isInactive && (!search || e.name.toLowerCase().includes(search.toLowerCase()));
-  });
+  // Filter items by search once
+  const filteredItems = allItems.filter(item => 
+    !search || item.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Group items by group.id
+  const itemsByGroup = filteredItems.reduce((acc, item) => {
+    const groupId = item.group?.id || 'default';
+    if (!acc[groupId]) acc[groupId] = [];
+    acc[groupId].push(item);
+    return acc;
+  }, {});
 
   const renderTable = (rows, label, color) => (
     <Box sx={{ mb: 4 }}>
@@ -256,7 +261,7 @@ export default function EquipmentBoard() {
             Equipment
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {activeItems.length} active items
+            {filteredItems.length} total items
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto' }}>
@@ -270,8 +275,10 @@ export default function EquipmentBoard() {
       </Box>
 
       <Box sx={{ flex: 1, overflow: 'auto', px: 3, py: 2 }}>
-        {renderTable(activeItems, 'Active Equipment', '#22c55e')}
-        {renderTable(inactiveItems, 'Inactive Equipment', '#6b7280')}
+        {groups.map((group) => {
+          const rows = itemsByGroup[group.id] || [];
+          return renderTable(rows, group.title, group.color || '#6b7280');
+        })}
       </Box>
 
       {/* Edit existing equipment */}

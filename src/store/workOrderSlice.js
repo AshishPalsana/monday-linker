@@ -10,7 +10,7 @@ export const fetchWorkOrders = createAsyncThunk(
         boards(ids: 18402613691) {
           id
           name
-          groups { id title }
+          groups { id title color }
           columns { id title type }
           items_page(limit: 100) {
             items {
@@ -48,7 +48,7 @@ export const createWorkOrder = createAsyncThunk(
         create_item(board_id: $boardId, group_id: $groupId, item_name: $itemName) {
           id
           name
-          group { id title }
+          group { id title color }
           column_values {
             id
             text

@@ -13,7 +13,7 @@ const FETCH_QUERY = gql`
   query GetLocations {
     boards(ids: 18400965227) {
       id name
-      groups { id title }
+      groups { id title color }
       columns { id title type }
       items_page(limit: 200) {
         items {

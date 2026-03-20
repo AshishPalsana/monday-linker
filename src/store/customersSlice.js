@@ -13,7 +13,7 @@ const FETCH_QUERY = gql`
   query GetCustomers {
     boards(ids: 18400951947) {
       id name
-      groups { id title }
+      groups { id title color }
       columns { id title type }
       items_page(limit: 100) {
         items {

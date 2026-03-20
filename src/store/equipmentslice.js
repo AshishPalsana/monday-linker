@@ -12,7 +12,7 @@ const FETCH_QUERY = gql`
   query GetEquipment {
     boards(ids: 18403226725) {
       id name
-      groups { id title }
+      groups { id title color }
       columns { id title type }
       items_page(limit: 200) {
         items {

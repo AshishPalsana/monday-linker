@@ -120,24 +120,21 @@ export default function WorkOrdersBoard() {
   if (error) return <div>Error: {error}</div>;
   if (!board) return null;
 
-  const groups = board.groups.map((g) => g.id);
-  const groupLabels = Object.fromEntries(board.groups.map((g) => [g.id, g.title]));
+  const allItems = board.items_page.items;
+  const groups = board.groups || [];
 
-  const filteredItems = board.items_page.items.filter(
-    (item) => !search || item.name.toLowerCase().includes(search.toLowerCase()),
+  // Filter items by search once
+  const filteredItems = allItems.filter(item => 
+    !search || item.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const itemsByGroup = (groupId) =>
-    filteredItems.filter((item) => item.group.id === groupId);
-
-  const getGroupColor = (title = '') => {
-    const t = title.toLowerCase();
-    if (t.includes('active')) return '#4f8ef7';
-    if (t.includes('completed')) return '#22c55e';
-    if (t.includes('ready') || t.includes('billing')) return '#f59e0b';
-    if (t.includes('billed')) return '#6b7280';
-    return '#a855f7';
-  };
+  // Group items by group.id
+  const itemsByGroup = filteredItems.reduce((acc, item) => {
+    const groupId = item.group?.id || 'default';
+    if (!acc[groupId]) acc[groupId] = [];
+    acc[groupId].push(item);
+    return acc;
+  }, {});
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -163,7 +160,7 @@ export default function WorkOrdersBoard() {
             Work Orders
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {board.items_page.items.length} total
+            {filteredItems.length} total
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto' }}>
@@ -193,13 +190,13 @@ export default function WorkOrdersBoard() {
 
       {/* Groups + Tables */}
       <Box sx={{ flex: 1, overflow: 'auto', px: 3, py: 2 }}>
-        {groups.map((groupId) => {
-          const rows = itemsByGroup(groupId);
-          const label = groupLabels[groupId] || '';
-          const color = getGroupColor(label);
+        {groups.map((group) => {
+          const rows = itemsByGroup[group.id] || [];
+          const label = group.title;
+          const color = group.color || '#6b7280';
 
           return (
-            <Box key={groupId} sx={{ mb: 4 }}>
+            <Box key={group.id} sx={{ mb: 4 }}>
               {/* Group header */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
                 <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color }} />
@@ -326,7 +323,7 @@ export default function WorkOrdersBoard() {
                         ))
                       )}
                       {/* New Inline Add Row */}
-                      <AddItemRow groupId={groupId} onAdd={(name) => dispatch(createWorkOrder({ name, groupId }))} />
+                      <AddItemRow groupId={group.id} onAdd={(name) => dispatch(createWorkOrder({ name, groupId: group.id }))} />
                     </TableBody>
                   </Table>
                 </TableContainer>
