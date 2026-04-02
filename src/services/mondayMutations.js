@@ -38,10 +38,16 @@ export const COL = {
     EQUIPMENTS_REL:  'board_relation_mm19zxd8',
   },
   WORK_ORDERS: {
-    CUSTOMER:    'board_relation_mm14ngb2',
-    LOCATION:    'board_relation_mm14fdpt',
-    DESCRIPTION: 'long_text_mm14ee7h',
-    STATUS:      'color_mm14pf0q',
+    CUSTOMER:          'board_relation_mm14ngb2',
+    LOCATION:          'board_relation_mm14fdpt',
+    DESCRIPTION:       'long_text_mm14ee7h',
+    STATUS:            'color_mm14pf0q',
+    SCHEDULED_DATE:    'date_mm14sjdg',
+    MULTI_DAY:         'boolean_mm14act2',
+    SERVICE_HISTORY:   'long_text_mm15p7rk',
+    WORK_PERFORMED:    'long_text_mm15kfzp',
+    EXECUTION_STATUS:  'color_mm1s7ak1',
+    PARTS_ORDERED:     'color_mm1bs0w7',
   },
   // Equipment board (id: 18403226725)
   EQUIPMENT: {
@@ -387,4 +393,58 @@ export async function apiSetWorkOrderRelation(workOrderId, itemId, columnId) {
       }
     `,
   });
+}
+
+export async function apiUpdateWorkOrder(itemId, form) {
+  if (!isValidMondayId(itemId)) {
+    throw new Error(`Cannot update work order: item is still being created (id="${itemId}"). Please try again in a moment.`);
+  }
+  const cv = {};
+  if (form.description !== undefined)     cv[COL.WORK_ORDERS.DESCRIPTION]     = { text: form.description };
+  if (form.status !== undefined)          cv[COL.WORK_ORDERS.STATUS]           = { label: form.status || '' };
+  if (form.scheduledDate !== undefined)   cv[COL.WORK_ORDERS.SCHEDULED_DATE]   = form.scheduledDate ? { date: form.scheduledDate } : { date: null };
+  if (form.multiDay !== undefined)        cv[COL.WORK_ORDERS.MULTI_DAY]        = { checked: form.multiDay ? 'true' : 'false' };
+  if (form.serviceHistory !== undefined)  cv[COL.WORK_ORDERS.SERVICE_HISTORY]  = { text: form.serviceHistory };
+  if (form.workPerformed !== undefined)   cv[COL.WORK_ORDERS.WORK_PERFORMED]   = { text: form.workPerformed };
+  if (form.executionStatus !== undefined) cv[COL.WORK_ORDERS.EXECUTION_STATUS] = { label: form.executionStatus || '' };
+  if (form.partsOrdered !== undefined)    cv[COL.WORK_ORDERS.PARTS_ORDERED]    = { label: form.partsOrdered || '' };
+
+  if (form.customerId !== undefined) {
+    cv[COL.WORK_ORDERS.CUSTOMER] = form.customerId
+      ? { linkedPulseIds: [{ linkedPulseId: parseInt(form.customerId) }] }
+      : { linkedPulseIds: [] };
+  }
+  if (form.locationId !== undefined) {
+    cv[COL.WORK_ORDERS.LOCATION] = form.locationId
+      ? { linkedPulseIds: [{ linkedPulseId: parseInt(form.locationId) }] }
+      : { linkedPulseIds: [] };
+  }
+
+  const { errors } = await mondayClient.mutate({
+    mutation: gql`
+      mutation {
+        change_multiple_column_values(
+          board_id: ${BOARD_IDS.WORK_ORDERS}
+          item_id: ${itemId}
+          column_values: "${esc(JSON.stringify(cv))}"
+        ) { id }
+      }
+    `,
+  });
+  if (errors?.length) throw new Error(errors[0].message);
+
+  if (form.name !== undefined && form.name.trim()) {
+    await mondayClient.mutate({
+      mutation: gql`
+        mutation {
+          change_simple_column_value(
+            board_id: ${BOARD_IDS.WORK_ORDERS}
+            item_id: ${itemId}
+            column_id: "name"
+            value: "${esc(form.name)}"
+          ) { id }
+        }
+      `,
+    });
+  }
 }

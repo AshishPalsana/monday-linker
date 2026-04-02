@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchWorkOrders, createWorkOrder } from '../store/workOrderSlice';
+import { fetchWorkOrders } from '../store/workOrderSlice';
 import { fetchCustomers, linkExistingCustomer, createCustomerAndLink } from '../store/customersSlice';
 import { fetchLocations, linkExistingLocation, createLocationAndLink } from '../store/locationsSlice';
 import CustomerDrawer from './CustomerDrawer';
@@ -9,44 +9,21 @@ import {
   Box,
   Typography,
   Button,
-  Table,
-  TableBody,
   TableCell,
-  TableContainer,
-  TableHead,
   TableRow,
-  Paper,
-  Chip,
-  Autocomplete,
   TextField,
   CircularProgress,
-  Collapse,
-  IconButton,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import CheckIcon from '@mui/icons-material/Check';
 import { MONDAY_COLUMN_IDS } from '../constants';
 import StatusChip from './StatusChip';
 import WorkOrderDrawer from './WorkOrderDrawer';
+import WorkOrderDetailDrawer from './WorkOrderDetailDrawer';
 import RelationCell from './RelationCell';
+import { BoardGroup, BoardTable, DATA_CELL_SX, DASH } from './BoardTable';
 
-// Shared header cell style — no wrapping ever
-const HEAD_CELL = {
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  fontSize: '0.7rem',
-  fontWeight: 700,
-  letterSpacing: '0.04em',
-  color: 'text.secondary',
-  bgcolor: 'background.paper',
-  borderBottom: '1px solid',
-  borderColor: 'divider',
-  py: 1,
-  px: 1.5,
-};
 
 
 export default function WorkOrdersBoard() {
@@ -59,14 +36,7 @@ export default function WorkOrdersBoard() {
   const [pendingNewCustomer, setPendingNewCustomer] = useState(null);
   const [pendingNewLocation, setPendingNewLocation] = useState(null);
   const [openWorkOrderDrawer, setOpenWorkOrderDrawer] = useState(false);
-  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
-
-  const toggleGroup = (groupId) => {
-    const next = new Set(collapsedGroups);
-    if (next.has(groupId)) next.delete(groupId);
-    else next.add(groupId);
-    setCollapsedGroups(next);
-  };
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
 
   useEffect(() => {
     dispatch(fetchWorkOrders());
@@ -103,7 +73,7 @@ export default function WorkOrdersBoard() {
               .filter(Boolean);
             if (names.length > 0) return names.join(', ');
           }
-        } catch (_) {}
+        } catch { /* ignore */ }
       }
       return '';
     }
@@ -166,6 +136,107 @@ export default function WorkOrdersBoard() {
     acc[groupId].push(item);
     return acc;
   }, {});
+
+  const WO_COLUMNS = [
+    { label: 'WO #',                width: 90  },
+    { label: 'Work order',          width: 220 },
+    { label: 'Customers',           width: 180 },
+    { label: 'Locations',           width: 200 },
+    { label: 'Description of Work', width: 300 },
+    { label: 'Status',              width: 150 },
+    { label: 'Technician',          width: 160 },
+    { label: 'Scheduled Date',      width: 130 },
+    { label: 'Multi-Day',           width: 120 },
+    { label: 'Model',               width: 140 },
+    { label: 'Serial Number',       width: 150 },
+    { label: 'Service History',     width: 250 },
+    { label: 'Work Performed',      width: 250 },
+    { label: 'Equipments',          width: 160 },
+    { label: 'Execution Status',    width: 150 },
+    { label: 'Parts Ordered',       width: 140 },
+  ];
+
+  const renderWORow = (item) => (
+    <TableRow key={item.id} hover sx={{ cursor: 'pointer' }} onClick={() => setSelectedWorkOrder(item)}>
+      <TableCell sx={{ ...DATA_CELL_SX, fontFamily: 'monospace' }}>
+        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.WORKORDER_ID) || '—'}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>
+          {item.name}
+        </Typography>
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
+        <RelationCell
+          value={getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER)}
+          options={customers}
+          placeholder="— add customer"
+          chipBgColor="rgba(79,142,247,0.1)"
+          chipTextColor="primary.light"
+          chipBorderColor="rgba(79,142,247,0.2)"
+          createLabel="customer"
+          onSelectExisting={(id, name) => handleLinkCustomer(item, id, name)}
+          onCreateNew={(v) => setPendingNewCustomer({ name: v, workOrderId: item.id })}
+        />
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
+        <RelationCell
+          value={getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.LOCATION)}
+          options={locations}
+          placeholder="— add location"
+          chipBgColor="rgba(168,85,247,0.1)"
+          chipTextColor="#c084fc"
+          chipBorderColor="rgba(168,85,247,0.2)"
+          createLabel="location"
+          onSelectExisting={(id, name) => handleLinkLocation(item, id, name)}
+          onCreateNew={(v) => setPendingNewLocation({ name: v, workOrderId: item.id })}
+        />
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.DESCRIPTION) || '—'}
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
+        {(() => { const s = getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.STATUS); return s ? <StatusChip status={s} /> : '—'; })()}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.TECHNICIAN) || '—'}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.SCHEDULED_DATE) || '—'}
+      </TableCell>
+      <TableCell sx={{ textAlign: 'center' }}>
+        {(() => {
+          const col = item.column_values.find(cv => cv.id === MONDAY_COLUMN_IDS.WORK_ORDERS.MULTI_DAY);
+          let checked = false;
+          try { checked = col?.value ? JSON.parse(col.value)?.checked : false; } catch { /* ignore */ }
+          return checked
+            ? <CheckIcon sx={{ fontSize: 18, color: '#4caf50', display: 'block', mx: 'auto' }} />
+            : <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>—</Typography>;
+        })()}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {(() => { const col = item.column_values.find(cv => cv.id === MONDAY_COLUMN_IDS.WORK_ORDERS.MODEL); return col?.display_value || col?.text || '—'; })()}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {(() => { const col = item.column_values.find(cv => cv.id === MONDAY_COLUMN_IDS.WORK_ORDERS.SERIAL_NUMBER); return col?.display_value || col?.text || '—'; })()}
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, whiteSpace: 'nowrap' }}>
+        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.SERVICE_HISTORY) || '—'}
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, whiteSpace: 'nowrap' }}>
+        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.WORK_PERFORMED) || '—'}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {(() => { const col = item.column_values.find(cv => cv.id === MONDAY_COLUMN_IDS.WORK_ORDERS.EQUIPMENT); return col?.display_value || col?.text || '—'; })()}
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
+        {(() => { const s = getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.EXECUTION_STATUS); return s ? <StatusChip status={s} /> : '—'; })()}
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
+        {(() => { const s = getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.PARTS_ORDERED); return s ? <StatusChip status={s} /> : '—'; })()}
+      </TableCell>
+    </TableRow>
+  );
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -237,208 +308,68 @@ export default function WorkOrdersBoard() {
       <Box sx={{ flex: 1, overflow: 'auto', px: 3, py: 2 }}>
         {groups.map((group) => {
           const rows = itemsByGroup[group.id] || [];
-          const label = group.title;
-          const color = group.color || '#6b7280';
-          const isCollapsed = collapsedGroups.has(group.id);
-
           return (
-            <Box key={group.id} sx={{ mb: 4 }}>
-              {/* Group header */}
-              <Box 
-                onClick={() => toggleGroup(group.id)}
-                sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 1.5, 
-                  mb: 1,
-                  cursor: 'pointer',
-                  '&:hover': { opacity: 0.8 }
-                }}
-              >
-                <IconButton size="small" sx={{ p: 0, color: color }}>
-                  {isCollapsed ? <ChevronRightIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
-                </IconButton>
-                <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color }} />
-                <Typography
-                  variant="subtitle2"
-                  sx={{ color, fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.3px' }}
-                >
-                  {label}
-                </Typography>
-                <Chip
-                  label={rows.length}
-                  size="small"
-                  sx={{
-                    height: 18,
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    bgcolor: color + '22',
-                    color,
-                    border: `1px solid ${color}44`,
-                  }}
-                />
-              </Box>
-
-              <Collapse in={!isCollapsed}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <TableContainer sx={{ overflowX: 'auto', maxHeight: '500px', overflowY: 'auto' }}>
-                    <Table size="small" stickyHeader sx={{ borderCollapse: 'separate', tableLayout: 'fixed', minWidth: 1200 }}>
-                    <colgroup>
-                      <col style={{ width: 220 }} /> {/* Work order */}
-                      <col style={{ width: 200 }} /> {/* Customers */}
-                      <col style={{ width: 200 }} /> {/* Locations */}
-                      <col style={{ width: 440 }} /> {/* Description of Work */}
-                      <col style={{ width: 140 }} /> {/* Status */}
-                    </colgroup>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={HEAD_CELL}>Work order</TableCell>
-                        <TableCell sx={HEAD_CELL}>Customers</TableCell>
-                        <TableCell sx={HEAD_CELL}>Locations</TableCell>
-                        <TableCell sx={HEAD_CELL}>Description of Work</TableCell>
-                        <TableCell sx={HEAD_CELL}>Status</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rows.length === 0 ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={5}
-                            sx={{ textAlign: 'center', py: 4, color: 'text.disabled' }}
-                          >
-                            No work orders in this group
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        rows.map((item) => (
-                          <TableRow key={item.id} hover sx={{ cursor: 'pointer' }}>
-                            {/* Name */}
-                            <TableCell>
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 600, fontSize: '0.8rem' }}
-                              >
-                                {item.name}
-                              </Typography>
-                            </TableCell>
-
-                            {/* Customer */}
-                            <TableCell>
-                              <RelationCell
-                                value={getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER)}
-                                options={customers}
-                                placeholder="— add customer"
-                                chipBgColor="rgba(79,142,247,0.1)"
-                                chipTextColor="primary.light"
-                                chipBorderColor="rgba(79,142,247,0.2)"
-                                createLabel="customer"
-                                onSelectExisting={(selectedId, selectedName) =>
-                                  handleLinkCustomer(item, selectedId, selectedName)
-                                }
-                                onCreateNew={(inputValue) =>
-                                  setPendingNewCustomer({ name: inputValue, workOrderId: item.id })
-                                }
-                              />
-                            </TableCell>
-
-                            {/* Location */}
-                            <TableCell>
-                              <RelationCell
-                                value={getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.LOCATION)}
-                                options={locations}
-                                placeholder="— add location"
-                                chipBgColor="rgba(168,85,247,0.1)"
-                                chipTextColor="#c084fc"
-                                chipBorderColor="rgba(168,85,247,0.2)"
-                                createLabel="location"
-                                onSelectExisting={(selectedId, selectedName) =>
-                                  handleLinkLocation(item, selectedId, selectedName)
-                                }
-                                onCreateNew={(inputValue) =>
-                                  setPendingNewLocation({ name: inputValue, workOrderId: item.id })
-                                }
-                              />
-                            </TableCell>
-
-                            {/* Description */}
-                            <TableCell>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{ fontSize: '0.75rem' }}
-                              >
-                                {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.DESCRIPTION) || '—'}
-                              </Typography>
-                            </TableCell>
-
-                            {/* Status */}
-                            <TableCell>
-                              {(() => {
-                                const status = getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.STATUS);
-                                return status ? <StatusChip status={status} /> : '—';
-                              })()}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
-            </Collapse>
-          </Box>
-        );
-      })}
-    </Box>
+            <BoardGroup key={group.id} label={group.title} color={group.color || '#6b7280'} count={rows.length}>
+              <BoardTable
+                columns={WO_COLUMNS}
+                rows={rows}
+                renderRow={renderWORow}
+                emptyMessage="No work orders in this group"
+                minWidth={2790}
+              />
+            </BoardGroup>
+          );
+        })}
+      </Box>
 
       {/* ── New Customer Drawer ── opens when user picks "+ Add X as new customer" */}
-      {pendingNewCustomer && (
-        <CustomerDrawer
-          open
-          customer={{ id: '__new__', name: pendingNewCustomer.name, column_values: [] }}
-          onClose={() => setPendingNewCustomer(null)}
-          onSaveNew={async (form) => {
-            await dispatch(createCustomerAndLink({
-              form,
-              workOrderId: pendingNewCustomer.workOrderId,
-            }));
-            setPendingNewCustomer(null);
-          }}
-        />
-      )}
+      <CustomerDrawer
+        open={!!pendingNewCustomer}
+        customer={pendingNewCustomer
+          ? { id: '__new__', name: pendingNewCustomer.name, column_values: [] }
+          : { id: '__new__', name: '', column_values: [] }
+        }
+        onClose={() => setPendingNewCustomer(null)}
+        onSaveNew={async (form) => {
+          await dispatch(createCustomerAndLink({
+            form,
+            workOrderId: pendingNewCustomer.workOrderId,
+          }));
+          setPendingNewCustomer(null);
+        }}
+      />
 
       {/* ── New Location Drawer ── opens when user picks "+ Add X as new location" */}
-      {pendingNewLocation && (
-        <LocationDrawer
-          open
-          location={{ id: '__new__', name: pendingNewLocation.name, column_values: [] }}
-          onClose={() => setPendingNewLocation(null)}
-          onSaveNew={async (form) => {
-            await dispatch(createLocationAndLink({
-              form,
-              workOrderId: pendingNewLocation.workOrderId,
-            }));
-            setPendingNewLocation(null);
-          }}
-        />
-      )}
-      {openWorkOrderDrawer && (
-        <WorkOrderDrawer
-          open={true}
-          onClose={() => setOpenWorkOrderDrawer(false)}
-          defaultGroupId={groups.find(g => g.title.toLowerCase().includes('active'))?.id || groups[0]?.id}
-        />
-      )}
+      <LocationDrawer
+        open={!!pendingNewLocation}
+        location={pendingNewLocation
+          ? { id: '__new__', name: pendingNewLocation.name, column_values: [] }
+          : { id: '__new__', name: '', column_values: [] }
+        }
+        onClose={() => setPendingNewLocation(null)}
+        onSaveNew={async (form) => {
+          await dispatch(createLocationAndLink({
+            form,
+            workOrderId: pendingNewLocation.workOrderId,
+          }));
+          setPendingNewLocation(null);
+        }}
+      />
+      <WorkOrderDrawer
+        open={openWorkOrderDrawer}
+        onClose={() => setOpenWorkOrderDrawer(false)}
+        defaultGroupId={groups.find(g => g.title.toLowerCase().includes('active'))?.id || groups[0]?.id}
+      />
+
+      {/* ── Work Order Detail Drawer ── opens on row click */}
+      <WorkOrderDetailDrawer
+        key={selectedWorkOrder?.id}
+        open={!!selectedWorkOrder}
+        workOrder={selectedWorkOrder}
+        onClose={() => setSelectedWorkOrder(null)}
+      />
     </Box>
   );
 }
 
-// ── Reusable relation cell ─────────────────────────────────────────────────────
+// ── Reusable relation cell ─────────────────────────────────────────────────────

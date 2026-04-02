@@ -4,26 +4,16 @@ import {
   Box,
   Typography,
   Button,
-  Table,
-  TableBody,
   TableCell,
-  TableContainer,
-  TableHead,
   TableRow,
-  Paper,
-  Chip,
   TextField,
-  IconButton,
   Avatar,
+  Chip,
   Tooltip,
   CircularProgress,
-  Collapse,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
 import SearchIcon from "@mui/icons-material/Search";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { fetchLocations } from "../store/locationsSlice";
 import { fetchCustomers } from "../store/customersSlice";
 import { fetchWorkOrders } from "../store/workOrderSlice";
@@ -31,56 +21,9 @@ import { COL } from "../services/mondayMutations";
 import StatusChip from "./StatusChip";
 import LocationDrawer from "./LocationDrawer";
 import { createLocation as createLocationThunk } from "../store/locationsSlice";
+import { BoardGroup, BoardTable, DATA_CELL_SX, DASH, TruncCell } from "./BoardTable";
 
-// Shared header cell style — no wrapping ever
-const HEAD_CELL = {
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  fontSize: "0.7rem",
-  fontWeight: 700,
-  letterSpacing: "0.04em",
-  color: "text.secondary",
-  bgcolor: "background.paper",
-  borderBottom: "1px solid",
-  borderColor: "divider",
-  py: 1,
-  px: 1.5,
-};
 
-// Shared data cell style — truncate with ellipsis
-const DATA_CELL = {
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  fontSize: "0.75rem",
-  color: "text.secondary",
-  py: "7px",
-  px: 1.5,
-  maxWidth: 0,
-};
-
-const DASH = <span style={{ color: "#9ba6b4" }}>—</span>;
-
-function TruncCell({ value, sx }) {
-  if (!value) return <TableCell sx={{ ...DATA_CELL, ...sx }}>{DASH}</TableCell>;
-  return (
-    <Tooltip title={value} placement="top" enterDelay={600} arrow>
-      <TableCell sx={{ ...DATA_CELL, ...sx }}>
-        <span
-          style={{
-            display: "block",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {value}
-        </span>
-      </TableCell>
-    </Tooltip>
-  );
-}
 
 export default function LocationsBoard({ createLocation }) {
   const dispatch = useDispatch();
@@ -89,14 +32,6 @@ export default function LocationsBoard({ createLocation }) {
 
   const [openDialog, setOpenDialog] = useState(null);
   const [search, setSearch] = useState("");
-  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
-
-  const toggleGroup = (groupId) => {
-    const next = new Set(collapsedGroups);
-    if (next.has(groupId)) next.delete(groupId);
-    else next.add(groupId);
-    setCollapsedGroups(next);
-  };
 
   useEffect(() => {
     dispatch(fetchLocations());
@@ -167,271 +102,70 @@ export default function LocationsBoard({ createLocation }) {
     setOpenDialog({ id: '__new__', name: '', column_values: [] });
   };
 
-  const renderTable = (rows, label, color, groupId) => {
-    const isCollapsed = collapsedGroups.has(groupId);
+  const LOCATION_COLUMNS = [
+    { label: 'Location Name',  width: 200 },
+    { label: 'Street Address', width: 220 },
+    { label: 'City',           width: 130 },
+    { label: 'State',          width: 80  },
+    { label: 'ZIP',            width: 80  },
+    { label: 'Status',         width: 130 },
+    { label: 'Notes',          width: 250 },
+    { label: 'Work Orders',    width: 160 },
+    { label: 'Customer',       width: 160 },
+    { label: 'Equipments',     width: 160 },
+  ];
+
+  const renderLocationRow = (l) => {
+    const status         = getCol(l, COL.LOCATIONS.STATUS);
+    const customerName   = getCustomerName(l);
+    const workOrderNames = getRelationNames(l, COL.LOCATIONS.WORK_ORDERS_REL);
+    const equipmentNames = getRelationNames(l, COL.LOCATIONS.EQUIPMENTS_REL);
     return (
-      <Box sx={{ mb: 4 }}>
-        <Box 
-          onClick={() => toggleGroup(groupId)}
-          sx={{ 
-            display: "flex", 
-            alignItems: "center", 
-            gap: 1.5, 
-            mb: 1,
-            cursor: "pointer",
-            "&:hover": { opacity: 0.8 }
-          }}
-        >
-          <IconButton size="small" sx={{ p: 0, color: color }}>
-            {isCollapsed ? <ChevronRightIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
-          </IconButton>
-          <Box
-            sx={{ width: 12, height: 12, borderRadius: "3px", bgcolor: color }}
-          />
-          <Typography
-            variant="subtitle2"
-            sx={{ color, fontSize: "0.8rem", fontWeight: 700 }}
-          >
-            {label}
-          </Typography>
-          <Chip
-            label={rows.length}
-            size="small"
-            sx={{
-              height: 18,
-              fontSize: "0.65rem",
-              fontWeight: 700,
-              bgcolor: color + "22",
-              color,
-              border: `1px solid ${color}44`,
-            }}
-          />
-        </Box>
-
-        <Collapse in={!isCollapsed}>
-          <Paper
-            elevation={0}
-            sx={{
-              borderRadius: "12px",
-              overflow: "hidden",
-              border: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <TableContainer sx={{ overflowX: "auto", maxHeight: "500px", overflowY: "auto" }}>
-          <Table
-            size="small"
-            stickyHeader
-            sx={{ borderCollapse: 'separate', tableLayout: 'fixed', minWidth: 1600 }}
-          >
-            <colgroup><col style={{ width: 200 }} /><col style={{ width: 220 }} /><col style={{ width: 130 }} /><col style={{ width: 80 }}  /><col style={{ width: 80 }}  /><col style={{ width: 130 }} /><col style={{ width: 250 }} /><col style={{ width: 160 }} /><col style={{ width: 160 }} /><col style={{ width: 160 }} /></colgroup>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={HEAD_CELL}>Location Name</TableCell>
-                <TableCell sx={HEAD_CELL}>Street Address</TableCell>
-                <TableCell sx={HEAD_CELL}>City</TableCell>
-                <TableCell sx={HEAD_CELL}>State</TableCell>
-                <TableCell sx={HEAD_CELL}>ZIP</TableCell>
-                <TableCell sx={HEAD_CELL}>Status</TableCell>
-                <TableCell sx={HEAD_CELL}>Notes</TableCell>
-                <TableCell sx={HEAD_CELL}>Work Orders</TableCell>
-                <TableCell sx={HEAD_CELL}>Customer</TableCell>
-                <TableCell sx={HEAD_CELL}>Equipments</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={10}
-                    sx={{ textAlign: "center", py: 4, color: "text.disabled" }}
-                  >
-                    No locations
-                  </TableCell>
-                </TableRow>
-              ) : (
-                rows.map((l) => {
-                  const status = getCol(l, COL.LOCATIONS.STATUS);
-                  const customerName = getCustomerName(l);
-                  const workOrderNames = getRelationNames(
-                    l,
-                    COL.LOCATIONS.WORK_ORDERS_REL,
-                  );
-                  const equipmentNames = getRelationNames(
-                    l,
-                    COL.LOCATIONS.EQUIPMENTS_REL,
-                  );
-
-                  return (
-                    <TableRow
-                      key={l.id}
-                      hover
-                      sx={{ cursor: "pointer" }}
-                      onClick={() => setOpenDialog(l)}
-                    >
-                      {/* Location Name */}
-                      <TableCell sx={{ ...DATA_CELL, py: "5px" }}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <Avatar
-                            sx={{
-                              width: 26,
-                              height: 26,
-                              fontSize: "0.6rem",
-                              fontWeight: 700,
-                              flexShrink: 0,
-                              bgcolor: "rgba(168,85,247,0.2)",
-                              color: "#c084fc",
-                            }}
-                          >
-                            {l.name.slice(0, 2).toUpperCase()}
-                          </Avatar>
-                          <Tooltip
-                            title={l.name}
-                            placement="top"
-                            enterDelay={600}
-                            arrow
-                          >
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: 600,
-                                fontSize: "0.8rem",
-                                color: "text.primary",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {l.name}
-                            </Typography>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-
-                      {/* Street Address */}
-                      <TruncCell
-                        value={getCol(l, COL.LOCATIONS.STREET_ADDRESS)}
-                      />
-
-                      {/* City */}
-                      <TruncCell value={getCol(l, COL.LOCATIONS.CITY)} />
-
-                      {/* State */}
-                      <TruncCell value={getCol(l, COL.LOCATIONS.STATE)} />
-
-                      {/* ZIP */}
-                      <TruncCell value={getCol(l, COL.LOCATIONS.ZIP)} />
-
-                      {/* Status chip */}
-                      <TableCell sx={{ ...DATA_CELL, overflow: "visible" }}>
-                        {status ? <StatusChip status={status} /> : DASH}
-                      </TableCell>
-
-                      {/* Notes */}
-                      <TruncCell value={getCol(l, COL.LOCATIONS.NOTES)} />
-
-                      {/* Work Orders */}
-                      <TableCell sx={{ ...DATA_CELL, overflow: "visible" }}>
-                        {workOrderNames ? (
-                          <Tooltip
-                            title={workOrderNames}
-                            placement="top"
-                            enterDelay={600}
-                            arrow
-                          >
-                            <Chip
-                              label={workOrderNames}
-                              size="small"
-                              sx={{
-                                maxWidth: "100%",
-                                fontSize: "0.72rem",
-                                height: 22,
-                                bgcolor: "rgba(79,142,247,0.08)",
-                                color: "#4f8ef7",
-                                border: "1px solid rgba(79,142,247,0.2)",
-                              }}
-                            />
-                          </Tooltip>
-                        ) : (
-                          DASH
-                        )}
-                      </TableCell>
-
-                      {/* Customer chip */}
-                      <TableCell sx={{ ...DATA_CELL, overflow: "visible" }}>
-                        {customerName ? (
-                          <Tooltip
-                            title={customerName}
-                            placement="top"
-                            enterDelay={600}
-                            arrow
-                          >
-                            <Chip
-                              label={customerName}
-                              size="small"
-                              sx={{
-                                maxWidth: "100%",
-                                fontSize: "0.72rem",
-                                height: 22,
-                                bgcolor: "rgba(79,142,247,0.1)",
-                                color: "primary.light",
-                                border: "1px solid rgba(79,142,247,0.2)",
-                              }}
-                            />
-                          </Tooltip>
-                        ) : (
-                          DASH
-                        )}
-                      </TableCell>
-
-                      {/* Equipments */}
-                      <TableCell sx={{ ...DATA_CELL, overflow: "visible" }}>
-                        {equipmentNames ? (
-                          <Tooltip
-                            title={equipmentNames}
-                            placement="top"
-                            enterDelay={600}
-                            arrow
-                          >
-                            <Chip
-                              label={equipmentNames}
-                              size="small"
-                              sx={{
-                                maxWidth: "100%",
-                                fontSize: "0.72rem",
-                                height: 22, 
-                                bgcolor: "rgba(34,197,94,0.08)",
-                                color: "#16a34a",
-                                border: "1px solid rgba(34,197,94,0.2)",
-                              }}
-                            />
-                          </Tooltip>
-                        ) : (
-                          DASH
-                        )}
-                      </TableCell>
-
-                      {/* Edit */}
-                    </TableRow>
-                  );
-                })
-              )}
-
-            </TableBody>
-          </Table>
-          </TableContainer>
-        </Paper>
-      </Collapse>
-    </Box>
-  );
-};
+      <TableRow key={l.id} hover sx={{ cursor: 'pointer' }} onClick={() => setOpenDialog(l)}>
+        <TableCell sx={{ ...DATA_CELL_SX, py: '5px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
+            <Avatar sx={{ width: 26, height: 26, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0, bgcolor: 'rgba(168,85,247,0.2)', color: '#c084fc' }}>
+              {l.name.slice(0, 2).toUpperCase()}
+            </Avatar>
+            <Tooltip title={l.name} placement="top" enterDelay={600} arrow>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {l.name}
+              </Typography>
+            </Tooltip>
+          </Box>
+        </TableCell>
+        <TruncCell value={getCol(l, COL.LOCATIONS.STREET_ADDRESS)} />
+        <TruncCell value={getCol(l, COL.LOCATIONS.CITY)} />
+        <TruncCell value={getCol(l, COL.LOCATIONS.STATE)} />
+        <TruncCell value={getCol(l, COL.LOCATIONS.ZIP)} />
+        <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
+          {status ? <StatusChip status={status} /> : DASH}
+        </TableCell>
+        <TruncCell value={getCol(l, COL.LOCATIONS.NOTES)} />
+        <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
+          {workOrderNames ? (
+            <Tooltip title={workOrderNames} placement="top" enterDelay={600} arrow>
+              <Chip label={workOrderNames} size="small" sx={{ maxWidth: '100%', fontSize: '0.72rem', height: 22, bgcolor: 'rgba(79,142,247,0.08)', color: '#4f8ef7', border: '1px solid rgba(79,142,247,0.2)' }} />
+            </Tooltip>
+          ) : DASH}
+        </TableCell>
+        <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
+          {customerName ? (
+            <Tooltip title={customerName} placement="top" enterDelay={600} arrow>
+              <Chip label={customerName} size="small" sx={{ maxWidth: '100%', fontSize: '0.72rem', height: 22, bgcolor: 'rgba(79,142,247,0.1)', color: 'primary.light', border: '1px solid rgba(79,142,247,0.2)' }} />
+            </Tooltip>
+          ) : DASH}
+        </TableCell>
+        <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
+          {equipmentNames ? (
+            <Tooltip title={equipmentNames} placement="top" enterDelay={600} arrow>
+              <Chip label={equipmentNames} size="small" sx={{ maxWidth: '100%', fontSize: '0.72rem', height: 22, bgcolor: 'rgba(34,197,94,0.08)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.2)' }} />
+            </Tooltip>
+          ) : DASH}
+        </TableCell>
+      </TableRow>
+    );
+  };
 
   return (
     <Box
@@ -516,7 +250,17 @@ export default function LocationsBoard({ createLocation }) {
       <Box sx={{ flex: 1, overflow: "auto", px: 3, py: 2 }}>
         {groups.map((group) => {
           const rows = locationsByGroup[group.id] || [];
-          return renderTable(rows, group.title, group.color || "#6b7280", group.id);
+          return (
+            <BoardGroup key={group.id} label={group.title} color={group.color || '#6b7280'} count={rows.length}>
+              <BoardTable
+                columns={LOCATION_COLUMNS}
+                rows={rows}
+                renderRow={renderLocationRow}
+                emptyMessage="No locations"
+                minWidth={1590}
+              />
+            </BoardGroup>
+          );
         })}
       </Box>
 

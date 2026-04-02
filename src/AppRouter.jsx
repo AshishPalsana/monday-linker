@@ -1,6 +1,6 @@
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import theme from './theme';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import WorkOrdersBoard from './components/WorkOrdersBoard';
 import CustomersBoard from './components/CustomersBoard';
@@ -12,7 +12,7 @@ export default function AppRouter() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/workorders" />} />
           <Route
@@ -48,7 +48,7 @@ export default function AppRouter() {
             }
           />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </ThemeProvider>
   );
 }

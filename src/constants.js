@@ -483,6 +483,17 @@ export const MONDAY_COLUMN_IDS = {
     LOCATION: "board_relation_mm14fdpt",
     DESCRIPTION: "long_text_mm14ee7h",
     STATUS: "color_mm14pf0q",
+    TECHNICIAN: "multiple_person_mm14sesj",
+    SCHEDULED_DATE: "date_mm14sjdg",
+    MULTI_DAY: "boolean_mm14act2",
+    MODEL: "lookup_mm19ygma",
+    SERIAL_NUMBER: "lookup_mm19423v",
+    SERVICE_HISTORY: "long_text_mm15p7rk",
+    WORK_PERFORMED: "long_text_mm15kfzp",
+    EQUIPMENT: "board_relation_mm19cxzv",
+    PARTS_ORDERED: "color_mm1bs0w7",
+    WORKORDER_ID: "text_mm1s82bz",
+    EXECUTION_STATUS: "color_mm1s7ak1",
   },
   // Real Monday column IDs from the Locations board (id: 18400965227)
   LOCATIONS: {

@@ -4,88 +4,28 @@ import {
   Box,
   Typography,
   Button,
-  Table,
-  TableBody,
   TableCell,
-  TableContainer,
-  TableHead,
   TableRow,
-  Paper,
-  Chip,
   TextField,
-  IconButton,
   Avatar,
   Tooltip,
   CircularProgress,
-  Collapse,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { fetchCustomers, createCustomer as createCustomerThunk } from '../store/customersSlice';
 import { MONDAY_COLUMN_IDS } from '../constants';
 import StatusChip from './StatusChip';
 import CustomerDrawer from './CustomerDrawer';
+import { BoardGroup, BoardTable, DATA_CELL_SX, DASH, TruncCell } from './BoardTable';
 
-// Shared styles applied to every header cell — prevents any wrapping
-const HEAD_CELL = {
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  fontSize: '0.7rem',
-  fontWeight: 700,
-  letterSpacing: '0.04em',
-  color: 'text.secondary',
-  bgcolor: 'background.paper',
-  borderBottom: '1px solid',
-  borderColor: 'divider',
-  py: 1,
-  px: 1.5,
-};
 
-// Shared styles applied to every data cell — single line with ellipsis
-const DATA_CELL = {
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  fontSize: '0.75rem',
-  color: 'text.secondary',
-  py: '7px',
-  px: 1.5,
-  maxWidth: 0, // required for ellipsis to work inside table-layout:fixed cells
-};
-
-const DASH = <span style={{ color: '#9ba6b4' }}>—</span>;
-
-// Truncated text cell with tooltip showing full value on hover
-function TruncCell({ value, sx }) {
-  if (!value) return <TableCell sx={{ ...DATA_CELL, ...sx }}>{DASH}</TableCell>;
-  return (
-    <TableCell sx={{ ...DATA_CELL, ...sx }}>
-      <Tooltip title={value} placement="top" enterDelay={400} arrow>
-        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {value}
-        </span>
-      </Tooltip>
-    </TableCell>
-  );
-}
 
 export default function CustomersBoard({ createCustomer }) {
   const dispatch = useDispatch();
   const { board, loading, error } = useSelector((state) => state.customers);
   const [openDialog, setOpenDialog] = useState(null);
   const [search, setSearch] = useState('');
-  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
-
-  const toggleGroup = (groupId) => {
-    const next = new Set(collapsedGroups);
-    if (next.has(groupId)) next.delete(groupId);
-    else next.add(groupId);
-    setCollapsedGroups(next);
-  };
 
   useEffect(() => {
     dispatch(fetchCustomers());
@@ -138,149 +78,52 @@ export default function CustomersBoard({ createCustomer }) {
     setOpenDialog({ id: '__new__', name: '', column_values: [] });
   };
 
-  const renderTable = (rows, label, color, groupId) => {
-    const isCollapsed = collapsedGroups.has(groupId);
+  const CUSTOMER_COLUMNS = [
+    { label: 'Customer Name', width: 220 },
+    { label: 'Email',         width: 200 },
+    { label: 'Phone',         width: 140 },
+    { label: 'Account No.',   width: 160 },
+    { label: 'Status',        width: 160 },
+    { label: 'Billing Address', width: 220 },
+    { label: 'Billing Terms', width: 130 },
+    { label: 'Xero Contact ID', width: 140 },
+    { label: 'Xero Sync',     width: 140 },
+    { label: 'Notes',         width: 250 },
+  ];
+
+  const renderCustomerRow = (c) => {
+    const status     = getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.STATUS);
+    const xeroStatus = getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.XERO_SYNC_STATUS);
     return (
-      <Box sx={{ mb: 4 }}>
-        <Box 
-          onClick={() => toggleGroup(groupId)}
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1.5, 
-            mb: 1,
-            cursor: 'pointer',
-            '&:hover': { opacity: 0.8 }
-          }}
-        >
-          <IconButton size="small" sx={{ p: 0, color: color }}>
-            {isCollapsed ? <ChevronRightIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
-          </IconButton>
-          <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color }} />
-          <Typography variant="subtitle2" sx={{ color, fontSize: '0.8rem', fontWeight: 700 }}>
-            {label}
-          </Typography>
-          <Chip
-            label={rows.length}
-            size="small"
-            sx={{
-              height: 18, fontSize: '0.65rem', fontWeight: 700,
-              bgcolor: color + '22', color, border: `1px solid ${color}44`,
-            }}
-          />
-        </Box>
-
-        <Collapse in={!isCollapsed}>
-          <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-            <TableContainer sx={{ overflowX: 'auto', maxHeight: '500px', overflowY: 'auto' }}>
-          <Table
-            size="small"
-            stickyHeader
-            sx={{ borderCollapse: 'separate', tableLayout: 'fixed', minWidth: 1600 }}
-          >
-            <colgroup><col style={{ width: 220 }} /><col style={{ width: 200 }} /><col style={{ width: 140 }} /><col style={{ width: 160 }} /><col style={{ width: 160 }} /><col style={{ width: 220 }} /><col style={{ width: 130 }} /><col style={{ width: 140 }} /><col style={{ width: 140 }} /><col style={{ width: 250 }} /></colgroup>
-
-            <TableHead>
-              <TableRow>
-                <TableCell sx={HEAD_CELL}>Customer Name</TableCell>
-                <TableCell sx={HEAD_CELL}>Email</TableCell>
-                <TableCell sx={HEAD_CELL}>Phone</TableCell>
-                <TableCell sx={HEAD_CELL}>Account number</TableCell>
-                <TableCell sx={HEAD_CELL}>Customer Status</TableCell>
-                <TableCell sx={HEAD_CELL}>Billing Address</TableCell>
-                <TableCell sx={HEAD_CELL}>Billing Terms</TableCell>
-                <TableCell sx={HEAD_CELL}>Xero Contact ID</TableCell>
-                <TableCell sx={HEAD_CELL}>Xero Sync Status</TableCell>
-                <TableCell sx={HEAD_CELL}>Notes</TableCell>
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} sx={{ textAlign: 'center', py: 4, color: 'text.disabled' }}>
-                    No customers
-                  </TableCell>
-                </TableRow>
-              ) : (
-                rows.map((c) => {
-                  const status     = getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.STATUS);
-                  const xeroStatus = getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.XERO_SYNC_STATUS);
-
-                  return (
-                    <TableRow
-                      key={c.id}
-                      hover
-                      sx={{ cursor: 'pointer' }}
-                      onClick={() => setOpenDialog(c)}
-                    >
-                      {/* Customer Name — avatar + truncated name */}
-                      <TableCell sx={{ ...DATA_CELL, py: '5px' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
-                          <Avatar sx={{
-                            width: 26, height: 26, fontSize: '0.6rem', fontWeight: 700,
-                            flexShrink: 0,
-                            bgcolor: 'rgba(79,142,247,0.2)', color: 'primary.light',
-                          }}>
-                            {c.name?.slice(0, 2).toUpperCase() || '??'}
-                          </Avatar>
-                          <Tooltip title={c.name} placement="top" enterDelay={600} arrow>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: 600, fontSize: '0.8rem', color: 'text.primary',
-                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {c.name}
-                            </Typography>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-
-                      {/* Email */}
-                      <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.EMAIL)} />
-
-                      {/* Phone */}
-                      <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.PHONE)} />
-
-                      {/* Account # */}
-                      <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.ACCOUNT_NUMBER)} />
-
-                      {/* Status chip */}
-                      <TableCell sx={{ ...DATA_CELL, overflow: 'visible' }}>
-                        {status ? <StatusChip status={status} /> : DASH}
-                      </TableCell>
-
-                      {/* Billing Address — long text, tooltip on hover */}
-                      <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.BILLING_ADDRESS)} />
-
-                      {/* Billing Terms */}
-                      <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.BILLING_TERMS)} />
-
-                      {/* Xero Contact ID */}
-                      <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.XERO_CONTACT_ID)} />
-
-                      {/* Xero Sync Status chip */}
-                      <TableCell sx={{ ...DATA_CELL, overflow: 'visible' }}>
-                        {xeroStatus ? <StatusChip status={xeroStatus} /> : DASH}
-                      </TableCell>
-
-                      {/* Notes */}
-                      <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.NOTES)} />
-                    </TableRow>
-                  );
-                })
-              )}
-
-            </TableBody>
-          </Table>
-          </TableContainer>
-        </Paper>
-      </Collapse>
-    </Box>
-  );
-};
+      <TableRow key={c.id} hover sx={{ cursor: 'pointer' }} onClick={() => setOpenDialog(c)}>
+        <TableCell sx={{ ...DATA_CELL_SX, py: '5px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
+            <Avatar sx={{ width: 26, height: 26, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0, bgcolor: 'rgba(79,142,247,0.2)', color: 'primary.light' }}>
+              {c.name?.slice(0, 2).toUpperCase() || '??'}
+            </Avatar>
+            <Tooltip title={c.name} placement="top" enterDelay={600} arrow>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {c.name}
+              </Typography>
+            </Tooltip>
+          </Box>
+        </TableCell>
+        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.EMAIL)} />
+        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.PHONE)} />
+        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.ACCOUNT_NUMBER)} />
+        <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
+          {status ? <StatusChip status={status} /> : DASH}
+        </TableCell>
+        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.BILLING_ADDRESS)} />
+        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.BILLING_TERMS)} />
+        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.XERO_CONTACT_ID)} />
+        <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
+          {xeroStatus ? <StatusChip status={xeroStatus} /> : DASH}
+        </TableCell>
+        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.NOTES)} />
+      </TableRow>
+    );
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -337,7 +180,17 @@ export default function CustomersBoard({ createCustomer }) {
       <Box sx={{ flex: 1, overflow: 'auto', px: 3, py: 2 }}>
         {groups.map((group) => {
           const rows = itemsByGroup[group.id] || [];
-          return renderTable(rows, group.title, group.color || '#6b7280', group.id);
+          return (
+            <BoardGroup key={group.id} label={group.title} color={group.color || '#6b7280'} count={rows.length}>
+              <BoardTable
+                columns={CUSTOMER_COLUMNS}
+                rows={rows}
+                renderRow={renderCustomerRow}
+                emptyMessage="No customers"
+                minWidth={1760}
+              />
+            </BoardGroup>
+          );
         })}
       </Box>
 

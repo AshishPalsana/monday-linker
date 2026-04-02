@@ -1,15 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Paper, Chip, Autocomplete, TextField,
-  IconButton, Avatar, Tooltip, CircularProgress, Collapse,
+  Box, Typography, Button, TableCell, TableRow,
+  TextField, Avatar, Tooltip, CircularProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import {
   fetchEquipment,
   createEquipment as createEquipmentThunk,
@@ -22,48 +18,15 @@ import StatusChip from './StatusChip';
 import EquipmentDrawer from './Equipmentdrawer';
 import LocationDrawer from './LocationDrawer';
 import RelationCell from './RelationCell';
-
-// ── Table cell styles ─────────────────────────────────────────────────────────
-const HEAD_CELL = {
-  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-  fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em',
-  color: 'text.secondary', bgcolor: 'background.paper',
-  borderBottom: '1px solid', borderColor: 'divider', py: 1, px: 1.5,
-};
-const DATA_CELL = {
-  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-  fontSize: '0.75rem', color: 'text.secondary', py: '7px', px: 1.5, maxWidth: 0,
-};
-const DASH = <span style={{ color: '#9ba6b4' }}>—</span>;
-
-function TruncCell({ value, sx }) {
-  if (!value) return <TableCell sx={{ ...DATA_CELL, ...sx }}>{DASH}</TableCell>;
-  return (
-    <Tooltip title={value} placement="top" enterDelay={400} arrow>
-      <TableCell sx={{ ...DATA_CELL, ...sx }}>
-        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {value}
-        </span>
-      </TableCell>
-    </Tooltip>
-  );
-}
+import { BoardGroup, BoardTable, DATA_CELL_SX, DASH, TruncCell } from './BoardTable';
 
 export default function EquipmentBoard() {
   const dispatch = useDispatch();
   const { board, loading, error } = useSelector((s) => s.equipment);
   const locations = useSelector((s) => s.locations.board?.items_page?.items || []);
   const [search, setSearch] = useState('');
-  const [openDrawer, setOpenDrawer] = useState(null);       // existing equipment item
-  const [pendingNewLocation, setPendingNewLocation] = useState(null); // { name, equipmentId }
-  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
-
-  const toggleGroup = (groupId) => {
-    const next = new Set(collapsedGroups);
-    if (next.has(groupId)) next.delete(groupId);
-    else next.add(groupId);
-    setCollapsedGroups(next);
-  };
+  const [openDrawer, setOpenDrawer] = useState(null);
+  const [pendingNewLocation, setPendingNewLocation] = useState(null);
 
   useEffect(() => {
     dispatch(fetchEquipment());
@@ -128,131 +91,57 @@ export default function EquipmentBoard() {
     return acc;
   }, {});
 
-  const renderTable = (rows, label, color, groupId) => {
-    const isCollapsed = collapsedGroups.has(groupId);
+  const EQUIPMENT_COLUMNS = [
+    { label: 'Equipment Name', width: 220 },
+    { label: 'Location',       width: 200 },
+    { label: 'Manufacturer',   width: 150 },
+    { label: 'Model Number',   width: 150 },
+    { label: 'Serial Number',  width: 150 },
+    { label: 'Install Date',   width: 130 },
+    { label: 'Status',         width: 130 },
+    { label: 'Notes',          width: 320 },
+  ];
+
+  const renderEquipmentRow = (item) => {
+    const status = getCol(item, COL.EQUIPMENT.STATUS);
     return (
-      <Box sx={{ mb: 4 }}>
-        <Box 
-          onClick={() => toggleGroup(groupId)}
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1.5, 
-            mb: 1,
-            cursor: 'pointer',
-            '&:hover': { opacity: 0.8 }
-          }}
-        >
-          <IconButton size="small" sx={{ p: 0, color: color }}>
-            {isCollapsed ? <ChevronRightIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
-          </IconButton>
-          <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color }} />
-          <Typography variant="subtitle2" sx={{ color, fontSize: '0.8rem', fontWeight: 700 }}>
-            {label}
-          </Typography>
-          <Chip
-            label={rows.length} size="small"
-            sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700, bgcolor: color + '22', color, border: `1px solid ${color}44` }}
+      <TableRow key={item.id} hover sx={{ cursor: 'pointer' }} onClick={() => setOpenDrawer(item)}>
+        <TableCell sx={{ ...DATA_CELL_SX, py: '5px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
+            <Avatar sx={{ width: 26, height: 26, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0, bgcolor: 'rgba(34,197,94,0.15)', color: '#16a34a' }}>
+              {item.name?.slice(0, 2).toUpperCase() || '??'}
+            </Avatar>
+            <Tooltip title={item.name} placement="top" enterDelay={600} arrow>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {item.name}
+              </Typography>
+            </Tooltip>
+          </Box>
+        </TableCell>
+        <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible', py: '5px' }} onClick={(e) => e.stopPropagation()}>
+          <RelationCell
+            value={getCol(item, COL.EQUIPMENT.LOCATION)}
+            options={locations}
+            placeholder="— add location"
+            chipBgColor="rgba(168,85,247,0.1)"
+            chipTextColor="#c084fc"
+            chipBorderColor="rgba(168,85,247,0.2)"
+            createLabel="location"
+            onSelectExisting={(locId, locName) => handleLinkLocation(item, locId, locName)}
+            onCreateNew={(inputValue) => setPendingNewLocation({ name: inputValue, equipmentId: item.id })}
           />
-        </Box>
-
-        <Collapse in={!isCollapsed}>
-          <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-            <TableContainer sx={{ overflowX: 'auto', maxHeight: '500px', overflowY: 'auto' }}>
-          <Table size="small" stickyHeader sx={{ borderCollapse: 'separate', tableLayout: 'fixed', minWidth: 1500 }}>
-            <colgroup><col style={{ width: 220 }} /><col style={{ width: 200 }} /><col style={{ width: 150 }} /><col style={{ width: 150 }} /><col style={{ width: 150 }} /><col style={{ width: 130 }} /><col style={{ width: 130 }} /><col style={{ width: 320 }} /></colgroup>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={HEAD_CELL}>Equipment Name</TableCell>
-                <TableCell sx={HEAD_CELL}>Location</TableCell>
-                <TableCell sx={HEAD_CELL}>Manufacturer</TableCell>
-                <TableCell sx={HEAD_CELL}>Model Number</TableCell>
-                <TableCell sx={HEAD_CELL}>Serial Number</TableCell>
-                <TableCell sx={HEAD_CELL}>Install Date</TableCell>
-                <TableCell sx={HEAD_CELL}>Status</TableCell>
-                <TableCell sx={HEAD_CELL}>Notes</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4, color: 'text.disabled' }}>
-                    No equipment
-                  </TableCell>
-                </TableRow>
-              ) : (
-                rows.map((item) => {
-                  const status = getCol(item, COL.EQUIPMENT.STATUS);
-                  return (
-                    <TableRow
-                      key={item.id}
-                      hover
-                      sx={{ cursor: 'pointer' }}
-                      onClick={() => setOpenDrawer(item)}
-                    >
-                      {/* Name */}
-                      <TableCell sx={{ ...DATA_CELL, py: '5px' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
-                          <Avatar sx={{
-                            width: 26, height: 26, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0,
-                            bgcolor: 'rgba(34,197,94,0.15)', color: '#16a34a',
-                          }}>
-                            {item.name?.slice(0, 2).toUpperCase() || '??'}
-                          </Avatar>
-                          <Tooltip title={item.name} placement="top" enterDelay={600} arrow>
-                            <Typography variant="body2" sx={{
-                              fontWeight: 600, fontSize: '0.8rem', color: 'text.primary',
-                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                            }}>
-                              {item.name}
-                            </Typography>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-
-                      {/* Location — inline relation cell, stops row click */}
-                      <TableCell
-                        sx={{ ...DATA_CELL, overflow: 'visible', py: '5px' }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <RelationCell
-                          value={getCol(item, COL.EQUIPMENT.LOCATION)}
-                          options={locations}
-                          placeholder="— add location"
-                          chipBgColor="rgba(168,85,247,0.1)"
-                          chipTextColor="#c084fc"
-                          chipBorderColor="rgba(168,85,247,0.2)"
-                          createLabel="location"
-                          onSelectExisting={(locId, locName) => handleLinkLocation(item, locId, locName)}
-                          onCreateNew={(inputValue) =>
-                            setPendingNewLocation({ name: inputValue, equipmentId: item.id })
-                          }
-                        />
-                      </TableCell>
-
-                      <TruncCell value={getCol(item, COL.EQUIPMENT.MANUFACTURER)} />
-                      <TruncCell value={getCol(item, COL.EQUIPMENT.MODEL_NUMBER)} />
-                      <TruncCell value={getCol(item, COL.EQUIPMENT.SERIAL_NUMBER)} />
-                      <TruncCell value={getCol(item, COL.EQUIPMENT.INSTALL_DATE)} />
-
-                      {/* Status chip */}
-                      <TableCell sx={{ ...DATA_CELL, overflow: 'visible' }}>
-                        {status ? <StatusChip status={status} /> : DASH}
-                      </TableCell>
-
-                      <TruncCell value={getCol(item, COL.EQUIPMENT.NOTES)} />
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-          </TableContainer>
-        </Paper>
-      </Collapse>
-    </Box>
-  );
-};
+        </TableCell>
+        <TruncCell value={getCol(item, COL.EQUIPMENT.MANUFACTURER)} />
+        <TruncCell value={getCol(item, COL.EQUIPMENT.MODEL_NUMBER)} />
+        <TruncCell value={getCol(item, COL.EQUIPMENT.SERIAL_NUMBER)} />
+        <TruncCell value={getCol(item, COL.EQUIPMENT.INSTALL_DATE)} />
+        <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
+          {status ? <StatusChip status={status} /> : DASH}
+        </TableCell>
+        <TruncCell value={getCol(item, COL.EQUIPMENT.NOTES)} />
+      </TableRow>
+    );
+ };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -307,7 +196,17 @@ export default function EquipmentBoard() {
       <Box sx={{ flex: 1, overflow: 'auto', px: 3, py: 2 }}>
         {groups.map((group) => {
           const rows = itemsByGroup[group.id] || [];
-          return renderTable(rows, group.title, group.color || '#6b7280', group.id);
+          return (
+            <BoardGroup key={group.id} label={group.title} color={group.color || '#6b7280'} count={rows.length}>
+              <BoardTable
+                columns={EQUIPMENT_COLUMNS}
+                rows={rows}
+                renderRow={renderEquipmentRow}
+                emptyMessage="No equipment"
+                minWidth={1450}
+              />
+            </BoardGroup>
+          );
         })}
       </Box>
 

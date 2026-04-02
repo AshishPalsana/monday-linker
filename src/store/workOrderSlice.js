@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { mondayClient } from '../services/mondayAPI';
 import { gql } from '@apollo/client';
-import { apiCreateWorkOrder } from '../services/mondayMutations';
+import { apiCreateWorkOrder, apiUpdateWorkOrder } from '../services/mondayMutations';
 
 export const fetchWorkOrders = createAsyncThunk(
   'workOrders/fetchWorkOrders',
@@ -24,6 +24,8 @@ export const fetchWorkOrders = createAsyncThunk(
                 value
                 ... on StatusValue { label index }
                 ... on BoardRelationValue { display_value }
+                ... on MirrorValue { display_value }
+                ... on CheckboxValue { value }
               }
               created_at
               updated_at
@@ -55,12 +57,26 @@ export const createWorkOrder = createAsyncThunk(
   }
 );
 
+export const updateWorkOrder = createAsyncThunk(
+  'workOrders/updateWorkOrder',
+  async ({ workOrderId, form }, { dispatch, rejectWithValue }) => {
+    try {
+      await apiUpdateWorkOrder(workOrderId, form);
+      await dispatch(fetchWorkOrders());
+      return { workOrderId };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const workOrderSlice = createSlice({
   name: 'workOrders',
   initialState: {
     board: null,
     loading: false,
     creating: false,
+    saving: false,
     error: null,
   },
   reducers: {
@@ -116,6 +132,17 @@ const workOrderSlice = createSlice({
       })
       .addCase(createWorkOrder.rejected, (state, action) => {
         state.creating = false;
+        state.error = action.payload;
+      })
+      .addCase(updateWorkOrder.pending, (state) => {
+        state.saving = true;
+        state.error = null;
+      })
+      .addCase(updateWorkOrder.fulfilled, (state) => {
+        state.saving = false;
+      })
+      .addCase(updateWorkOrder.rejected, (state, action) => {
+        state.saving = false;
         state.error = action.payload;
       });
   },

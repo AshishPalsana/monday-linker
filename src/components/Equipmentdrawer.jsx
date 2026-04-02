@@ -179,30 +179,6 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
           </IconButton>
         </Box>
 
-        {/* Equipment Status pills */}
-        <Box sx={{ display: 'flex', gap: 0.75, mt: 2, flexWrap: 'wrap' }}>
-          {EQUIPMENT_STATUSES.map((s) => {
-            const active = form.equipmentStatus === s;
-            const colors = STATUS_COLORS[s];
-            return (
-              <Box
-                key={s}
-                onClick={() => set('equipmentStatus', s)}
-                sx={{
-                  px: 1.5, py: 0.35, borderRadius: '3px',
-                  fontSize: '0.75rem', fontWeight: 500,
-                  cursor: 'pointer', userSelect: 'none', transition: 'all 0.1s',
-                  ...(active
-                    ? { bgcolor: colors.bg, color: colors.color }
-                    : { bgcolor: '#f1f1ef', color: '#9b9a97', '&:hover': { color: '#37352f' } }
-                  ),
-                }}
-              >
-                {s}
-              </Box>
-            );
-          })}
-        </Box>
       </Box>
 
       <Divider sx={{ borderColor: '#e8e6e1' }} />

@@ -20,7 +20,6 @@ import { updateCustomer } from '../store/customersSlice';
 
 const XERO_SYNC_STATUSES = ['Synced','Error', 'Not Synced'];
 
-// ── Notion-style property row ─────────────────────────────────────────────────
 const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
   <Box sx={{
     display: 'grid',
@@ -48,7 +47,6 @@ const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
   </Box>
 );
 
-// ── Borderless inline text input ─────────────────────────────────────────────
 const InlineField = ({ value, onChange, placeholder, error, multiline, rows }) => (
   <TextField
     fullWidth
@@ -157,7 +155,6 @@ const InlineSelect = ({ value, onChange, options, placeholder, getStatusColor })
   </Select>
 );
 
-// ── Section label ─────────────────────────────────────────────────────────────
 const Section = ({ children }) => (
   <Typography sx={{
     fontSize: '0.68rem',
@@ -172,7 +169,6 @@ const Section = ({ children }) => (
   </Typography>
 );
 
-// ─── Main component ───────────────────────────────────────────────────────────
 export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
   const dispatch = useDispatch();
   const { board: locBoard } = useSelector((s) => s.locations);
@@ -184,11 +180,9 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
   const isNew = !customer?.id || customer?.id === '__new__' || isTempId;
   const isBusy = apiCreating || apiSaving || isSaving;
 
-  // Robust column value reader — matches CustomersBoard's getColumnValue logic
   const getCol = (colId) => {
     const col = customer?.column_values?.find((cv) => cv.id === colId);
     if (!col) return '';
-    // text is populated for most column types; label is populated for status/dropdown
     if (col.text && col.text.trim() !== '') return col.text;
     if (col.label && col.label.trim() !== '') return col.label;
     if (col.value) {
@@ -253,7 +247,6 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
     }
   };
 
-  // Linked records — match by customer name in board relation columns
   const locations = (locBoard?.items_page?.items || []).filter((l) =>
     l.column_values?.find((cv) =>
       ['board_relation', 'customer', 'board_relation_mm18ma0k'].includes(cv.id),
@@ -302,37 +295,12 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
           </IconButton>
         </Box>
 
-        {/* Customer Status pills */}
-        <Box sx={{ display: 'flex', gap: 0.75, mt: 2 }}>
-          {['Active', 'Inactive'].map((s) => (
-            <Box
-              key={s}
-              onClick={() => set('status', s)}
-              sx={{
-                px: 1.5, py: 0.35, borderRadius: '3px',
-                fontSize: '0.75rem', fontWeight: 500,
-                cursor: 'pointer', userSelect: 'none',
-                transition: 'all 0.1s',
-                ...(form.status === s
-                  ? s === 'Active'
-                    ? { bgcolor: '#d3f8e2', color: '#0d6e48' }
-                    : { bgcolor: '#fde8e8', color: '#b91c1c' }
-                  : { bgcolor: '#f1f1ef', color: '#9b9a97', '&:hover': { color: '#37352f' } }
-                ),
-              }}
-            >
-              {s}
-            </Box>
-          ))}
-        </Box>
       </Box>
 
       <Divider sx={{ borderColor: '#e8e6e1' }} />
 
-      {/* ── Scrollable body ── */}
       <Box sx={{ flex: 1, overflowY: 'auto', px: 2.5, py: 2.5 }}>
 
-        {/* Validation error banner */}
         {attempted && !isValid && (
           <Box sx={{
             mb: 2.5, px: 1.5, py: 1,
@@ -345,7 +313,6 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
           </Box>
         )}
 
-        {/* ── Contact ── */}
         <Section>Contact</Section>
         <Box sx={{ mb: 3 }}>
           <PropertyRow icon={PersonOutlineIcon} label="Name" required error={err('name')}>
@@ -403,7 +370,6 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
           </PropertyRow>
         </Box>
 
-        {/* ── Xero Integration ── */}
         <Section>Xero Integration</Section>
         <Box sx={{ mb: 3 }}>
           <PropertyRow icon={SyncAltIcon} label="Xero Contact ID">
@@ -429,7 +395,6 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
           </PropertyRow>
         </Box>
 
-        {/* ── Notes ── */}
         <Section>Notes</Section>
         <Box sx={{ px: 1, py: '6px', mb: 3, borderRadius: '4px', '&:hover': { bgcolor: '#f7f6f3' } }}>
           <TextField
@@ -451,7 +416,6 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
           />
         </Box>
 
-        {/* ── Linked Records — only for existing customers ── */}
         {!isNew && (locations.length > 0 || workOrders.length > 0) && (
           <>
             <Section>Linked Records</Section>

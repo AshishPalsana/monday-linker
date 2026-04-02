@@ -2,14 +2,18 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Drawer, Box, Typography, TextField, Button, IconButton,
-  Stack, Divider, CircularProgress, Chip,
+  Stack, Divider, CircularProgress, Chip, Switch,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import NotesOutlinedIcon from '@mui/icons-material/NotesOutlined';
-import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined';
+import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
+import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
+import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined';
+import CalendarViewWeekOutlinedIcon from '@mui/icons-material/CalendarViewWeekOutlined';
 
 import { createWorkOrder } from '../store/workOrderSlice';
 import { createCustomer } from '../store/customersSlice';
@@ -18,6 +22,16 @@ import { STATUS_OPTIONS, STATUS_HEX } from '../constants';
 import CustomerDrawer from './CustomerDrawer';
 import LocationDrawer from './LocationDrawer';
 import RelationCell from './RelationCell';
+
+const EXECUTION_STATUS_OPTIONS = ['Unscheduled', 'In Progress', 'Completed', 'Cancelled', 'On Hold'];
+const PARTS_ORDERED_OPTIONS     = ['Not Required', 'Pending', 'Ordered', 'Received', 'Installed'];
+const PARTS_HEX = {
+  'Not Required': '#6b7280',
+  Pending:        '#f59e0b',
+  Ordered:        '#4f8ef7',
+  Received:       '#22c55e',
+  Installed:      '#a855f7',
+};
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
@@ -86,6 +100,12 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
     locationName: '',
     description: '',
     status: 'Unscheduled',
+    scheduledDate: '',
+    multiDay: false,
+    serviceHistory: '',
+    workPerformed: '',
+    executionStatus: '',
+    partsOrdered: '',
     groupId: defaultGroupId || 'topics',
   });
 
@@ -104,6 +124,12 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
         locationName: '',
         description: '',
         status: 'Unscheduled',
+        scheduledDate: '',
+        multiDay: false,
+        serviceHistory: '',
+        workPerformed: '',
+        executionStatus: '',
+        partsOrdered: '',
         groupId: defaultGroupId || 'topics',
       });
       setErrors({});
@@ -259,17 +285,129 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
             </Stack>
           </PropertyRow>
 
+          {/* Scheduled Date */}
+          <PropertyRow icon={EventOutlinedIcon} label="Scheduled Date">
+            <TextField
+              type="date"
+              size="small"
+              value={form.scheduledDate}
+              onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
+              variant="standard"
+              InputLabelProps={{ shrink: true }}
+              sx={{
+                '& .MuiInput-root': {
+                  fontSize: '0.9rem', color: '#37352f',
+                  '&:before, &:after': { display: 'none' },
+                },
+                '& .MuiInputBase-input': { p: '4px 8px', lineHeight: 1.5 },
+              }}
+            />
+          </PropertyRow>
+
+          {/* Multi-Day */}
+          <PropertyRow icon={CalendarViewWeekOutlinedIcon} label="Multi-Day">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Switch
+                size="small"
+                checked={form.multiDay}
+                onChange={(e) => setForm({ ...form, multiDay: e.target.checked })}
+                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#4caf50' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#4caf50' } }}
+              />
+              <Typography sx={{ fontSize: '0.82rem', color: form.multiDay ? '#4caf50' : '#9b9a97' }}>
+                {form.multiDay ? 'Yes' : 'No'}
+              </Typography>
+            </Box>
+          </PropertyRow>
+
           <Divider sx={{ my: 2 }} />
 
           {/* Description */}
           <PropertyRow icon={NotesOutlinedIcon} label="Description">
             <InlineField
               multiline
-              rows={4}
+              rows={3}
               placeholder="Add description..."
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
+          </PropertyRow>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* Service History */}
+          <PropertyRow icon={HistoryOutlinedIcon} label="Service History">
+            <InlineField
+              multiline
+              rows={3}
+              placeholder="Previous service notes..."
+              value={form.serviceHistory}
+              onChange={(e) => setForm({ ...form, serviceHistory: e.target.value })}
+            />
+          </PropertyRow>
+
+          {/* Work Performed */}
+          <PropertyRow icon={HandymanOutlinedIcon} label="Work Performed">
+            <InlineField
+              multiline
+              rows={3}
+              placeholder="Describe work performed..."
+              value={form.workPerformed}
+              onChange={(e) => setForm({ ...form, workPerformed: e.target.value })}
+            />
+          </PropertyRow>
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* Execution Status */}
+          <PropertyRow icon={VerifiedOutlinedIcon} label="Execution Status">
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: '2px' }}>
+              {EXECUTION_STATUS_OPTIONS.map((opt) => (
+                <Chip
+                  key={opt}
+                  label={opt}
+                  size="small"
+                  onClick={() => setForm({ ...form, executionStatus: form.executionStatus === opt ? '' : opt })}
+                  sx={{
+                    fontSize: '0.72rem',
+                    height: 22,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    bgcolor: form.executionStatus === opt ? (STATUS_HEX[opt] || '#6b7280') : 'transparent',
+                    color: form.executionStatus === opt ? '#fff' : '#6b7280',
+                    border: '1px solid',
+                    borderColor: form.executionStatus === opt ? (STATUS_HEX[opt] || '#6b7280') : '#e5e7eb',
+                    '&:hover': { bgcolor: form.executionStatus === opt ? (STATUS_HEX[opt] || '#6b7280') : '#f3f4f6' },
+                    transition: 'all 0.1s',
+                  }}
+                />
+              ))}
+            </Stack>
+          </PropertyRow>
+
+          {/* Parts Ordered */}
+          <PropertyRow icon={InventoryOutlinedIcon} label="Parts Ordered">
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: '2px' }}>
+              {PARTS_ORDERED_OPTIONS.map((opt) => (
+                <Chip
+                  key={opt}
+                  label={opt}
+                  size="small"
+                  onClick={() => setForm({ ...form, partsOrdered: form.partsOrdered === opt ? '' : opt })}
+                  sx={{
+                    fontSize: '0.72rem',
+                    height: 22,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    bgcolor: form.partsOrdered === opt ? (PARTS_HEX[opt] || '#6b7280') : 'transparent',
+                    color: form.partsOrdered === opt ? '#fff' : '#6b7280',
+                    border: '1px solid',
+                    borderColor: form.partsOrdered === opt ? (PARTS_HEX[opt] || '#6b7280') : '#e5e7eb',
+                    '&:hover': { bgcolor: form.partsOrdered === opt ? (PARTS_HEX[opt] || '#6b7280') : '#f3f4f6' },
+                    transition: 'all 0.1s',
+                  }}
+                />
+              ))}
+            </Stack>
           </PropertyRow>
         </Stack>
       </Box>
