@@ -2,16 +2,21 @@ import { mondayClient } from './mondayAPI';
 import { gql } from '@apollo/client';
 
 const BOARD_IDS = {
-  CUSTOMERS:   '18400951947',
-  LOCATIONS:   '18400965227',
-  WORK_ORDERS: '18402613691',
-  EQUIPMENT:   '18403226725',
+  CUSTOMERS:     '18400951947',
+  LOCATIONS:     '18400965227',
+  WORK_ORDERS:   '18402613691',
+  EQUIPMENT:     '18403226725',
+  TIME_ENTRIES:  '18406939306',
+  EXPENSES:      '18406939432',
+  INVOICE_ITEMS: '18403393439',
 };
 
 const GROUP_IDS = {
-  CUSTOMERS_ACTIVE: 'topics',
-  LOCATIONS_ACTIVE: 'topics',
-  EQUIPMENT_ACTIVE: 'topics',
+  CUSTOMERS_ACTIVE:   'topics',
+  LOCATIONS_ACTIVE:   'topics',
+  EQUIPMENT_ACTIVE:   'topics',
+  TIME_ENTRIES_OPEN:  'topics',
+  EXPENSES_PENDING:   'topics',
 };
 
 export const COL = {
@@ -42,12 +47,16 @@ export const COL = {
     LOCATION:          'board_relation_mm14fdpt',
     DESCRIPTION:       'long_text_mm14ee7h',
     STATUS:            'color_mm14pf0q',
+    TECHNICIAN:        'multiple_person_mm14sesj',
     SCHEDULED_DATE:    'date_mm14sjdg',
     MULTI_DAY:         'boolean_mm14act2',
     SERVICE_HISTORY:   'long_text_mm15p7rk',
     WORK_PERFORMED:    'long_text_mm15kfzp',
     EXECUTION_STATUS:  'color_mm1s7ak1',
     PARTS_ORDERED:     'color_mm1bs0w7',
+    WORKORDER_ID:      'text_mm1s82bz',
+    EQUIPMENTS_REL:    'board_relation_mm19cxzv',
+    INVOICE_ITEMS_REL: 'board_relation_mm1ady0r',
   },
   // Equipment board (id: 18403226725)
   EQUIPMENT: {
@@ -62,6 +71,40 @@ export const COL = {
     WORK_ORDERS_REL:   'board_relation_mm19qvrd',
     SERVICE_HISTORY:   'lookup_mm19r6xz',
     LAST_SERVICE_DATE: 'lookup_mm19zknx',
+  },
+  // Time Entries board (id: 18406939306)
+  TIME_ENTRIES: {
+    TOTAL_HOURS:     'numeric_mm21p49k',
+    CLOCK_IN:        'date_mm21zkpj',
+    CLOCK_OUT:       'date_mm2155gg',
+    TASK_TYPE:       'dropdown_mm21wscp',    // Job=1, Non-Job=2
+    WORK_ORDERS_REL: 'board_relation_mm21aenv',
+    TECHNICIANS:     'multiple_person_mm21m56s',
+    LOCATIONS_REL:   'board_relation_mm21vtd1',
+    EXPENSES_ADDED:  'boolean_mm212dcy',
+  },
+  // Expenses board (id: 18406939432)
+  EXPENSES: {
+    TECHNICIAN:   'multiple_person_mm212yhb',
+    RECEIPT:      'file_mm21j7d7',
+    DESCRIPTION:  'text_mm213m15',
+    EXPENSE_TYPE: 'dropdown_mm215jhc',  // Fuel=1, Lodging=2, Meals=3, Supplies=4
+    WORK_ORDER:   'text_mm218mcp',
+    AMOUNT:       'numeric_mm21a0kv',
+  },
+  // Invoice Line Items board (id: 18403393439)
+  INVOICE_ITEMS: {
+    WORK_ORDERS_REL:  'board_relation_mm1ae4as',
+    CUSTOMER_MIRROR:  'lookup_mm1ag56m',
+    LOCATION_MIRROR:  'lookup_mm1ac07c',
+    ITEM_TYPE:        'dropdown_mm1ae5fd',
+    QUANTITY:         'numeric_mm1ab4nj',
+    UNIT_PRICE:       'numeric_mm1a6h84',
+    TOTAL:            'formula_mm1astxs',
+    BILLING_STATUS:   'color_mm1ae7q7',
+    INVOICE_ID:       'text_mm1ay1cy',
+    DESCRIPTION:      'long_text_mm1cdk36',
+    REVENUE_ACCOUNT:  'color_mm1csz5m',
   },
 };
 
@@ -448,3 +491,73 @@ export async function apiUpdateWorkOrder(itemId, form) {
     });
   }
 }
+
+// ── Time Entries (read from Monday.com board) ─────────────────────────────────
+
+/**
+ * Fetch time entries from the Monday.com Time Entries board
+ * grouped by status (In Progress / Completed)
+ */
+export async function apiFetchTimeEntries() {
+  const { data, errors } = await mondayClient.query({
+    query: gql`
+      query {
+        boards(ids: [${BOARD_IDS.TIME_ENTRIES}]) {
+          items_page(limit: 100) {
+            items {
+              id
+              name
+              group { id title }
+              column_values(ids: [
+                "${COL.TIME_ENTRIES.TOTAL_HOURS}"
+                "${COL.TIME_ENTRIES.CLOCK_IN}"
+                "${COL.TIME_ENTRIES.CLOCK_OUT}"
+                "${COL.TIME_ENTRIES.TASK_TYPE}"
+                "${COL.TIME_ENTRIES.TECHNICIANS}"
+                "${COL.TIME_ENTRIES.WORK_ORDERS_REL}"
+                "${COL.TIME_ENTRIES.EXPENSES_ADDED}"
+              ]) { id text value }
+            }
+          }
+        }
+      }
+    `,
+  });
+  if (errors?.length) throw new Error(errors[0].message);
+  return data.boards[0]?.items_page?.items ?? [];
+}
+
+// ── Expenses (read from Monday.com board) ────────────────────────────────────
+
+export async function apiFetchExpenses(status) {
+  const groupId = status === 'Approved' ? 'group_mm215rfc'
+                : status === 'Rejected' ? 'group_mm217p3s'
+                : 'topics'; // Pending
+
+  const { data, errors } = await mondayClient.query({
+    query: gql`
+      query {
+        boards(ids: [${BOARD_IDS.EXPENSES}]) {
+          groups(ids: ["${groupId}"]) {
+            items_page(limit: 100) {
+              items {
+                id
+                name
+                column_values(ids: [
+                  "${COL.EXPENSES.TECHNICIAN}"
+                  "${COL.EXPENSES.DESCRIPTION}"
+                  "${COL.EXPENSES.EXPENSE_TYPE}"
+                  "${COL.EXPENSES.WORK_ORDER}"
+                  "${COL.EXPENSES.AMOUNT}"
+                ]) { id text value }
+              }
+            }
+          }
+        }
+      }
+    `,
+  });
+  if (errors?.length) throw new Error(errors[0].message);
+  return data.boards[0]?.groups[0]?.items_page?.items ?? [];
+}
+

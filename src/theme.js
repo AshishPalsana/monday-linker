@@ -20,13 +20,13 @@ const theme = createTheme({
     body2: { fontSize: '0.8125rem' },
     caption: { fontSize: '0.75rem' },
   },
-  shape: { borderRadius: 10 },
+  shape: { borderRadius: 5 },
   components: {
     MuiCssBaseline: { styleOverrides: { body: { backgroundColor: '#f5f5f5' } } },
     MuiPaper: { styleOverrides: { root: { backgroundImage: 'none', border: '1px solid #e0e0e0' } } },
     MuiButton: {
       styleOverrides: {
-        root: { textTransform: 'none', fontWeight: 600, borderRadius: 8, fontSize: '0.8125rem' },
+        root: { textTransform: 'none', fontWeight: 600, borderRadius: 6, fontSize: '0.8125rem' },
         containedPrimary: { boxShadow: '0 0 0 1px rgba(25,118,210,0.15), 0 4px 12px rgba(25,118,210,0.10)' },
       },
     },
@@ -35,7 +35,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            borderRadius: 8,
+            borderRadius: 6,
             backgroundColor: '#fff',
             '& fieldset': { borderColor: '#e0e0e0' },
             '&:hover fieldset': { borderColor: '#bdbdbd' },

@@ -49,7 +49,6 @@ export const createCustomer = createAsyncThunk(
   async (form, { dispatch, rejectWithValue }) => {
     try {
       const created = await apiCreateCustomer(form);
-      // Always refetch to ensure board reflects all columns and correct grouping
       await dispatch(fetchCustomers());
       return created;
     } catch (e) {
@@ -62,7 +61,6 @@ export const createCustomerAndLink = createAsyncThunk(
   'customers/createAndLink',
   async ({ form, workOrderId }, { dispatch, rejectWithValue }) => {
     try {
-      // Show name immediately in the work order row before any API call
       if (workOrderId) {
         dispatch(optimisticUpdateRelation({
           itemId: workOrderId,
@@ -74,7 +72,6 @@ export const createCustomerAndLink = createAsyncThunk(
 
       const created = await apiCreateCustomer(form);
 
-      // Update with real ID (only if Monday returned a valid numeric ID)
       if (workOrderId && /^\d+$/.test(String(created.id))) {
         dispatch(optimisticUpdateRelation({
           itemId: workOrderId,
@@ -85,7 +82,6 @@ export const createCustomerAndLink = createAsyncThunk(
         await apiSetWorkOrderRelation(workOrderId, created.id, COL.WORK_ORDERS.CUSTOMER);
       }
 
-      // Refetch always — this also resolves any temp ID to the real Monday numeric ID
       await dispatch(fetchCustomers());
       return created;
     } catch (e) {
@@ -122,21 +118,17 @@ export const linkExistingCustomer = createAsyncThunk(
   },
 );
 
-// Optimistically patches the item in Redux state, calls the API, reverts on failure
 export const updateCustomer = createAsyncThunk(
   'customers/update',
   async ({ customerId, form }, { dispatch, getState, rejectWithValue }) => {
-    // Snapshot current item for revert
     const items = getState().customers.board?.items_page?.items || [];
     const previousItem = items.find((i) => i.id === customerId);
 
-    // Optimistic patch — update Redux immediately so UI reflects change
     dispatch(customersSlice.actions.patchCustomer({ customerId, form }));
 
     try {
       await apiUpdateCustomer(customerId, form);
     } catch (e) {
-      // Revert to previous item data on API failure
       if (previousItem) {
         dispatch(customersSlice.actions.restoreCustomer({ customerId, previousItem }));
       }
@@ -149,17 +141,14 @@ const customersSlice = createSlice({
   name: 'customers',
   initialState: { board: null, loading: false, creating: false, saving: false, error: null },
   reducers: {
-    // Immediately patch a customer's fields in Redux state
     patchCustomer(state, action) {
       const { customerId, form } = action.payload;
       if (!state.board) return;
       const item = state.board.items_page.items.find((i) => i.id === customerId);
       if (!item) return;
 
-      // Update item name
       if (form.name) item.name = form.name;
 
-      // Helper to set a column's text value
       const setCol = (colId, text) => {
         const col = item.column_values.find((cv) => cv.id === colId);
         if (col) col.text = text || '';
@@ -173,21 +162,18 @@ const customersSlice = createSlice({
       setCol(COL.CUSTOMERS.XERO_CONTACT_ID, form.xeroContactId);
       setCol(COL.CUSTOMERS.NOTES, form.notes);
 
-      // Xero Sync Status uses label field (it's a status/color column)
       const xeroSyncCol = item.column_values.find((cv) => cv.id === COL.CUSTOMERS.XERO_SYNC_STATUS);
       if (xeroSyncCol) {
         xeroSyncCol.label = form.xeroSyncStatus || '';
         xeroSyncCol.text = form.xeroSyncStatus || '';
       }
 
-      // Status uses label field
       const statusCol = item.column_values.find((cv) => cv.id === COL.CUSTOMERS.STATUS);
       if (statusCol) {
         statusCol.label = form.status || '';
         statusCol.text = form.status || '';
       }
     },
-    // Restore a customer to its previous state (used on API failure)
     restoreCustomer(state, action) {
       const { customerId, previousItem } = action.payload;
       if (!state.board) return;

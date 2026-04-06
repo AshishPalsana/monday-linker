@@ -8,12 +8,12 @@ import LocationDrawer from './LocationDrawer';
 import {
   Box,
   Typography,
-  Button,
   TableCell,
   TableRow,
   TextField,
   CircularProgress,
 } from '@mui/material';
+import AppButton from './AppButton';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import CheckIcon from '@mui/icons-material/Check';
@@ -243,13 +243,14 @@ export default function WorkOrdersBoard() {
       {/* Header */}
       <Box
         sx={{
-          px: 3,
-          py: 2,
+          px: { xs: 2, sm: 3 },
+          py: { xs: 1.5, sm: 2 },
           borderBottom: '1px solid',
           borderColor: 'divider',
           bgcolor: 'background.paper',
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'flex-start', sm: 'center' },
           gap: 2,
           flexShrink: 0,
         }}
@@ -265,7 +266,7 @@ export default function WorkOrdersBoard() {
             {filteredItems.length} total
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: { xs: 0, sm: 'auto' }, width: { xs: '100%', sm: 'auto' } }}>
           <TextField
             size="small"
             placeholder="Search work orders…"
@@ -276,36 +277,24 @@ export default function WorkOrdersBoard() {
                 <SearchIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 0.5 }} />
               ),
             }}
-            sx={{ 
-              width: 260,
-              '& .MuiOutlinedInput-root': {
-                height: 40,
-                borderRadius: '8px',
-                bgcolor: '#fff',
-              }
+            sx={{
+              flex: { xs: 1, sm: 'none' },
+              width: { xs: 'auto', sm: 260 },
+              '& .MuiOutlinedInput-root': { height: 36, borderRadius: '8px', bgcolor: '#fff' },
             }}
           />
-          <Button
-            variant="contained"
+          <AppButton
             startIcon={<AddIcon />}
             onClick={() => setOpenWorkOrderDrawer(true)}
-            sx={{ 
-              height: 40, 
-              px: 3, 
-              borderRadius: '8px', 
-              textTransform: 'none', 
-              fontWeight: 600,
-              boxShadow: 'none',
-              '&:hover': { boxShadow: 'none', bgcolor: 'primary.dark' }
-            }}
+            sx={{ flexShrink: 0 }}
           >
             New work order
-          </Button>
+          </AppButton>
         </Box>
       </Box>
 
       {/* Groups + Tables */}
-      <Box sx={{ flex: 1, overflow: 'auto', px: 3, py: 2 }}>
+      <Box sx={{ flex: 1, overflow: 'auto', px: { xs: 1.5, sm: 3 }, py: { xs: 1.5, sm: 2 } }}>
         {groups.map((group) => {
           const rows = itemsByGroup[group.id] || [];
           return (
