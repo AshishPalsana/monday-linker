@@ -4,13 +4,6 @@ const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 let socket = null;
 
-/**
- * Connect (or reconnect) the socket with technician credentials.
- * Safe to call multiple times — re-uses the existing socket if already connected.
- *
- * @param {{ technicianId: string, role?: string }} auth
- * @returns {import("socket.io-client").Socket}
- */
 export function connectSocket({ technicianId, role = "technician" }) {
   if (socket?.connected) return socket;
 
@@ -40,9 +33,6 @@ export function connectSocket({ technicianId, role = "technician" }) {
   return socket;
 }
 
-/**
- * Get the singleton socket instance (may be null before connectSocket is called).
- */
 export function getSocket() {
   return socket;
 }

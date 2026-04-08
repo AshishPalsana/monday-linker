@@ -5,7 +5,7 @@ import App from './App.jsx'
 import { ApolloProvider } from '@apollo/client/react'
 import { mondayClient } from './services/mondayAPI'
 import { Provider } from 'react-redux'
-import store from './store'
+import store from './store/index'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

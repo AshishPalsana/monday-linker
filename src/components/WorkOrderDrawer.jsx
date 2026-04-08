@@ -33,7 +33,6 @@ const PARTS_HEX = {
   Installed:      '#a855f7',
 };
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
 const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
   <Box sx={{
     display: 'grid',

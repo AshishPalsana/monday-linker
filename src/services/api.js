@@ -25,7 +25,9 @@ export const authApi = {
 };
 
 export const timeEntriesApi = {
-  getToday:  (token)          => request('GET',   '/api/time-entries',              undefined, token),
-  clockIn:   (token, data)    => request('POST',  '/api/time-entries/clock-in',     data,      token),
+  // Pass today's local date so the server uses the correct calendar day
+  // regardless of the server's own timezone.
+  getToday:  (token)           => request('GET',   `/api/time-entries?date=${new Date().toLocaleDateString('en-CA')}`, undefined, token),
+  clockIn:   (token, data)     => request('POST',  '/api/time-entries/clock-in',     data,      token),
   clockOut:  (token, id, data) => request('PATCH', `/api/time-entries/${id}/clock-out`, data,  token),
 };

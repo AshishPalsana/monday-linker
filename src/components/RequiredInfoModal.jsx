@@ -34,7 +34,7 @@ export default function RequiredInfoModal({ modal, data, onSave }) {
     <Dialog
       open={true}
       disableEscapeKeyDown
-      onClose={() => {}} // Prevent closing - forced modal
+      onClose={() => {}}
       maxWidth="sm"
       fullWidth
       PaperProps={{ sx: { borderRadius: 3 } }}

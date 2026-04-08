@@ -1,10 +1,6 @@
-import { useState, useRef } from 'react';
-import { Box, Chip, Autocomplete, TextField } from '@mui/material';
+import { useState, useRef } from "react";
+import { Box, Chip, Autocomplete, TextField } from "@mui/material";
 
-/**
- * A reusable relation cell component that handles searching existing items
- * and provides an option to create a new one if not found.
- */
 export default function RelationCell({
   value,
   options,
@@ -22,7 +18,7 @@ export default function RelationCell({
   if (!editing) {
     return (
       <Box
-        sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
         onClick={(e) => e.stopPropagation()}
       >
         {value ? (
@@ -32,23 +28,23 @@ export default function RelationCell({
             onClick={() => setEditing(true)}
             sx={{
               maxWidth: 150,
-              fontSize: '0.72rem',
+              fontSize: "0.72rem",
               height: 22,
               bgcolor: chipBgColor,
               color: chipTextColor,
               border: `1px solid ${chipBorderColor}`,
-              cursor: 'pointer',
+              cursor: "pointer",
             }}
           />
         ) : (
           <Box
             onClick={() => setEditing(true)}
             sx={{
-              color: 'text.disabled',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
+              color: "text.disabled",
+              fontSize: "0.75rem",
+              cursor: "pointer",
               px: 0.5,
-              '&:hover': { color: 'primary.main' },
+              "&:hover": { color: "primary.main" },
             }}
           >
             {placeholder}
@@ -58,22 +54,19 @@ export default function RelationCell({
     );
   }
 
-  // Render the autocomplete absolutely so it doesn't affect row height
   return (
     <Box
       onClick={(e) => e.stopPropagation()}
-      sx={{ position: 'relative', height: '22px' }}
+      sx={{ position: "relative", height: "22px" }}
     >
-      {/* Invisible spacer keeps the row at its normal height */}
-      <Box aria-hidden sx={{ height: '22px' }} />
+      <Box aria-hidden sx={{ height: "22px" }} />
 
-      {/* Floating input — positioned absolutely, does not push row taller */}
       <Box
         sx={{
-          position: 'absolute',
-          top: '50%',
+          position: "absolute",
+          top: "50%",
           left: -4,
-          transform: 'translateY(-50%)',
+          transform: "translateY(-50%)",
           zIndex: 20,
         }}
       >
@@ -82,17 +75,20 @@ export default function RelationCell({
           open
           autoFocus
           options={options}
-          getOptionLabel={(o) => (typeof o === 'string' ? o : o.name || '')}
+          getOptionLabel={(o) => (typeof o === "string" ? o : o.name || "")}
           filterOptions={(opts, { inputValue }) => {
             const filtered = opts.filter((o) =>
-              (o.name || '').toLowerCase().includes(inputValue.toLowerCase()),
+              (o.name || "").toLowerCase().includes(inputValue.toLowerCase()),
             );
             if (
               inputValue &&
-              !filtered.some((o) => (o.name || '').toLowerCase() === inputValue.toLowerCase())
+              !filtered.some(
+                (o) =>
+                  (o.name || "").toLowerCase() === inputValue.toLowerCase(),
+              )
             ) {
               filtered.push({
-                id: '__new__',
+                id: "__new__",
                 name: `Add "${inputValue}" as new ${createLabel}`,
                 inputValue,
               });
@@ -103,7 +99,7 @@ export default function RelationCell({
             mouseDownOnOption.current = false;
             setEditing(false);
             if (!val) return;
-            if (val.id === '__new__') {
+            if (val.id === "__new__") {
               onCreateNew(val.inputValue);
             } else {
               onSelectExisting(val.id, val.name);
@@ -119,11 +115,11 @@ export default function RelationCell({
               placeholder="Search or create…"
               sx={{
                 minWidth: 180,
-                '& .MuiOutlinedInput-root': {
+                "& .MuiOutlinedInput-root": {
                   height: 30,
-                  fontSize: '0.8rem',
-                  bgcolor: 'background.paper',
-                  borderRadius: '6px',
+                  fontSize: "0.8rem",
+                  bgcolor: "background.paper",
+                  borderRadius: "6px",
                 },
               }}
             />
@@ -135,22 +131,30 @@ export default function RelationCell({
                 component="li"
                 key={key}
                 {...rest}
-                onMouseDown={() => { mouseDownOnOption.current = true; }}
+                onMouseDown={() => {
+                  mouseDownOnOption.current = true;
+                }}
                 sx={{
-                  fontSize: '0.8rem',
-                  ...(option.id === '__new__'
-                    ? { color: 'primary.main', fontWeight: 600 }
+                  fontSize: "0.8rem",
+                  ...(option.id === "__new__"
+                    ? { color: "primary.main", fontWeight: 600 }
                     : {}),
                 }}
               >
-                {option.id === '__new__' ? `+ ${option.name}` : option.name}
+                {option.id === "__new__" ? `+ ${option.name}` : option.name}
               </Box>
             );
           }}
           componentsProps={{
             popper: {
-              placement: 'bottom-start',
-              modifiers: [{ name: 'preventOverflow', enabled: true, options: { boundary: 'viewport' } }],
+              placement: "bottom-start",
+              modifiers: [
+                {
+                  name: "preventOverflow",
+                  enabled: true,
+                  options: { boundary: "viewport" },
+                },
+              ],
             },
           }}
           sx={{ width: 220 }}

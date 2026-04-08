@@ -19,8 +19,8 @@ import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { NavLink } from "react-router-dom";
-import { useClockStatus } from "../store/clockContext";
-import { useAuth } from "../store/authContext";
+import { useSelector } from 'react-redux';
+import { useAuth } from "../hooks/useAuth";
 
 export const SIDEBAR_EXPANDED_WIDTH = 230;
 export const SIDEBAR_COLLAPSED_WIDTH = 56;
@@ -71,21 +71,6 @@ function NavItem({ id, icon: Icon, label, path, collapsed, clockedIn }) {
           >
             <ListItemIcon sx={{ position: "relative" }}>
               <Icon sx={{ fontSize: 18 }} />
-              {id === "time-tracker" && (
-                <Box
-                  sx={{
-                    position: "absolute",
-                    top: -1,
-                    right: -1,
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    bgcolor: clockedIn ? "#22c55e" : "#d1d5db",
-                    border: "1.5px solid white",
-                    transition: "background-color 0.3s ease",
-                  }}
-                />
-              )}
             </ListItemIcon>
 
             {!collapsed && (
@@ -132,7 +117,7 @@ function NavItem({ id, icon: Icon, label, path, collapsed, clockedIn }) {
 }
 
 function SidebarContent({ collapsed, onToggle }) {
-  const { clockedIn } = useClockStatus();
+  const clockedIn = useSelector((state) => !!state.activeEntry);
   const { auth } = useAuth();
   const isAdmin = auth?.technician?.isAdmin ?? false;
   // Temporarily show Time Board for all users during testing

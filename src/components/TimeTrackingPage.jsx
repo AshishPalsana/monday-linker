@@ -28,9 +28,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchWorkOrders } from "../store/workOrderSlice";
 import ClockInModal from "./ClockInModal";
 import ClockOutModal from "./ClockOutModal";
-import { useClockStatus } from "../store/clockContext";
-import { useAuth } from "../store/authContext";
-import { useActiveEntry } from "../store/activeEntryContext";
+import { useAuth } from "../hooks/useAuth";
+import { useActiveEntry } from "../hooks/useActiveEntry";
+import { useSocket } from "../hooks/useSocket";
 import { timeEntriesApi } from "../services/api";
 
 function formatEntry(entry) {
@@ -38,17 +38,38 @@ function formatEntry(entry) {
     id: entry.id,
     entryType: entry.entryType === "NonJob" ? "Non-Job" : entry.entryType,
     description: entry.workOrderLabel || entry.taskDescription || "—",
-    clockIn: new Date(entry.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    clockIn: new Date(entry.clockIn).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
     clockOut: entry.clockOut
-      ? new Date(entry.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      ? new Date(entry.clockOut).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
       : DASH,
     hours: parseFloat(entry.hoursWorked) || 0,
     status: entry.status,
   };
 }
 
+function isToday(dateIso) {
+  const d = new Date(dateIso);
+  const today = new Date();
+  return (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  );
+}
+
 const ENTRY_TYPE_HEX = { Job: "#4f8ef7", "Non-Job": "#a855f7" };
-const STATUS_HEX = { Open: "#f59e0b", Complete: "#22c55e", Approved: "#4f8ef7" };
+const STATUS_HEX = {
+  Open: "#f59e0b",
+  Complete: "#22c55e",
+  Approved: "#4f8ef7",
+};
+const EMPTY_ITEMS = [];
 
 function EntryTypeChip({ type }) {
   const color = ENTRY_TYPE_HEX[type] ?? "#888";
@@ -89,22 +110,26 @@ function StatusChipSmall({ status }) {
 }
 
 function totalHours(entries) {
-  return entries.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0).toFixed(2);
+  return entries
+    .reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0)
+    .toFixed(2);
 }
 
 function useElapsedTimer(startIso) {
-  const [elapsed, setElapsed] = useState(0);
+  const [elapsed, setElapsed] = useState(() =>
+    startIso ? Math.floor((Date.now() - new Date(startIso)) / 1000) : 0,
+  );
   const intervalRef = useRef(null);
   useEffect(() => {
+    clearInterval(intervalRef.current);
     if (!startIso) {
-      setElapsed(0);
-      clearInterval(intervalRef.current);
+      intervalRef.current = null;
       return;
     }
-    const tick = () =>
-      setElapsed(Math.floor((Date.now() - new Date(startIso)) / 1000));
-    tick();
-    intervalRef.current = setInterval(tick, 1000);
+    intervalRef.current = setInterval(
+      () => setElapsed(Math.floor((Date.now() - new Date(startIso)) / 1000)),
+      1000,
+    );
     return () => clearInterval(intervalRef.current);
   }, [startIso]);
   const h = String(Math.floor(elapsed / 3600)).padStart(2, "0");
@@ -126,7 +151,6 @@ function useLiveClock() {
   });
 }
 
-// Timing panel - right column on desktop, collapsible card on mobile
 function TimingPanel({
   clockedIn,
   activeEntry,
@@ -159,15 +183,13 @@ function TimingPanel({
         flexShrink: 0,
       }}
     >
-      {/* User card */}
       <Box
         sx={{
           px: { xs: 2, sm: 2.5 },
           pt: { xs: 1.5, sm: 3 },
           pb: { xs: 1.5, sm: 2.5 },
           textAlign: collapsible ? "left" : "center",
-          borderBottom:
-            collapsible && !panelOpen ? "none" : "1px solid",
+          borderBottom: collapsible && !panelOpen ? "none" : "1px solid",
           borderColor: "divider",
           display: "flex",
           alignItems: "center",
@@ -223,7 +245,6 @@ function TimingPanel({
         )}
       </Box>
 
-      {/* Body - always visible on desktop, collapsible on mobile */}
       <Collapse in={collapsible ? panelOpen : true} timeout="auto">
         <Box sx={{ px: { xs: 2, sm: 2.5 }, pt: 2, pb: 2 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
@@ -238,7 +259,6 @@ function TimingPanel({
             </Typography>
           </Box>
 
-          {/* Two timer boxes */}
           <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
             <Paper
               elevation={0}
@@ -248,9 +268,7 @@ function TimingPanel({
                 py: 1.5,
                 px: 1,
                 border: "1px solid",
-                borderColor: clockedIn
-                  ? "rgba(34,197,94,0.4)"
-                  : "#e4e4e4",
+                borderColor: clockedIn ? "rgba(34,197,94,0.4)" : "#e4e4e4",
                 borderRadius: 1,
                 bgcolor: clockedIn ? "rgba(34,197,94,0.04)" : "#fafafa",
               }}
@@ -318,15 +336,19 @@ function TimingPanel({
                 }}
               >
                 {entriesLoading ? (
-                <Skeleton variant="text" width={40} height={20} sx={{ mx: "auto", borderRadius: 1 }} />
-              ) : (
-                <>{totalHours(todayEntries)}h</>
-              )}
+                  <Skeleton
+                    variant="text"
+                    width={40}
+                    height={20}
+                    sx={{ mx: "auto", borderRadius: 1 }}
+                  />
+                ) : (
+                  <>{totalHours(todayEntries)}h</>
+                )}
               </Typography>
             </Paper>
           </Box>
 
-          {/* Active entry label */}
           {clockedIn && activeEntry && (
             <Box
               sx={{
@@ -362,7 +384,6 @@ function TimingPanel({
             </Box>
           )}
 
-          {/* Action button */}
           {clockedIn ? (
             <AppButton
               fullWidth
@@ -385,7 +406,6 @@ function TimingPanel({
 
         <Divider />
 
-        {/* Activity feed */}
         <Box sx={{ px: { xs: 2, sm: 2.5 }, pt: 2, pb: 3 }}>
           <Typography
             variant="subtitle2"
@@ -475,9 +495,7 @@ function TimingPanel({
                           display: "block",
                         }}
                       >
-                        {item.active
-                          ? `Clocked in ${item.type}`
-                          : item.event}
+                        {item.active ? `Clocked in ${item.type}` : item.event}
                       </Typography>
                       <Typography
                         variant="caption"
@@ -513,13 +531,12 @@ export default function TimeTrackingPage() {
   const { auth } = useAuth();
   const token = auth?.token ?? null;
 
-  // Active entry: backed by localStorage, reconciled with server (from context)
-  const { activeEntry, setActiveEntry, clearActiveEntry, socket } = useActiveEntry();
+  const { activeEntry, setActiveEntry, clearActiveEntry } = useActiveEntry();
   const clockedIn = !!activeEntry;
+  const socket = useSocket();
 
   const requestedSocketRef = useRef(null);
 
-  const { setClockedIn: setGlobalClockedIn } = useClockStatus();
   const [todayEntries, setTodayEntries] = useState([]);
   const [entriesLoading, setEntriesLoading] = useState(true);
   const [clockInOpen, setClockInOpen] = useState(false);
@@ -527,41 +544,71 @@ export default function TimeTrackingPage() {
   const [apiError, setApiError] = useState(null);
 
   const dispatch = useDispatch();
-  const rawWorkOrders = useSelector((s) => s.workOrders.board?.items_page?.items ?? []);
+  const rawWorkOrders = useSelector(
+    (s) => s.workOrders.board?.items_page?.items ?? EMPTY_ITEMS,
+  );
   const woLoading = useSelector((s) => s.workOrders.loading);
 
-  // ── Sync global clocked-in status (Sidebar badge) ─────────────────────────
-  useEffect(() => {
-    setGlobalClockedIn(clockedIn);
-  }, [clockedIn, setGlobalClockedIn]);
-
-  // ── Load work orders once token is ready ────────────────────────────────────────
   useEffect(() => {
     if (!token) return;
     dispatch(fetchWorkOrders());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // ── Real-time: today's entries + clock_out updates ───────────────────────────
+  // Primary load: REST API — more reliable than socket-only path since it
+  // uses the JWT directly (no socket auth mismatch possible) and re-fires
+  // whenever the component remounts (navigation away and back).
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    timeEntriesApi
+      .getToday(token)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setTodayEntries(
+          (data ?? []).filter((e) => e.clockOut && isToday(e.clockIn)).map(formatEntry),
+        );
+        setEntriesLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("[today-log] REST fetch error:", err);
+        setEntriesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
   useEffect(() => {
     if (!socket) return;
 
     function onTodayData({ data }) {
-      setTodayEntries((data ?? []).filter((e) => e.clockOut).map(formatEntry));
+      setTodayEntries(
+        (data ?? []).filter((e) => e.clockOut && isToday(e.clockIn)).map(formatEntry),
+      );
       setEntriesLoading(false);
     }
 
     function onClockOut(payload) {
       if (payload.technicianId !== auth?.technician?.id) return;
+      if (!isToday(payload.clockIn)) return;
 
       const realEntry = {
-        id:          payload.entryId,
-        entryType:   payload.entryType === "NonJob" ? "Non-Job" : payload.entryType,
+        id: payload.entryId,
+        entryType:
+          payload.entryType === "NonJob" ? "Non-Job" : payload.entryType,
         description: payload.workOrderLabel || payload.taskDescription || "—",
-        clockIn:     new Date(payload.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        clockOut:    new Date(payload.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        hours:       parseFloat(payload.hoursWorked) || 0,
-        status:      payload.status || "Complete",
+        clockIn: new Date(payload.clockIn).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        clockOut: new Date(payload.clockOut).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        hours: parseFloat(payload.hoursWorked) || 0,
+        status: payload.status || "Complete",
       };
 
       setTodayEntries((prev) => {
@@ -579,64 +626,66 @@ export default function TimeTrackingPage() {
     }
 
     socket.on("today:data", onTodayData);
-    socket.on("clock_out",  onClockOut);
+    socket.on("clock_out", onClockOut);
 
     return () => {
       socket.off("today:data", onTodayData);
-      socket.off("clock_out",  onClockOut);
+      socket.off("clock_out", onClockOut);
     };
   }, [socket, auth?.technician?.id]);
 
-  // ── Emit today:request exactly once per socket instance ──────────────────────
-  // Separated from listener effect so StrictMode double-invoke doesn't fire twice
   useEffect(() => {
     if (!socket || requestedSocketRef.current === socket) return;
     requestedSocketRef.current = socket;
     socket.emit("today:request");
   }, [socket]);
 
-  // ── Derived ────────────────────────────────────────────────────────────────
-  const userName     = auth?.technician?.name ?? "…";
-  const userInitials = userName !== "…"
-    ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "?";
+  const userName = auth?.technician?.name ?? "…";
+  const userInitials =
+    userName !== "…"
+      ? userName
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2)
+      : "?";
 
   const workOrders = rawWorkOrders.map((item) => {
     const woIdCol = item.column_values?.find((cv) => cv.id === "text_mm1s82bz");
-    const woId    = woIdCol?.text || "";
+    const woId = woIdCol?.text || "";
     return { id: item.id, label: woId ? `${woId} · ${item.name}` : item.name };
   });
 
-  const elapsed   = useElapsedTimer(clockedIn ? activeEntry?.clockInTime : null);
+  const elapsed = useElapsedTimer(clockedIn ? activeEntry?.clockInTime : null);
   const liveClock = useLiveClock();
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
   async function handleClockIn(data) {
     const optimistic = { ...data, backendEntryId: null };
-    setActiveEntry(optimistic);   // instantly persisted to localStorage
+    setActiveEntry(optimistic); 
     setClockInOpen(false);
 
     if (!token) return;
     try {
       const result = await timeEntriesApi.clockIn(token, {
-        entryType:       data.entryType === "Non-Job" ? "NonJob" : data.entryType,
-        // Only include optional fields when they have a value — sending null
-        // fails express-validator v7's .optional().isString() checks
-        ...(data.workOrder?.id    && { workOrderRef:    String(data.workOrder.id)    }),
-        ...(data.workOrder?.label && { workOrderLabel:  data.workOrder.label         }),
-        ...(data.taskDescription  && { taskDescription: data.taskDescription         }),
+        entryType: data.entryType === "Non-Job" ? "NonJob" : data.entryType,
+        ...(data.workOrder?.id && { workOrderRef: String(data.workOrder.id) }),
+        ...(data.workOrder?.label && { workOrderLabel: data.workOrder.label }),
+        ...(data.taskDescription && { taskDescription: data.taskDescription }),
       });
-      // Patch the backendEntryId so clock-out can reference it
       setActiveEntry({ ...optimistic, backendEntryId: result.data.id });
     } catch (err) {
       if (err.status === 409 && err.data?.activeEntryId) {
-        // Backend says already clocked in — reuse the existing open entry's ID
-        setActiveEntry({ ...optimistic, backendEntryId: err.data.activeEntryId });
+        setActiveEntry({
+          ...optimistic,
+          backendEntryId: err.data.activeEntryId,
+        });
       } else {
-        // Any other failure — revert the optimistic state and alert the user
         console.error("[clock-in] API error:", err);
         clearActiveEntry();
-        setApiError(`Clock-in failed: ${err.message || "server error"}. Please try again.`);
+        setApiError(
+          `Clock-in failed: ${err.message || "server error"}. Please try again.`,
+        );
       }
     }
   }
@@ -644,54 +693,68 @@ export default function TimeTrackingPage() {
   async function handleClockOut(data) {
     if (!activeEntry) return;
 
-    const inTime    = new Date(activeEntry.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const nowTime   = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const diffMs    = Date.now() - new Date(activeEntry.clockInTime);
+    const inTime = new Date(activeEntry.clockInTime).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const nowTime = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const diffMs = Date.now() - new Date(activeEntry.clockInTime);
     const diffHours = Math.max(0, parseFloat((diffMs / 3_600_000).toFixed(2)));
 
-    // Build the optimistic entry for Today's Log
     const optimisticEntry = {
-      id:          `temp-${Date.now()}`,
-      entryType:   activeEntry.entryType,
-      description: activeEntry.entryType === "Job"
-        ? (activeEntry.workOrder?.label ?? "Work Order")
-        : (activeEntry.taskDescription ?? "Task"),
-      clockIn:  inTime,
+      id: `temp-${Date.now()}`,
+      entryType: activeEntry.entryType,
+      description:
+        activeEntry.entryType === "Job"
+          ? (activeEntry.workOrder?.label ?? "Work Order")
+          : (activeEntry.taskDescription ?? "Task"),
+      clockIn: inTime,
       clockOut: nowTime,
-      hours:    diffHours > 0 ? diffHours : 0.01,
-      status:   "Open",
+      hours: diffHours > 0 ? diffHours : 0.01,
+      status: "Open",
     };
 
-    // Capture before clearing—capture must happen before any state mutations
     const captured = activeEntry;
+    const clockInIsToday = isToday(captured.clockInTime);
 
-    // If backendEntryId is missing, the clock-in API must have failed silently.
-    // Restore state and show an error instead of silently skipping the DB write.
     if (!captured.backendEntryId) {
-      console.error("[clock-out] backendEntryId missing — clock-in may not have reached the server.");
-      setApiError("Clock-out failed: your clock-in session wasn't saved to the server. Please clock in again.");
+      console.error(
+        "[clock-out] backendEntryId missing — clock-in may not have reached the server.",
+      );
+      setApiError(
+        "Clock-out failed: your clock-in session wasn't saved to the server. Please clock in again.",
+      );
       setClockOutOpen(false);
       return;
     }
 
-    // Optimistic append to today's log
-    setTodayEntries((prev) => [optimisticEntry, ...prev]);
+    if (clockInIsToday) {
+      setTodayEntries((prev) => [optimisticEntry, ...prev]);
+    }
     clearActiveEntry();
     setClockOutOpen(false);
 
     try {
       await timeEntriesApi.clockOut(token, captured.backendEntryId, {
-        narrative:    data.narrative,
-        jobLocation:  data.location,
-        expenses:     data.expenses,
+        narrative: data.narrative,
+        jobLocation: data.location,
+        expenses: data.expenses,
         markComplete: data.markComplete ?? false,
       });
     } catch (err) {
-      // API call failed — roll back optimistic update and restore active entry
       console.error("[clock-out] API error:", err);
-      setTodayEntries((prev) => prev.filter((e) => e.id !== optimisticEntry.id));
+      if (clockInIsToday) {
+        setTodayEntries((prev) =>
+          prev.filter((e) => e.id !== optimisticEntry.id),
+        );
+      }
       setActiveEntry(captured);
-      setApiError(`Clock-out failed: ${err.message || "server error"}. Please try again.`);
+      setApiError(
+        `Clock-out failed: ${err.message || "server error"}. Please try again.`,
+      );
     }
   }
 
@@ -703,8 +766,8 @@ export default function TimeTrackingPage() {
   const activeLabel =
     clockedIn && activeEntry
       ? activeEntry.entryType === "Job"
-        ? activeEntry.workOrder?.label ?? "Work Order"
-        : activeEntry.taskDescription ?? "Task"
+        ? (activeEntry.workOrder?.label ?? "Work Order")
+        : (activeEntry.taskDescription ?? "Task")
       : null;
 
   const activityFeed = [
@@ -764,7 +827,6 @@ export default function TimeTrackingPage() {
         overflow: { xs: "auto", md: "hidden" },
       }}
     >
-      {/* Main content */}
       <Box
         sx={{
           flex: 1,
@@ -773,7 +835,6 @@ export default function TimeTrackingPage() {
           minWidth: 0,
         }}
       >
-        {/* Header */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, mb: 0.5 }}>
           <TimerOutlinedIcon sx={{ fontSize: 24, color: "text.disabled" }} />
           <Typography
@@ -790,7 +851,6 @@ export default function TimeTrackingPage() {
           {todayDate}
         </Typography>
 
-        {/* Today's log label */}
         <Box
           sx={{
             display: "flex",
@@ -815,44 +875,59 @@ export default function TimeTrackingPage() {
           maxHeight={isMobile ? 320 : 500}
           emptyMessage="No entries yet today - clock in to start tracking"
           columns={[
-            { label: "Type",   width: "90px" },
+            { label: "Type", width: "90px" },
             { label: "Description", width: "auto" },
-            { label: "In",     width: "80px" },
-            { label: "Out",    width: "80px" },
-            { label: "Hrs",    width: "60px" },
-            { label: "Status", width: "90px" },
+            { label: "Clock In", width: "100px" },
+            { label: "Clock Out", width: "100px" },
+            { label: "Hrs", width: "60px" },
+            { label: "Status", width: "100px" },
           ]}
           rows={
             entriesLoading
-              ? [{ id: "__skel_1__" }, { id: "__skel_2__" }, { id: "__skel_3__" }]
+              ? [
+                  { id: "__skel_1__" },
+                  { id: "__skel_2__" },
+                  { id: "__skel_3__" },
+                ]
               : [
-                  // Live active row — shown at the top while clocked in
                   ...(clockedIn && activeEntry
-                    ? [{
-                        id:          activeEntry.backendEntryId ?? "active-now",
-                        entryType:   activeEntry.entryType,
-                        description: activeEntry.entryType === "Job"
-                          ? (activeEntry.workOrder?.label ?? "Work Order")
-                          : (activeEntry.taskDescription ?? "Task"),
-                        clockIn:  new Date(activeEntry.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                        clockOut: null,
-                        hours:    null,
-                        status:   "Open",
-                        _active:  true,
-                      }]
+                    ? [
+                        {
+                          id: activeEntry.backendEntryId ?? "active-now",
+                          entryType: activeEntry.entryType,
+                          description:
+                            activeEntry.entryType === "Job"
+                              ? (activeEntry.workOrder?.label ?? "Work Order")
+                              : (activeEntry.taskDescription ?? "Task"),
+                          clockIn: new Date(
+                            activeEntry.clockInTime,
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }),
+                          clockOut: null,
+                          hours: null,
+                          status: "Open",
+                          _active: true,
+                        },
+                      ]
                     : []),
                   ...todayEntries,
                   ...(todayEntries.length > 0 ? [{ id: "__total__" }] : []),
                 ]
           }
           renderRow={(row) => {
-            // ── Skeleton rows while loading ──────────────────────────────
             if (String(row.id).startsWith("__skel_")) {
               return (
                 <TableRow key={row.id}>
                   {[90, 260, 60, 60, 48, 72].map((w, i) => (
                     <TableCell key={i} sx={DATA_CELL_SX}>
-                      <Skeleton variant="rounded" width={w} height={14} sx={{ borderRadius: 1 }} />
+                      <Skeleton
+                        variant="rounded"
+                        width={w}
+                        height={14}
+                        sx={{ borderRadius: 1 }}
+                      />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -904,12 +979,32 @@ export default function TimeTrackingPage() {
                 </TableCell>
                 <TableCell sx={DATA_CELL_SX}>{row.clockIn}</TableCell>
                 <TableCell sx={DATA_CELL_SX}>
-                  {row._active
-                    ? <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                        <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#22c55e", flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: "0.75rem", color: "#22c55e", fontWeight: 600 }}>Active</Typography>
-                      </Box>
-                    : (row.clockOut ?? DASH)}
+                  {row._active ? (
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
+                    >
+                      <Box
+                        sx={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          bgcolor: "#22c55e",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <Typography
+                        sx={{
+                          fontSize: "0.75rem",
+                          color: "#22c55e",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Active
+                      </Typography>
+                    </Box>
+                  ) : (
+                    (row.clockOut ?? DASH)
+                  )}
                 </TableCell>
                 <TableCell
                   sx={{ ...DATA_CELL_SX, fontWeight: 600, color: "#111" }}
@@ -925,7 +1020,6 @@ export default function TimeTrackingPage() {
         />
       </Box>
 
-      {/* Timing panel */}
       <TimingPanel {...timingPanelProps} collapsible={isMobile} />
 
       <ClockInModal
@@ -942,14 +1036,17 @@ export default function TimeTrackingPage() {
         activeEntry={activeEntry}
       />
 
-      {/* API error feedback (clock-in or clock-out) */}
       <Snackbar
         open={!!apiError}
         autoHideDuration={7000}
         onClose={() => setApiError(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity="error" onClose={() => setApiError(null)} sx={{ width: "100%" }}>
+        <Alert
+          severity="error"
+          onClose={() => setApiError(null)}
+          sx={{ width: "100%" }}
+        >
           {apiError}
         </Alert>
       </Snackbar>
