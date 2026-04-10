@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Drawer,
@@ -28,8 +28,16 @@ import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import HandymanOutlinedIcon from "@mui/icons-material/HandymanOutlined";
 import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
 import CalendarViewWeekOutlinedIcon from "@mui/icons-material/CalendarViewWeekOutlined";
+import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
+import { LinkedGroup, RecordPill } from "./LinkedRecordItem";
 
-import { MONDAY_COLUMN_IDS, STATUS_OPTIONS, STATUS_HEX } from "../constants";
+import { 
+  MONDAY_COLUMN_IDS, 
+  STATUS_OPTIONS, 
+  STATUS_HEX,
+  PARTS_ORDERED_OPTIONS,
+  PARTS_HEX
+} from "../constants";
 import { updateWorkOrder } from "../store/workOrderSlice";
 import {
   linkExistingCustomer,
@@ -44,27 +52,15 @@ import RelationCell from "./RelationCell";
 import CustomerDrawer from "./CustomerDrawer";
 import LocationDrawer from "./LocationDrawer";
 
-const EXECUTION_STATUS_OPTIONS = [
-  "Unscheduled",
-  "In Progress",
-  "Completed",
-  "Cancelled",
-  "On Hold",
+const WO_EXECUTION_OPTIONS = [
+  'In Progress', 
+  'Additional Trip Needed (Parts Ordered)', 
+  'Additional Trip Needed (Need Parts)', 
+  'Additional Trip Needed (Time Only)', 
+  'Completed',
+  'Cancelled'
 ];
-const PARTS_ORDERED_OPTIONS = [
-  "Not Required",
-  "Pending",
-  "Ordered",
-  "Received",
-  "Installed",
-];
-const PARTS_HEX = {
-  "Not Required": "#6b7280",
-  Pending: "#f59e0b",
-  Ordered: "#4f8ef7",
-  Received: "#22c55e",
-  Installed: "#a855f7",
-};
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -78,20 +74,23 @@ const getColText = (item, colId) => {
 };
 
 const getLinkedId = (item, colId) => {
+  const ids = getLinkedIds(item, colId);
+  return ids.length > 0 ? ids[0] : "";
+};
+
+const getLinkedIds = (item, colId) => {
   const col = getCol(item, colId);
-  if (!col?.value) return "";
+  if (!col?.value) return [];
   try {
     const parsed = JSON.parse(col.value);
-    const ids = parsed?.linkedPulseIds || parsed?.linked_item_ids || [];
-    if (ids.length > 0) {
-      const id =
-        typeof ids[0] === "object" ? ids[0].linkedPulseId || ids[0].id : ids[0];
+    const ids = parsed?.item_ids || parsed?.linkedPulseIds || parsed?.linked_item_ids || [];
+    return ids.map((idObj) => {
+      const id = typeof idObj === "object" ? idObj.linkedPulseId || idObj.id : idObj;
       return String(id);
-    }
+    });
   } catch {
-    /* ignore */
+    return [];
   }
-  return "";
 };
 
 const getMultiDay = (item) => {
@@ -220,6 +219,9 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
   );
   const locations = useSelector(
     (s) => s.locations.board?.items_page?.items || [],
+  );
+  const allEquipment = useSelector(
+    (s) => s.equipment.board?.items_page?.items || [],
   );
 
   const [form, setForm] = useState(() => ({
@@ -507,22 +509,39 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                 {equipment && (
                   <PropertyRow icon={BuildOutlinedIcon} label="Equipment">
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                      {equipment.split(",").map((e, i) => (
-                        <Chip
-                          key={i}
-                          label={e.trim()}
-                          size="small"
-                          sx={{
-                            height: 20,
-                            fontSize: "0.73rem",
-                            bgcolor: "rgba(34,197,94,0.1)",
-                            color: "#15803d",
-                            border: "1px solid rgba(34,197,94,0.2)",
-                            borderRadius: "4px",
-                            "& .MuiChip-label": { px: 1 },
-                          }}
+                      {allEquipment.filter(eq => {
+                        const linkedIds = getLinkedIds(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.EQUIPMENT);
+                        return linkedIds.includes(String(eq.id));
+                      }).map((eq) => (
+                        <RecordPill
+                          key={eq.id}
+                          id={eq.id}
+                          type="equipment"
+                          name={eq.name}
+                          bgColor="rgba(34,197,94,0.1)"
+                          textColor="#15803d"
+                          borderColor="rgba(34,197,94,0.2)"
                         />
                       ))}
+                      {/* Fallback if not found in Redux items yet */}
+                      {!allEquipment.some(eq => String(eq.id) === getLinkedId(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.EQUIPMENT)) && equipment && (
+                         equipment.split(",").map((e, i) => (
+                          <Chip
+                            key={i}
+                            label={e.trim()}
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontSize: "0.73rem",
+                              bgcolor: "rgba(34,197,94,0.1)",
+                              color: "#15803d",
+                              border: "1px solid rgba(34,197,94,0.2)",
+                              borderRadius: "4px",
+                              "& .MuiChip-label": { px: 1 },
+                            }}
+                          />
+                        ))
+                      )}
                     </Box>
                   </PropertyRow>
                 )}
@@ -576,7 +595,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
           <Box sx={{ mb: 2.5 }}>
             <PropertyRow icon={VerifiedOutlinedIcon} label="Execution Status">
               <StatusChips
-                options={EXECUTION_STATUS_OPTIONS}
+                options={WO_EXECUTION_OPTIONS}
                 hexMap={STATUS_HEX}
                 value={form.executionStatus}
                 onChange={(v) => set("executionStatus", v)}
@@ -591,6 +610,45 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
               />
             </PropertyRow>
           </Box>
+
+          <Divider sx={{ borderColor: '#e8e6e1', my: 2 }} />
+          <Section>Linked Records</Section>
+          <Stack spacing={2} sx={{ px: 1, mt: 1 }}>
+            <LinkedGroup
+              icon={PersonOutlineIcon}
+              label="Customer"
+              iconColor="#4f8ef7"
+              items={customers.filter(c => String(c.id) === form.customerId)}
+              renderItem={(c) => (
+                <RecordPill
+                  key={c.id}
+                  id={c.id}
+                  type="customer"
+                  name={c.name}
+                  bgColor="#ebf0fd"
+                  textColor="#1e40af"
+                  borderColor="#c7d7fb"
+                />
+              )}
+            />
+            <LinkedGroup
+              icon={LocationOnOutlinedIcon}
+              label="Location"
+              iconColor="#c084fc"
+              items={locations.filter(l => String(l.id) === form.locationId)}
+              renderItem={(l) => (
+                <RecordPill
+                  key={l.id}
+                  id={l.id}
+                  type="location"
+                  name={l.name}
+                  bgColor="#f3f0ff"
+                  textColor="#6d28d9"
+                  borderColor="#ddd6fe"
+                />
+              )}
+            />
+          </Stack>
         </Box>
 
         <Box

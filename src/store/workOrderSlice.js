@@ -92,7 +92,7 @@ const workOrderSlice = createSlice({
       col.text = displayText;
       // Store linkedPulseIds so getColumnValue resolver also works
       col.value = JSON.stringify({
-        linkedPulseIds: [{ linkedPulseId: parseInt(linkedId) }],
+        item_ids: [String(linkedId)],
       });
     },
     // Revert a single item's column back to previous values on API failure

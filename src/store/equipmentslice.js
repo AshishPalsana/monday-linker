@@ -156,7 +156,7 @@ const equipmentSlice = createSlice({
       col.display_value = displayText;
       col.text = displayText;
       col.value = value ?? (linkedId && linkedId !== '__pending__'
-        ? JSON.stringify({ linkedPulseIds: [{ linkedPulseId: parseInt(linkedId) }] })
+        ? JSON.stringify({ item_ids: [String(linkedId)] })
         : col.value);
     },
 
@@ -184,7 +184,7 @@ const equipmentSlice = createSlice({
         if (locCol) {
           locCol.text = form.locationName;
           locCol.display_value = form.locationName;
-          locCol.value = JSON.stringify({ linkedPulseIds: [{ linkedPulseId: parseInt(form.locationId) }] });
+          locCol.value = JSON.stringify({ item_ids: [String(form.locationId)] });
         }
       }
 

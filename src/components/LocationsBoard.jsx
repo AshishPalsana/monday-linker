@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -30,8 +31,17 @@ export default function LocationsBoard({ createLocation }) {
   const { board: locBoard, loading, error } = useSelector((s) => s.locations);
   const custBoard = useSelector((s) => s.customers.board);
 
+  const { id } = useParams();
   const [openDialog, setOpenDialog] = useState(null);
   const [search, setSearch] = useState("");
+
+  // Deep linking
+  useEffect(() => {
+    if (id && locBoard?.items_page?.items) {
+      const item = locBoard.items_page.items.find(i => String(i.id) === id);
+      if (item) setOpenDialog(item);
+    }
+  }, [id, locBoard]);
 
   useEffect(() => {
     dispatch(fetchLocations());

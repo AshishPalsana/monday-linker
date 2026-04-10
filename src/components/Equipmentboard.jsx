@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useParams } from 'react-router-dom';
 import {
   Box, Typography, TableCell, TableRow,
   TextField, Avatar, Tooltip, CircularProgress,
@@ -26,8 +27,18 @@ export default function EquipmentBoard() {
   const { board, loading, error } = useSelector((s) => s.equipment);
   const locations = useSelector((s) => s.locations.board?.items_page?.items || []);
   const [search, setSearch] = useState('');
+  const { id } = useParams();
   const [openDrawer, setOpenDrawer] = useState(null);
   const [pendingNewLocation, setPendingNewLocation] = useState(null);
+
+  // Deep linking: open record if ID is in URL
+  useEffect(() => {
+    if (id && board?.items_page?.items) {
+      const item = board.items_page.items.find(i => String(i.id) === id);
+      if (item) setOpenDrawer(item);
+    }
+  }, [id, board]);
+  
 
   useEffect(() => {
     dispatch(fetchEquipment());

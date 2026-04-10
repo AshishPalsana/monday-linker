@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Drawer, Box, Typography, TextField, Button, IconButton, Divider, CircularProgress,
+  Drawer, Box, Typography, TextField, Button, IconButton, Divider, CircularProgress, Stack,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined';
@@ -9,22 +9,40 @@ import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import NumbersOutlinedIcon from '@mui/icons-material/NumbersOutlined';
 import QrCodeOutlinedIcon from '@mui/icons-material/QrCodeOutlined';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
-import NotesOutlinedIcon from '@mui/icons-material/NotesOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import { COL } from '../services/mondayMutations';
 import { updateEquipment } from '../store/equipmentslice';
 import { fetchLocations } from '../store/locationsSlice';
 import RelationCell from './RelationCell';
 import LocationDrawer from './LocationDrawer';
+import { LinkedGroup, RecordPill } from './LinkedRecordItem';
 
-const EQUIPMENT_STATUSES = ['Active', 'Inactive'];
+// ─── Column IDs ──────────────────────────────────────────────────────────────
+const WO_EQUIPMENT_COL = 'board_relation_mm19cxzv'; // Work Orders → Equipment
+const WO_CUSTOMER_COL  = 'board_relation_mm14ngb2'; // Work Orders → Customers
+const WO_STATUS_COL    = 'color_mm1s7ak1';           // Work Orders → Execution Status
+const EQ_LOCATION_COL  = 'board_relation_mm19trhn';  // Equipment  → Location
 
-const STATUS_COLORS = {
-  Active:        { bg: '#d3f8e2', color: '#0d6e48' },
-  Inactive:      { bg: '#fde8e8', color: '#b91c1c' },
-  'Under Repair':{ bg: '#fef3c7', color: '#92400e' },
-  Retired:       { bg: '#f1f1ef', color: '#787774' },
-};
+function parseLinkedIds(colValue) {
+  if (!colValue) return [];
+  try {
+    const parsed = JSON.parse(colValue);
+    const ids = parsed.item_ids || parsed.linkedPulseIds || parsed.linked_item_ids || [];
+    return ids.map((p) => {
+      const id = typeof p === 'object' ? p.linkedPulseId || p.id : p;
+      return String(id);
+    });
+  } catch {
+    return [];
+  }
+}
+
+function linkedIds(item, colId) {
+  const col = item?.column_values?.find((cv) => cv.id === colId);
+  return parseLinkedIds(col?.value);
+}
 
 const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
   <Box sx={{
@@ -52,34 +70,34 @@ const InlineField = ({ value, onChange, placeholder, error, type }) => (
     placeholder={placeholder} type={type || 'text'} variant="standard"
     sx={{
       '& .MuiInput-root': { fontSize: '0.875rem', color: '#37352f', '&:before, &:after': { display: 'none' } },
-      '& .MuiInputBase-input': {
-        p: 0, lineHeight: 1.55,
-        '&::placeholder': { color: error ? '#f5b8b8' : '#c1bfbc', opacity: 1 },
-      },
+      '& .MuiInputBase-input': { p: 0, lineHeight: 1.55, '&::placeholder': { color: error ? '#f5b8b8' : '#c1bfbc', opacity: 1 } },
     }}
   />
 );
 
 const Section = ({ children }) => (
-  <Typography sx={{
-    fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.07em',
-    textTransform: 'uppercase', color: '#b0ada8', px: 1, mb: 0.25,
-  }}>
+  <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#b0ada8', px: 1, mb: 0.25 }}>
     {children}
   </Typography>
 );
 
+
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open }) {
   const dispatch = useDispatch();
   const { creating: apiCreating, saving: apiSaving } = useSelector((s) => s.equipment);
-  const locations = useSelector((s) => s.locations.board?.items_page?.items || []);
+  const locations     = useSelector((s) => s.locations.board?.items_page?.items || []);
+  const allWorkOrders = useSelector((s) => s.workOrders.board?.items_page?.items || []);
+  const allCustomers  = useSelector((s) => s.customers.board?.items_page?.items  || []);
+
   const [isSaving, setIsSaving] = useState(false);
+  const [pendingNewLocation, setPendingNewLocation] = useState(null);
 
   const isTempId = equipment?.id && !/^\d+$/.test(String(equipment.id));
   const isNew = !equipment?.id || equipment?.id === '__new__' || isTempId;
   const isBusy = apiCreating || apiSaving || isSaving;
-
-  const [pendingNewLocation, setPendingNewLocation] = useState(null);
 
   const getCol = (colId) => {
     const col = equipment?.column_values?.find((cv) => cv.id === colId);
@@ -101,19 +119,17 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
     locationName:    getCol(COL.EQUIPMENT.LOCATION),
   });
 
-  // Initialize locationId from equipment column value
   useEffect(() => {
     if (equipment?.column_values) {
-      const locCol = equipment.column_values.find(cv => cv.id === COL.EQUIPMENT.LOCATION);
+      const locCol = equipment.column_values.find((cv) => cv.id === COL.EQUIPMENT.LOCATION);
       if (locCol?.value) {
         try {
           const parsed = JSON.parse(locCol.value);
-          const firstId = parsed.linkedPulseIds?.[0]?.linkedPulseId;
-          if (firstId) setForm(prev => ({ ...prev, locationId: String(firstId) }));
-        } catch (e) { /* ignore */ }
+          const firstId = (parsed.item_ids?.[0]) || (parsed.linkedPulseIds?.[0]?.linkedPulseId);
+          if (firstId) setForm((prev) => ({ ...prev, locationId: String(firstId) }));
+        } catch { /* ignore */ }
       }
     }
-    // Also fetch locations to ensure dropdown is populated
     dispatch(fetchLocations());
   }, [equipment, dispatch]);
 
@@ -131,22 +147,55 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
     if (isNew) {
       if (onSaveNew) {
         setIsSaving(true);
-        try {
-          await onSaveNew(form);
-        } finally {
-          setIsSaving(false);
-        }
+        try { await onSaveNew(form); } finally { setIsSaving(false); }
       }
     } else {
       setIsSaving(true);
       try {
         await dispatch(updateEquipment({ equipmentId: equipment.id, form })).unwrap();
         onClose();
-      } finally {
-        setIsSaving(false);
-      }
+      } finally { setIsSaving(false); }
     }
   };
+
+  // ── Derive linked records ─────────────────────────────────────────────────
+  const eqId   = String(equipment?.id || '');
+  const eqName = equipment?.name || '';
+
+  // Work orders linked to this equipment
+  const linkedWorkOrders = useMemo(() => {
+    if (!eqId || isNew) return [];
+    return allWorkOrders.filter((wo) => {
+      if (linkedIds(wo, WO_EQUIPMENT_COL).includes(eqId)) return true;
+      const col = wo.column_values?.find((cv) => cv.id === WO_EQUIPMENT_COL);
+      const txt = col?.display_value || col?.text || '';
+      return eqName && txt.toLowerCase().includes(eqName.toLowerCase());
+    });
+  }, [eqId, eqName, allWorkOrders, isNew]);
+
+  // Customers who have work orders for this equipment
+  const linkedCustomers = useMemo(() => {
+    if (!eqId || isNew) return [];
+    const custIdSet = new Set();
+    linkedWorkOrders.forEach((wo) => {
+      linkedIds(wo, WO_CUSTOMER_COL).forEach((id) => custIdSet.add(id));
+      const col = wo.column_values?.find((cv) => cv.id === WO_CUSTOMER_COL);
+      const txt = col?.display_value || col?.text || '';
+      if (txt) {
+        allCustomers
+          .filter((c) => txt.toLowerCase().includes(c.name.toLowerCase()))
+          .forEach((c) => custIdSet.add(String(c.id)));
+      }
+    });
+    return allCustomers.filter((c) => custIdSet.has(String(c.id)));
+  }, [eqId, linkedWorkOrders, allCustomers, isNew]);
+
+  const getWoStatus = (wo) => {
+    const col = wo.column_values?.find((cv) => cv.id === WO_STATUS_COL);
+    return col?.label || col?.text || null;
+  };
+
+  const hasLinked = linkedWorkOrders.length > 0 || linkedCustomers.length > 0;
 
   return (
     <Drawer
@@ -171,14 +220,10 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
               {isNew ? 'Add a new equipment record' : 'Equipment details'}
             </Typography>
           </Box>
-          <IconButton
-            size="small" onClick={onClose}
-            sx={{ borderRadius: '5px', color: '#9b9a97', '&:hover': { bgcolor: '#f1f1ef', color: '#37352f' } }}
-          >
+          <IconButton size="small" onClick={onClose} sx={{ borderRadius: '5px', color: '#9b9a97', '&:hover': { bgcolor: '#f1f1ef', color: '#37352f' } }}>
             <CloseIcon sx={{ fontSize: 17 }} />
           </IconButton>
         </Box>
-
       </Box>
 
       <Divider sx={{ borderColor: '#e8e6e1' }} />
@@ -193,23 +238,14 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
           </Box>
         )}
 
-        {/* Identity */}
+        {/* Equipment Identity */}
         <Section>Equipment</Section>
         <Box sx={{ mb: 3 }}>
           <PropertyRow icon={ConstructionOutlinedIcon} label="Equipment Name" required error={err('name')}>
-            <InlineField
-              value={form.name}
-              onChange={(e) => set('name', e.target.value)}
-              placeholder="e.g. Ice Machine"
-              error={err('name')}
-            />
+            <InlineField value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Ice Machine" error={err('name')} />
           </PropertyRow>
           <PropertyRow icon={CategoryOutlinedIcon} label="Manufacturer">
-            <InlineField
-              value={form.manufacturer}
-              onChange={(e) => set('manufacturer', e.target.value)}
-              placeholder="e.g. Hoshizaki"
-            />
+            <InlineField value={form.manufacturer} onChange={(e) => set('manufacturer', e.target.value)} placeholder="e.g. Hoshizaki" />
           </PropertyRow>
           <PropertyRow icon={LocationOnOutlinedIcon} label="Location">
             <RelationCell
@@ -220,38 +256,23 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
               chipTextColor="#c084fc"
               chipBorderColor="rgba(168,85,247,0.2)"
               createLabel="location"
-              onSelectExisting={(id, name) => {
-                set('locationId', id);
-                set('locationName', name);
-              }}
+              onSelectExisting={(id, name) => { set('locationId', id); set('locationName', name); }}
               onCreateNew={(name) => setPendingNewLocation({ name })}
             />
           </PropertyRow>
         </Box>
 
-        {/* Specs */}
+        {/* Specifications */}
         <Section>Specifications</Section>
         <Box sx={{ mb: 3 }}>
           <PropertyRow icon={NumbersOutlinedIcon} label="Model Number">
-            <InlineField
-              value={form.modelNumber}
-              onChange={(e) => set('modelNumber', e.target.value)}
-              placeholder="e.g. T-49-HC"
-            />
+            <InlineField value={form.modelNumber} onChange={(e) => set('modelNumber', e.target.value)} placeholder="e.g. T-49-HC" />
           </PropertyRow>
           <PropertyRow icon={QrCodeOutlinedIcon} label="Serial Number">
-            <InlineField
-              value={form.serialNumber}
-              onChange={(e) => set('serialNumber', e.target.value)}
-              placeholder="e.g. SN-83749203"
-            />
+            <InlineField value={form.serialNumber} onChange={(e) => set('serialNumber', e.target.value)} placeholder="e.g. SN-83749203" />
           </PropertyRow>
           <PropertyRow icon={CalendarTodayOutlinedIcon} label="Install Date">
-            <InlineField
-              value={form.installDate}
-              onChange={(e) => set('installDate', e.target.value)}
-              type="date"
-            />
+            <InlineField value={form.installDate} onChange={(e) => set('installDate', e.target.value)} type="date" />
           </PropertyRow>
         </Box>
 
@@ -259,11 +280,9 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
         <Section>Notes</Section>
         <Box sx={{ px: 1, py: '6px', mb: 2, borderRadius: '4px', '&:hover': { bgcolor: '#f7f6f3' } }}>
           <TextField
-            fullWidth multiline rows={3}
-            value={form.notes}
+            fullWidth multiline rows={3} value={form.notes}
             onChange={(e) => set('notes', e.target.value)}
-            placeholder="Add a note…"
-            variant="standard"
+            placeholder="Add a note…" variant="standard"
             sx={{
               '& .MuiInput-root': { fontSize: '0.875rem', color: '#37352f', '&:before, &:after': { display: 'none' } },
               '& .MuiInputBase-inputMultiline': { p: 0, lineHeight: 1.65 },
@@ -271,41 +290,80 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
             }}
           />
         </Box>
+
+        {/* ── Linked Records ── */}
+        {!isNew && hasLinked && (
+          <>
+            <Divider sx={{ borderColor: '#e8e6e1', mb: 2 }} />
+            <Section>Linked Records</Section>
+            <Stack spacing={2} sx={{ px: 1, mt: 1 }}>
+
+              <LinkedGroup
+                icon={AssignmentOutlinedIcon}
+                label="Work Orders"
+                iconColor="#4f8ef7"
+                items={linkedWorkOrders}
+                renderItem={(wo) => (
+                  <RecordPill
+                    key={wo.id}
+                    id={wo.id}
+                    type="workorder"
+                    name={wo.name}
+                    statusLabel={getWoStatus(wo)}
+                    bgColor="#ebf0fd"
+                    textColor="#1e40af"
+                    borderColor="#c7d7fb"
+                  />
+                )}
+              />
+
+              <LinkedGroup
+                icon={PersonOutlineIcon}
+                label="Customers"
+                iconColor="#22c55e"
+                items={linkedCustomers}
+                renderItem={(c) => (
+                  <RecordPill
+                    key={c.id}
+                    id={c.id}
+                    type="customer"
+                    name={c.name}
+                    bgColor="#f0fdf4"
+                    textColor="#166534"
+                    borderColor="#bbf7d0"
+                  />
+                )}
+              />
+
+            </Stack>
+          </>
+        )}
+
+        {!isNew && !hasLinked && (
+          <Box sx={{ mt: 1, px: 1 }}>
+            <Divider sx={{ borderColor: '#e8e6e1', mb: 2 }} />
+            <Typography sx={{ fontSize: '0.75rem', color: '#c1bfbc', fontStyle: 'italic' }}>
+              No linked work orders or customers yet.
+            </Typography>
+          </Box>
+        )}
+
       </Box>
 
       {/* ── Footer ── */}
-      <Box sx={{
-        px: 3, py: 2, borderTop: '1px solid #e8e6e1',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
+      <Box sx={{ px: 3, py: 2, borderTop: '1px solid #e8e6e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#4bb87f' }} />
           <Typography sx={{ fontSize: '0.71rem', color: '#b0ada8' }}>Monday CRM · Synced</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            onClick={onClose}
-            disabled={isBusy}
-            sx={{
-              px: 2, height: 32, borderRadius: '4px', fontSize: '0.82rem',
-              fontWeight: 500, color: '#787774', textTransform: 'none',
-              '&:hover': { bgcolor: '#f1f1ef' },
-            }}
-          >
+          <Button onClick={onClose} disabled={isBusy} sx={{ px: 2, height: 32, borderRadius: '4px', fontSize: '0.82rem', fontWeight: 500, color: '#787774', textTransform: 'none', '&:hover': { bgcolor: '#f1f1ef' } }}>
             Cancel
           </Button>
           <Button
-            onClick={handleSave}
-            variant="contained"
-            disableElevation
-            disabled={isBusy}
+            onClick={handleSave} variant="contained" disableElevation disabled={isBusy}
             startIcon={isBusy ? <CircularProgress size={14} color="inherit" /> : null}
-            sx={{
-              px: 2.5, height: 32, borderRadius: '4px', fontSize: '0.82rem', fontWeight: 600,
-              textTransform: 'none', bgcolor: '#2f6feb',
-              '&:hover': { bgcolor: '#1a56d6' },
-              '&:disabled': { bgcolor: '#e3e2df', color: '#b0ada8' },
-            }}
+            sx={{ px: 2.5, height: 32, borderRadius: '4px', fontSize: '0.82rem', fontWeight: 600, textTransform: 'none', bgcolor: '#2f6feb', '&:hover': { bgcolor: '#1a56d6' }, '&:disabled': { bgcolor: '#e3e2df', color: '#b0ada8' } }}
           >
             {isNew ? 'Create' : 'Save changes'}
           </Button>
@@ -319,13 +377,11 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
           location={{ id: '__new__', name: pendingNewLocation.name, column_values: [] }}
           onClose={() => setPendingNewLocation(null)}
           onSaveNew={async (locForm) => {
-            // Import apiCreateLocation lazily
             const { apiCreateLocation } = await import('../services/mondayMutations');
             const created = await apiCreateLocation(locForm);
             set('locationId', created.id);
             set('locationName', created.name);
             setPendingNewLocation(null);
-            // Refresh locations list
             dispatch(fetchLocations());
           }}
         />

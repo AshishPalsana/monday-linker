@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useParams } from 'react-router-dom';
 import { fetchWorkOrders } from '../store/workOrderSlice';
 import { fetchCustomers, linkExistingCustomer, createCustomerAndLink } from '../store/customersSlice';
 import { fetchLocations, linkExistingLocation, createLocationAndLink } from '../store/locationsSlice';
@@ -36,7 +37,16 @@ export default function WorkOrdersBoard() {
   const [pendingNewCustomer, setPendingNewCustomer] = useState(null);
   const [pendingNewLocation, setPendingNewLocation] = useState(null);
   const [openWorkOrderDrawer, setOpenWorkOrderDrawer] = useState(false);
+  const { id } = useParams();
   const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
+
+  // Deep linking
+  useEffect(() => {
+    if (id && board?.items_page?.items) {
+      const item = board.items_page.items.find(i => String(i.id) === id);
+      if (item) setSelectedWorkOrder(item);
+    }
+  }, [id, board]);
 
   useEffect(() => {
     dispatch(fetchWorkOrders());
@@ -62,14 +72,16 @@ export default function WorkOrdersBoard() {
       if (col.value) {
         try {
           const parsed = JSON.parse(col.value);
-          const ids = parsed?.linkedPulseIds || parsed?.linked_item_ids || [];
+          const ids = parsed?.item_ids || parsed?.linkedPulseIds || parsed?.linked_item_ids || [];
           if (Array.isArray(ids) && ids.length > 0) {
             const map = colId === MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER ? customerMap : locationMap;
             const names = ids
               .map((p) => {
-                const id = typeof p === 'object' ? p.linkedPulseId || p.id : p;
-                return map[id]; // undefined if not in map yet — filtered below
+                if (typeof p === 'object') return p.linkedPulseId || p.id;
+                return p;
               })
+              .filter(Boolean)
+              .map(id => map[id])
               .filter(Boolean);
             if (names.length > 0) return names.join(', ');
           }
@@ -360,5 +372,3 @@ export default function WorkOrdersBoard() {
     </Box>
   );
 }
-
-// ── Reusable relation cell ─────────────────────────────────────────────────────

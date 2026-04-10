@@ -22,6 +22,7 @@ const httpLink = new HttpLink({
   headers: {
     Authorization: MONDAY_API_TOKEN,
     "Content-Type": "application/json",
+    "api-version": "2024-10"
   },
 });
 

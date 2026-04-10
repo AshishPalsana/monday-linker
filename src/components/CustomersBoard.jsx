@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -24,8 +25,17 @@ import { BoardGroup, BoardTable, DATA_CELL_SX, DASH, TruncCell } from './BoardTa
 export default function CustomersBoard({ createCustomer }) {
   const dispatch = useDispatch();
   const { board, loading, error } = useSelector((state) => state.customers);
+  const { id } = useParams();
   const [openDialog, setOpenDialog] = useState(null);
   const [search, setSearch] = useState('');
+
+  // Deep linking
+  useEffect(() => {
+    if (id && board?.items_page?.items) {
+      const item = board.items_page.items.find(i => String(i.id) === id);
+      if (item) setOpenDialog(item);
+    }
+  }, [id, board]);
 
   useEffect(() => {
     dispatch(fetchCustomers());

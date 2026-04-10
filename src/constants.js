@@ -427,7 +427,17 @@ export const STATUS_OPTIONS = [
   "Active",
   "Completed",
   "Cancelled",
+  "Incomplete",
+  "Pre-scheduled",
+  "Return Trip Unscheduled",
+  "Return Trip Scheduled",
+  "Additional Trip Needed (Parts Ordered)",
+  "Additional Trip Needed (Need Parts)",
+  "Additional Trip Needed (Time Only)",
 ];
+
+export const PARTS_ORDERED_OPTIONS = ['Not Required', 'Pending', 'Ordered', 'Received', 'Installed'];
+  
 
 export const STATUS_COLORS = {
   Unscheduled: "warning",
@@ -437,6 +447,13 @@ export const STATUS_COLORS = {
   Completed: "default",
   "In Progress": "secondary",
   Cancelled: "default",
+  Incomplete: "error",
+  "Pre-scheduled": "secondary",
+  "Return Trip Unscheduled": "warning",
+  "Return Trip Scheduled": "info",
+  "Additional Trip Needed (Parts Ordered)": "warning",
+  "Additional Trip Needed (Need Parts)": "error",
+  "Additional Trip Needed (Time Only)": "secondary",
 };
 
 export const STATUS_HEX = {
@@ -447,7 +464,23 @@ export const STATUS_HEX = {
   Completed: "#6b7280",
   "In Progress": "#a855f7",
   Cancelled: "#6b7280",
+  Incomplete: "#ef4444",
+  "Pre-scheduled": "#a855f7",
+  "Return Trip Unscheduled": "#f97316",
+  "Return Trip Scheduled": "#06b6d4",
+  "Additional Trip Needed (Parts Ordered)": "#f59e0b",
+  "Additional Trip Needed (Need Parts)": "#ef4444",
+  "Additional Trip Needed (Time Only)": "#a855f7",
 };
+
+export const PARTS_HEX = {
+  'Not Required': '#6b7280',
+  Pending:        '#f59e0b',
+  Ordered:        '#4f8ef7',
+  Received:       '#22c55e',
+  Installed:      '#a855f7',
+};
+  
 
 export const REQUIRED_CUSTOMER_FIELDS = [
   { key: "contactName", label: "Contact Name" },
@@ -477,6 +510,7 @@ export const MONDAY_COLUMN_IDS = {
     NOTES: "long_text_mm0rppk5",
     WORK_ORDER: "board_relation_mm14w91d",
     LOCATIONS: "board_relation_mm18ma0k",
+    MASTER_COSTS: "board_relation_mm26rszz",
   },
   WORK_ORDERS: {
     CUSTOMER: "board_relation_mm14ngb2",
@@ -494,6 +528,7 @@ export const MONDAY_COLUMN_IDS = {
     PARTS_ORDERED: "color_mm1bs0w7",
     WORKORDER_ID: "text_mm1s82bz",
     EXECUTION_STATUS: "color_mm1s7ak1",
+    MASTER_COSTS: "board_relation_mm21aenv", // Mapping to Master Costs in WO
   },
   // Real Monday column IDs from the Locations board (id: 18400965227)
   LOCATIONS: {
@@ -506,5 +541,17 @@ export const MONDAY_COLUMN_IDS = {
     WORK_ORDERS_REL: "board_relation_mm14vzq7",
     CUSTOMERS_REL: "board_relation_mm18fk7h",
     EQUIPMENTS_REL: "board_relation_mm19zxd8",
+  },
+  TECHNICIANS: {
+    STATUS: "color_mm0w8tnj",
+    POSITION: "dropdown_mm0w3f6c",
+    PHONE: "phone_mm0w2yzw",
+    EMAIL: "email_mm0w15ry",
+    HOURLY_RATE: "numeric_mm0wgqn1",
+    EMPLOYEE_ID: "text_mm0wb6v3",
+    NOTES: "long_text_mm0wa2d8",
+    WORK_ORDERS_REL: "board_relation_mm0wbc5",
+    HOURS_REL: "board_relation_mm0wm97w",
+    EXPENSES_REL: "board_relation_mm0xz48z",
   },
 };

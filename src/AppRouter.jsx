@@ -21,10 +21,10 @@ export default function AppRouter() {
           <HashRouter>
             <Routes>
               <Route path="/"            element={<Navigate to="/workorders" />} />
-              <Route path="/workorders"  element={<AppShell><WorkOrdersBoard /></AppShell>} />
-              <Route path="/customers"   element={<AppShell><CustomersBoard /></AppShell>} />
-              <Route path="/locations"   element={<AppShell><LocationsBoard /></AppShell>} />
-              <Route path="/equipment"   element={<AppShell><EquipmentBoard /></AppShell>} />
+              <Route path="/workorders/:id?"  element={<AppShell><WorkOrdersBoard /></AppShell>} />
+              <Route path="/customers/:id?"   element={<AppShell><CustomersBoard /></AppShell>} />
+              <Route path="/locations/:id?"   element={<AppShell><LocationsBoard /></AppShell>} />
+              <Route path="/equipment/:id?"   element={<AppShell><EquipmentBoard /></AppShell>} />
               <Route path="/time-tracker" element={<AppShell><TimeTrackingPage /></AppShell>} />
               <Route path="/time-board"   element={<AppShell><TimeBoard /></AppShell>} />
             </Routes>
