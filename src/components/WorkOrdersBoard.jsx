@@ -1,11 +1,19 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
-import { fetchWorkOrders } from '../store/workOrderSlice';
-import { fetchCustomers, linkExistingCustomer, createCustomerAndLink } from '../store/customersSlice';
-import { fetchLocations, linkExistingLocation, createLocationAndLink } from '../store/locationsSlice';
-import CustomerDrawer from './CustomerDrawer';
-import LocationDrawer from './LocationDrawer';
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
+import { fetchWorkOrders } from "../store/workOrderSlice";
+import {
+  fetchCustomers,
+  linkExistingCustomer,
+  createCustomerAndLink,
+} from "../store/customersSlice";
+import {
+  fetchLocations,
+  linkExistingLocation,
+  createLocationAndLink,
+} from "../store/locationsSlice";
+import CustomerDrawer from "./CustomerDrawer";
+import LocationDrawer from "./LocationDrawer";
 import {
   Box,
   Typography,
@@ -13,37 +21,42 @@ import {
   TableRow,
   TextField,
   CircularProgress,
-} from '@mui/material';
-import AppButton from './AppButton';
-import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
-import CheckIcon from '@mui/icons-material/Check';
-import { MONDAY_COLUMN_IDS } from '../constants';
-import StatusChip from './StatusChip';
-import WorkOrderDrawer from './WorkOrderDrawer';
-import WorkOrderDetailDrawer from './WorkOrderDetailDrawer';
-import RelationCell from './RelationCell';
-import { BoardGroup, BoardTable, DATA_CELL_SX, DASH } from './BoardTable';
+} from "@mui/material";
+import AppButton from "./AppButton";
+import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
+import CheckIcon from "@mui/icons-material/Check";
+import { MONDAY_COLUMNS } from "../constants/index";
+import StatusChip from "./StatusChip";
+import WorkOrderDrawer from "./WorkOrderDrawer";
+import WorkOrderDetailDrawer from "./WorkOrderDetailDrawer";
+import RelationCell from "./RelationCell";
+import { BoardGroup, BoardTable, DATA_CELL_SX } from "./BoardTable";
+import { getColumnDisplayValue, getColumnSnapshot } from "../utils/mondayUtils";
 
-
+const WO_COL = MONDAY_COLUMNS.WORK_ORDERS;
+const EMPTY_ARRAY = [];
 
 export default function WorkOrdersBoard() {
   const dispatch = useDispatch();
   const { board, loading, error } = useSelector((s) => s.workOrders);
-  const customers = useSelector((s) => s.customers.board?.items_page?.items || []);
-  const locations = useSelector((s) => s.locations.board?.items_page?.items || []);
-  const [search, setSearch] = useState('');
-  // pendingNew holds { name, workOrderId } while the drawer is open for a brand-new record
+  const customers = useSelector(
+    (s) => s.customers.board?.items_page?.items || EMPTY_ARRAY,
+  );
+  const locations = useSelector(
+    (s) => s.locations.board?.items_page?.items || EMPTY_ARRAY,
+  );
+  const [search, setSearch] = useState("");
   const [pendingNewCustomer, setPendingNewCustomer] = useState(null);
   const [pendingNewLocation, setPendingNewLocation] = useState(null);
   const [openWorkOrderDrawer, setOpenWorkOrderDrawer] = useState(false);
   const { id } = useParams();
   const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
 
-  // Deep linking
+  // Deep linking for work order details
   useEffect(() => {
     if (id && board?.items_page?.items) {
-      const item = board.items_page.items.find(i => String(i.id) === id);
+      const item = board.items_page.items.find((i) => String(i.id) === id);
       if (item) setSelectedWorkOrder(item);
     }
   }, [id, board]);
@@ -54,53 +67,17 @@ export default function WorkOrdersBoard() {
     dispatch(fetchLocations());
   }, [dispatch]);
 
-  const customerMap = customers.reduce((acc, c) => { acc[c.id] = c.name; return acc; }, {});
-  const locationMap = locations.reduce((acc, l) => { acc[l.id] = l.name; return acc; }, {});
-
-  const getColumnValue = (item, colId) => {
-    const col = item.column_values.find((cv) => cv.id === colId);
-    if (!col) return '';
-    if (
-      colId === MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER ||
-      colId === MONDAY_COLUMN_IDS.WORK_ORDERS.LOCATION
-    ) {
-      // Always prefer display_value/text first — set immediately by optimisticUpdateRelation
-      // so the name shows before customerMap/locationMap is updated after refetch.
-      if (col.display_value && col.display_value.trim()) return col.display_value;
-      if (col.text && col.text.trim()) return col.text;
-      // Fallback: resolve via ID map for records loaded fresh from Monday API
-      if (col.value) {
-        try {
-          const parsed = JSON.parse(col.value);
-          const ids = parsed?.item_ids || parsed?.linkedPulseIds || parsed?.linked_item_ids || [];
-          if (Array.isArray(ids) && ids.length > 0) {
-            const map = colId === MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER ? customerMap : locationMap;
-            const names = ids
-              .map((p) => {
-                if (typeof p === 'object') return p.linkedPulseId || p.id;
-                return p;
-              })
-              .filter(Boolean)
-              .map(id => map[id])
-              .filter(Boolean);
-            if (names.length > 0) return names.join(', ');
-          }
-        } catch { /* ignore */ }
-      }
-      return '';
-    }
-    return col.label || col.text || '';
-  };
-
-  // Returns the raw column object for snapshotting before optimistic update
-  const getRawColumn = (item, colId) => {
-    const col = item.column_values.find((cv) => cv.id === colId);
-    if (!col) return { value: null, text: null, display_value: null };
-    return { value: col.value, text: col.text, display_value: col.display_value || null };
-  };
+  const customerMap = customers.reduce((acc, c) => {
+    acc[c.id] = c.name;
+    return acc;
+  }, {});
+  const locationMap = locations.reduce((acc, l) => {
+    acc[l.id] = l.name;
+    return acc;
+  }, {});
 
   const handleLinkCustomer = (item, customerId, customerName) => {
-    const previousSnapshot = getRawColumn(item, MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER);
+    const previousSnapshot = getColumnSnapshot(item, WO_COL.CUSTOMER);
     dispatch(
       linkExistingCustomer({
         workOrderId: item.id,
@@ -112,7 +89,7 @@ export default function WorkOrdersBoard() {
   };
 
   const handleLinkLocation = (item, locationId, locationName) => {
-    const previousSnapshot = getRawColumn(item, MONDAY_COLUMN_IDS.WORK_ORDERS.LOCATION);
+    const previousSnapshot = getColumnSnapshot(item, WO_COL.LOCATION);
     dispatch(
       linkExistingLocation({
         workOrderId: item.id,
@@ -125,7 +102,14 @@ export default function WorkOrdersBoard() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+        }}
+      >
         <CircularProgress size={40} />
       </Box>
     );
@@ -136,51 +120,60 @@ export default function WorkOrdersBoard() {
   const allItems = board.items_page.items;
   const groups = board.groups || [];
 
-  // Filter items by search once
-  const filteredItems = allItems.filter(item => 
-    !search || item.name.toLowerCase().includes(search.toLowerCase())
+  const filteredItems = allItems.filter(
+    (item) =>
+      !search || item.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  // Group items by group.id
   const itemsByGroup = filteredItems.reduce((acc, item) => {
-    const groupId = item.group?.id || 'default';
+    const groupId = item.group?.id || "default";
     if (!acc[groupId]) acc[groupId] = [];
     acc[groupId].push(item);
     return acc;
   }, {});
 
   const WO_COLUMNS = [
-    { label: 'WO #',                width: 90  },
-    { label: 'Work order',          width: 220 },
-    { label: 'Customers',           width: 180 },
-    { label: 'Locations',           width: 200 },
-    { label: 'Description of Work', width: 300 },
-    { label: 'Status',              width: 150 },
-    { label: 'Technician',          width: 160 },
-    { label: 'Scheduled Date',      width: 130 },
-    { label: 'Multi-Day',           width: 120 },
-    { label: 'Model',               width: 140 },
-    { label: 'Serial Number',       width: 150 },
-    { label: 'Service History',     width: 250 },
-    { label: 'Work Performed',      width: 250 },
-    { label: 'Equipments',          width: 160 },
-    { label: 'Execution Status',    width: 150 },
-    { label: 'Parts Ordered',       width: 140 },
+    { label: "WO #", width: 90 },
+    { label: "Work order", width: 220 },
+    { label: "Customers", width: 180 },
+    { label: "Locations", width: 200 },
+    { label: "Description of Work", width: 300 },
+    { label: "Status", width: 150 },
+    { label: "Technician", width: 160 },
+    { label: "Scheduled Date", width: 130 },
+    { label: "Multi-Day", width: 120 },
+    { label: "Model", width: 140 },
+    { label: "Serial Number", width: 150 },
+    { label: "Service History", width: 250 },
+    { label: "Work Performed", width: 250 },
+    { label: "Equipments", width: 160 },
+    { label: "Execution Status", width: 150 },
+    { label: "Parts Ordered", width: 140 },
   ];
 
   const renderWORow = (item) => (
-    <TableRow key={item.id} hover sx={{ cursor: 'pointer' }} onClick={() => setSelectedWorkOrder(item)}>
-      <TableCell sx={{ ...DATA_CELL_SX, fontFamily: 'monospace' }}>
-        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.WORKORDER_ID) || '—'}
+    <TableRow
+      key={item.id}
+      hover
+      sx={{ cursor: "pointer" }}
+      onClick={() => setSelectedWorkOrder(item)}
+    >
+      <TableCell sx={{ ...DATA_CELL_SX, fontFamily: "monospace" }}>
+        {getColumnDisplayValue(item, WO_COL.WORKORDER_ID) || "—"}
       </TableCell>
       <TableCell sx={DATA_CELL_SX}>
-        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem' }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>
           {item.name}
         </Typography>
       </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
+      <TableCell
+        sx={{ ...DATA_CELL_SX, overflow: "visible" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <RelationCell
-          value={getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER)}
+          value={getColumnDisplayValue(item, WO_COL.CUSTOMER, {
+            idMap: customerMap,
+          })}
           options={customers}
           placeholder="— add customer"
           chipBgColor="rgba(79,142,247,0.1)"
@@ -188,12 +181,19 @@ export default function WorkOrdersBoard() {
           chipBorderColor="rgba(79,142,247,0.2)"
           createLabel="customer"
           onSelectExisting={(id, name) => handleLinkCustomer(item, id, name)}
-          onCreateNew={(v) => setPendingNewCustomer({ name: v, workOrderId: item.id })}
+          onCreateNew={(v) =>
+            setPendingNewCustomer({ name: v, workOrderId: item.id })
+          }
         />
       </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
+      <TableCell
+        sx={{ ...DATA_CELL_SX, overflow: "visible" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <RelationCell
-          value={getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.LOCATION)}
+          value={getColumnDisplayValue(item, WO_COL.LOCATION, {
+            idMap: locationMap,
+          })}
           options={locations}
           placeholder="— add location"
           chipBgColor="rgba(168,85,247,0.1)"
@@ -201,68 +201,94 @@ export default function WorkOrdersBoard() {
           chipBorderColor="rgba(168,85,247,0.2)"
           createLabel="location"
           onSelectExisting={(id, name) => handleLinkLocation(item, id, name)}
-          onCreateNew={(v) => setPendingNewLocation({ name: v, workOrderId: item.id })}
+          onCreateNew={(v) =>
+            setPendingNewLocation({ name: v, workOrderId: item.id })
+          }
         />
       </TableCell>
       <TableCell sx={DATA_CELL_SX}>
-        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.DESCRIPTION) || '—'}
+        {getColumnDisplayValue(item, WO_COL.DESCRIPTION) || "—"}
       </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
-        {(() => { const s = getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.STATUS); return s ? <StatusChip status={s} /> : '—'; })()}
-      </TableCell>
-      <TableCell sx={DATA_CELL_SX}>
-        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.TECHNICIAN) || '—'}
-      </TableCell>
-      <TableCell sx={DATA_CELL_SX}>
-        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.SCHEDULED_DATE) || '—'}
-      </TableCell>
-      <TableCell sx={{ textAlign: 'center' }}>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible" }}>
         {(() => {
-          const col = item.column_values.find(cv => cv.id === MONDAY_COLUMN_IDS.WORK_ORDERS.MULTI_DAY);
-          let checked = false;
-          try { checked = col?.value ? JSON.parse(col.value)?.checked : false; } catch { /* ignore */ }
-          return checked
-            ? <CheckIcon sx={{ fontSize: 18, color: '#4caf50', display: 'block', mx: 'auto' }} />
-            : <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>—</Typography>;
+          const s = getColumnDisplayValue(item, WO_COL.STATUS);
+          return s ? <StatusChip status={s} /> : "—";
         })()}
       </TableCell>
       <TableCell sx={DATA_CELL_SX}>
-        {(() => { const col = item.column_values.find(cv => cv.id === MONDAY_COLUMN_IDS.WORK_ORDERS.MODEL); return col?.display_value || col?.text || '—'; })()}
+        {getColumnDisplayValue(item, WO_COL.TECHNICIAN) || "—"}
       </TableCell>
       <TableCell sx={DATA_CELL_SX}>
-        {(() => { const col = item.column_values.find(cv => cv.id === MONDAY_COLUMN_IDS.WORK_ORDERS.SERIAL_NUMBER); return col?.display_value || col?.text || '—'; })()}
+        {getColumnDisplayValue(item, WO_COL.SCHEDULED_DATE) || "—"}
       </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, whiteSpace: 'nowrap' }}>
-        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.SERVICE_HISTORY) || '—'}
-      </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, whiteSpace: 'nowrap' }}>
-        {getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.WORK_PERFORMED) || '—'}
+      <TableCell sx={{ textAlign: "center" }}>
+        {(() => {
+          const val = getColumnDisplayValue(item, WO_COL.MULTI_DAY);
+          return val === "Yes" ? (
+            <CheckIcon
+              sx={{
+                fontSize: 18,
+                color: "#4caf50",
+                display: "block",
+                mx: "auto",
+              }}
+            />
+          ) : (
+            <Typography sx={{ fontSize: "0.75rem", color: "text.disabled" }}>
+              —
+            </Typography>
+          );
+        })()}
       </TableCell>
       <TableCell sx={DATA_CELL_SX}>
-        {(() => { const col = item.column_values.find(cv => cv.id === MONDAY_COLUMN_IDS.WORK_ORDERS.EQUIPMENT); return col?.display_value || col?.text || '—'; })()}
+        {getColumnDisplayValue(item, WO_COL.MODEL) || "—"}
       </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
-        {(() => { const s = getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.EXECUTION_STATUS); return s ? <StatusChip status={s} /> : '—'; })()}
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.SERIAL_NUMBER) || "—"}
       </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
-        {(() => { const s = getColumnValue(item, MONDAY_COLUMN_IDS.WORK_ORDERS.PARTS_ORDERED); return s ? <StatusChip status={s} /> : '—'; })()}
+      <TableCell sx={{ ...DATA_CELL_SX, whiteSpace: "nowrap" }}>
+        {getColumnDisplayValue(item, WO_COL.SERVICE_HISTORY) || "—"}
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, whiteSpace: "nowrap" }}>
+        {getColumnDisplayValue(item, WO_COL.WORK_PERFORMED) || "—"}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.EQUIPMENTS_REL) || "—"}
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible" }}>
+        {(() => {
+          const s = getColumnDisplayValue(item, WO_COL.EXECUTION_STATUS);
+          return s ? <StatusChip status={s} /> : "—";
+        })()}
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible" }}>
+        {(() => {
+          const s = getColumnDisplayValue(item, WO_COL.PARTS_ORDERED);
+          return s ? <StatusChip status={s} /> : "—";
+        })()}
       </TableCell>
     </TableRow>
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Header */}
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden",
+      }}
+    >
       <Box
         sx={{
           px: { xs: 2, sm: 3 },
           py: { xs: 1.5, sm: 2 },
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          bgcolor: 'background.paper',
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          alignItems: { xs: 'flex-start', sm: 'center' },
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "flex-start", sm: "center" },
           gap: 2,
           flexShrink: 0,
         }}
@@ -270,7 +296,7 @@ export default function WorkOrdersBoard() {
         <Box>
           <Typography
             variant="h5"
-            sx={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.3px' }}
+            sx={{ fontWeight: 800, fontSize: "1.25rem", letterSpacing: "-0.3px" }}
           >
             Work Orders
           </Typography>
@@ -278,7 +304,15 @@ export default function WorkOrdersBoard() {
             {filteredItems.length} total
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: { xs: 0, sm: 'auto' }, width: { xs: '100%', sm: 'auto' } }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            ml: { xs: 0, sm: "auto" },
+            width: { xs: "100%", sm: "auto" },
+          }}
+        >
           <TextField
             size="small"
             placeholder="Search work orders…"
@@ -286,13 +320,19 @@ export default function WorkOrdersBoard() {
             onChange={(e) => setSearch(e.target.value)}
             InputProps={{
               startAdornment: (
-                <SearchIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 0.5 }} />
+                <SearchIcon
+                  sx={{ fontSize: 16, color: "text.disabled", mr: 0.5 }}
+                />
               ),
             }}
             sx={{
-              flex: { xs: 1, sm: 'none' },
-              width: { xs: 'auto', sm: 260 },
-              '& .MuiOutlinedInput-root': { height: 36, borderRadius: '8px', bgcolor: '#fff' },
+              flex: { xs: 1, sm: "none" },
+              width: { xs: "auto", sm: 260 },
+              "& .MuiOutlinedInput-root": {
+                height: 36,
+                borderRadius: "8px",
+                bgcolor: "#fff",
+              },
             }}
           />
           <AppButton
@@ -305,12 +345,23 @@ export default function WorkOrdersBoard() {
         </Box>
       </Box>
 
-      {/* Groups + Tables */}
-      <Box sx={{ flex: 1, overflow: 'auto', px: { xs: 1.5, sm: 3 }, py: { xs: 1.5, sm: 2 } }}>
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "auto",
+          px: { xs: 1.5, sm: 3 },
+          py: { xs: 1.5, sm: 2 },
+        }}
+      >
         {groups.map((group) => {
           const rows = itemsByGroup[group.id] || [];
           return (
-            <BoardGroup key={group.id} label={group.title} color={group.color || '#6b7280'} count={rows.length}>
+            <BoardGroup
+              key={group.id}
+              label={group.title}
+              color={group.color || "#6b7280"}
+              count={rows.length}
+            >
               <BoardTable
                 columns={WO_COLUMNS}
                 rows={rows}
@@ -323,46 +374,52 @@ export default function WorkOrdersBoard() {
         })}
       </Box>
 
-      {/* ── New Customer Drawer ── opens when user picks "+ Add X as new customer" */}
       <CustomerDrawer
         open={!!pendingNewCustomer}
-        customer={pendingNewCustomer
-          ? { id: '__new__', name: pendingNewCustomer.name, column_values: [] }
-          : { id: '__new__', name: '', column_values: [] }
+        customer={
+          pendingNewCustomer
+            ? { id: "__new__", name: pendingNewCustomer.name, column_values: [] }
+            : { id: "__new__", name: "", column_values: [] }
         }
         onClose={() => setPendingNewCustomer(null)}
         onSaveNew={async (form) => {
-          await dispatch(createCustomerAndLink({
-            form,
-            workOrderId: pendingNewCustomer.workOrderId,
-          }));
+          await dispatch(
+            createCustomerAndLink({
+              form,
+              workOrderId: pendingNewCustomer.workOrderId,
+            }),
+          );
           setPendingNewCustomer(null);
         }}
       />
 
-      {/* ── New Location Drawer ── opens when user picks "+ Add X as new location" */}
       <LocationDrawer
         open={!!pendingNewLocation}
-        location={pendingNewLocation
-          ? { id: '__new__', name: pendingNewLocation.name, column_values: [] }
-          : { id: '__new__', name: '', column_values: [] }
+        location={
+          pendingNewLocation
+            ? { id: "__new__", name: pendingNewLocation.name, column_values: [] }
+            : { id: "__new__", name: "", column_values: [] }
         }
         onClose={() => setPendingNewLocation(null)}
         onSaveNew={async (form) => {
-          await dispatch(createLocationAndLink({
-            form,
-            workOrderId: pendingNewLocation.workOrderId,
-          }));
+          await dispatch(
+            createLocationAndLink({
+              form,
+              workOrderId: pendingNewLocation.workOrderId,
+            }),
+          );
           setPendingNewLocation(null);
         }}
       />
       <WorkOrderDrawer
         open={openWorkOrderDrawer}
         onClose={() => setOpenWorkOrderDrawer(false)}
-        defaultGroupId={groups.find(g => g.title.toLowerCase().includes('active'))?.id || groups[0]?.id}
+        defaultGroupId={
+          groups.find((g) => g.title.toLowerCase().includes("active"))?.id ||
+          groups[0]?.id
+        }
       />
 
-      {/* ── Work Order Detail Drawer ── opens on row click */}
       <WorkOrderDetailDrawer
         key={selectedWorkOrder?.id}
         open={!!selectedWorkOrder}

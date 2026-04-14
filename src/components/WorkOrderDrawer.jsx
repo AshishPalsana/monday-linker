@@ -1,66 +1,91 @@
-import { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
-  Drawer, Box, Typography, TextField, Button, IconButton,
-  Stack, Divider, CircularProgress, Chip, Switch,
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
-import NotesOutlinedIcon from '@mui/icons-material/NotesOutlined';
-import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined';
-import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
-import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
-import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
-import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined';
-import CalendarViewWeekOutlinedIcon from '@mui/icons-material/CalendarViewWeekOutlined';
+  Drawer,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  IconButton,
+  Stack,
+  Divider,
+  CircularProgress,
+  Chip,
+  Switch,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
+import NotesOutlinedIcon from "@mui/icons-material/NotesOutlined";
+import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
+import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
+import HandymanOutlinedIcon from "@mui/icons-material/HandymanOutlined";
+import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
+import CalendarViewWeekOutlinedIcon from "@mui/icons-material/CalendarViewWeekOutlined";
 
-import { createWorkOrder } from '../store/workOrderSlice';
-import { createCustomer } from '../store/customersSlice';
-import { createLocation } from '../store/locationsSlice';
-import { STATUS_OPTIONS, STATUS_HEX } from '../constants';
-import CustomerDrawer from './CustomerDrawer';
-import LocationDrawer from './LocationDrawer';
-import RelationCell from './RelationCell';
+import { createWorkOrder } from "../store/workOrderSlice";
+import { createCustomer } from "../store/customersSlice";
+import { createLocation } from "../store/locationsSlice";
+import { STATUS_OPTIONS, STATUS_HEX, VALIDATION_STATUSES } from "../constants/index";
+import CustomerDrawer from "./CustomerDrawer";
+import LocationDrawer from "./LocationDrawer";
+import RelationCell from "./RelationCell";
 
-const EXECUTION_STATUS_OPTIONS = ['Unscheduled', 'In Progress', 'Completed', 'Cancelled', 'On Hold'];
-const PARTS_ORDERED_OPTIONS     = ['Not Required', 'Pending', 'Ordered', 'Received', 'Installed'];
+const EXECUTION_STATUS_OPTIONS = VALIDATION_STATUSES.EXECUTION;
+const PARTS_ORDERED_OPTIONS = VALIDATION_STATUSES.PARTS_ORDERED;
+
 const PARTS_HEX = {
-  'Not Required': '#6b7280',
-  Pending:        '#f59e0b',
-  Ordered:        '#4f8ef7',
-  Received:       '#22c55e',
-  Installed:      '#a855f7',
+  "Not Required": "#6b7280",
+  Pending: "#f59e0b",
+  Ordered: "#4f8ef7",
+  Received: "#22c55e",
+  Installed: "#a855f7",
 };
 
 const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
-  <Box sx={{
-    display: 'grid',
-    gridTemplateColumns: '160px 1fr',
-    alignItems: 'start',
-    borderRadius: '4px',
-    px: 1,
-    py: '8px',
-    '&:hover': { bgcolor: '#f7f6f3' },
-    transition: 'background 0.12s',
-  }}>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: '4px' }}>
-      <Icon sx={{ fontSize: 16, color: '#9b9a97', flexShrink: 0 }} />
-      <Typography sx={{ fontSize: '0.85rem', color: '#9b9a97', fontWeight: 500 }}>
+  <Box
+    sx={{
+      display: "grid",
+      gridTemplateColumns: "160px 1fr",
+      alignItems: "start",
+      borderRadius: "4px",
+      px: 1,
+      py: "8px",
+      "&:hover": { bgcolor: "#f7f6f3" },
+      transition: "background 0.12s",
+    }}
+  >
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1, pt: "4px" }}>
+      <Icon sx={{ fontSize: 16, color: "#9b9a97", flexShrink: 0 }} />
+      <Typography sx={{ fontSize: "0.85rem", color: "#9b9a97", fontWeight: 500 }}>
         {label}
-        {required && <Box component="span" sx={{ color: '#eb5757', ml: 0.25 }}>*</Box>}
+        {required && (
+          <Box component="span" sx={{ color: "#eb5757", ml: 0.25 }}>
+            *
+          </Box>
+        )}
       </Typography>
     </Box>
     <Box>
       {children}
       {error && (
-        <Typography sx={{ fontSize: '0.75rem', color: '#eb5757', mt: 0.5, ml: 1 }}>Required</Typography>
+        <Typography sx={{ fontSize: "0.75rem", color: "#eb5757", mt: 0.5, ml: 1 }}>
+          Required
+        </Typography>
       )}
     </Box>
   </Box>
 );
 
-const InlineField = ({ value, onChange, placeholder, error, multiline, rows }) => (
+const InlineField = ({
+  value,
+  onChange,
+  placeholder,
+  error,
+  multiline,
+  rows,
+}) => (
   <TextField
     fullWidth
     size="small"
@@ -71,15 +96,15 @@ const InlineField = ({ value, onChange, placeholder, error, multiline, rows }) =
     rows={rows}
     variant="standard"
     sx={{
-      '& .MuiInput-root': {
-        fontSize: '0.9rem',
-        color: '#37352f',
-        '&:before, &:after': { display: 'none' },
+      "& .MuiInput-root": {
+        fontSize: "0.9rem",
+        color: "#37352f",
+        "&:before, &:after": { display: "none" },
       },
-      '& .MuiInputBase-input': {
-        p: '4px 8px',
+      "& .MuiInputBase-input": {
+        p: "4px 8px",
         lineHeight: 1.5,
-        '&::placeholder': { color: error ? '#f5b8b8' : '#c1bfbc', opacity: 1 },
+        "&::placeholder": { color: error ? "#f5b8b8" : "#c1bfbc", opacity: 1 },
       },
     }}
   />
@@ -88,48 +113,51 @@ const InlineField = ({ value, onChange, placeholder, error, multiline, rows }) =
 export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
   const dispatch = useDispatch();
   const creating = useSelector((s) => s.workOrders.creating);
-  const customers = useSelector((s) => s.customers.board?.items_page?.items || []);
-  const locations = useSelector((s) => s.locations.board?.items_page?.items || []);
+  const customers = useSelector(
+    (s) => s.customers.board?.items_page?.items || [],
+  );
+  const locations = useSelector(
+    (s) => s.locations.board?.items_page?.items || [],
+  );
 
   const [form, setForm] = useState({
-    name: '',
-    customerId: '',
-    customerName: '',
-    locationId: '',
-    locationName: '',
-    description: '',
-    status: 'Unscheduled',
-    scheduledDate: '',
+    name: "",
+    customerId: "",
+    customerName: "",
+    locationId: "",
+    locationName: "",
+    description: "",
+    status: "Unscheduled",
+    scheduledDate: "",
     multiDay: false,
-    serviceHistory: '',
-    workPerformed: '',
-    executionStatus: '',
-    partsOrdered: '',
-    groupId: defaultGroupId || 'topics',
+    serviceHistory: "",
+    workPerformed: "",
+    executionStatus: "",
+    partsOrdered: "",
+    groupId: defaultGroupId || "topics",
   });
 
   const [errors, setErrors] = useState({});
   const [pendingNewCustomer, setPendingNewCustomer] = useState(null);
   const [pendingNewLocation, setPendingNewLocation] = useState(null);
 
-  // Reset form when opening
   useEffect(() => {
     if (open) {
       setForm({
-        name: '',
-        customerId: '',
-        customerName: '',
-        locationId: '',
-        locationName: '',
-        description: '',
-        status: 'Unscheduled',
-        scheduledDate: '',
+        name: "",
+        customerId: "",
+        customerName: "",
+        locationId: "",
+        locationName: "",
+        description: "",
+        status: "Unscheduled",
+        scheduledDate: "",
         multiDay: false,
-        serviceHistory: '',
-        workPerformed: '',
-        executionStatus: '',
-        partsOrdered: '',
-        groupId: defaultGroupId || 'topics',
+        serviceHistory: "",
+        workPerformed: "",
+        executionStatus: "",
+        partsOrdered: "",
+        groupId: defaultGroupId || "topics",
       });
       setErrors({});
     }
@@ -138,7 +166,7 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
   const handleSave = async () => {
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = true;
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -154,28 +182,31 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
       open={open}
       onClose={onClose}
       PaperProps={{
-        sx: { 
-          width: 600, 
-          bgcolor: '#fff', 
-          boxShadow: '-8px 0 32px rgba(0,0,0,0.08)',
-          display: 'flex',
-          flexDirection: 'column'
-        }
+        sx: {
+          width: 600,
+          bgcolor: "#fff",
+          boxShadow: "-8px 0 32px rgba(0,0,0,0.08)",
+          display: "flex",
+          flexDirection: "column",
+        },
       }}
     >
-      {/* Header */}
-      <Box sx={{ 
-        p: 2, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        borderBottom: '1px solid #edece9'
-      }}>
+      <Box
+        sx={{
+          p: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid #edece9",
+        }}
+      >
         <Stack direction="row" spacing={1} alignItems="center">
-          <IconButton size="small" onClick={onClose} sx={{ color: '#9b9a97' }}>
+          <IconButton size="small" onClick={onClose} sx={{ color: "#9b9a97" }}>
             <CloseIcon fontSize="small" />
           </IconButton>
-          <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#37352f' }}>
+          <Typography
+            sx={{ fontWeight: 600, fontSize: "0.9rem", color: "#37352f" }}
+          >
             New Work Order
           </Typography>
         </Stack>
@@ -186,23 +217,23 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
           onClick={handleSave}
           disabled={creating}
           sx={{
-            bgcolor: '#2383e2',
-            textTransform: 'none',
+            bgcolor: "#2383e2",
+            textTransform: "none",
             fontWeight: 600,
-            fontSize: '0.85rem',
+            fontSize: "0.85rem",
             px: 2,
-            '&:hover': { bgcolor: '#1a6fba' },
-            boxShadow: 'none',
+            "&:hover": { bgcolor: "#1a6fba" },
+            boxShadow: "none",
           }}
         >
-          {creating ? <CircularProgress size={16} sx={{ color: '#fff', mr: 1 }} /> : null}
+          {creating ? (
+            <CircularProgress size={16} sx={{ color: "#fff", mr: 1 }} />
+          ) : null}
           Create
         </Button>
       </Box>
 
-      {/* Body */}
-      <Box sx={{ flex: 1, overflowY: 'auto', p: 4 }}>
-        {/* Title / Name */}
+      <Box sx={{ flex: 1, overflowY: "auto", p: 4 }}>
         <TextField
           fullWidth
           placeholder="Work order title..."
@@ -214,21 +245,20 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
           variant="standard"
           sx={{
             mb: 4,
-            '& .MuiInput-root': {
-              fontSize: '2rem',
+            "& .MuiInput-root": {
+              fontSize: "2rem",
               fontWeight: 700,
-              color: '#37352f',
-              '&:before, &:after': { display: 'none' },
+              color: "#37352f",
+              "&:before, &:after": { display: "none" },
             },
-            '& .MuiInputBase-input::placeholder': { 
-              color: errors.name ? '#f5b8b8' : '#e1dfdc', 
-              opacity: 1 
+            "& .MuiInputBase-input::placeholder": {
+              color: errors.name ? "#f5b8b8" : "#e1dfdc",
+              opacity: 1,
             },
           }}
         />
 
         <Stack spacing={0.5}>
-          {/* Customer */}
           <PropertyRow icon={PersonOutlineIcon} label="Customer">
             <RelationCell
               value={form.customerName}
@@ -238,12 +268,13 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
               chipTextColor="#3367d6"
               chipBorderColor="rgba(79, 142, 247, 0.2)"
               createLabel="customer"
-              onSelectExisting={(id, name) => setForm({ ...form, customerId: id, customerName: name })}
+              onSelectExisting={(id, name) =>
+                setForm({ ...form, customerId: id, customerName: name })
+              }
               onCreateNew={(val) => setPendingNewCustomer({ name: val })}
             />
           </PropertyRow>
 
-          {/* Location */}
           <PropertyRow icon={LocationOnOutlinedIcon} label="Location">
             <RelationCell
               value={form.locationName}
@@ -253,14 +284,21 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
               chipTextColor="#9333ea"
               chipBorderColor="rgba(168, 85, 247, 0.2)"
               createLabel="location"
-              onSelectExisting={(id, name) => setForm({ ...form, locationId: id, locationName: name })}
+              onSelectExisting={(id, name) =>
+                setForm({ ...form, locationId: id, locationName: name })
+              }
               onCreateNew={(val) => setPendingNewLocation({ name: val })}
             />
           </PropertyRow>
 
-          {/* Status */}
           <PropertyRow icon={VerifiedOutlinedIcon} label="Status">
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: '2px' }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ mt: "2px" }}
+            >
               {STATUS_OPTIONS.map((opt) => (
                 <Chip
                   key={opt}
@@ -268,141 +306,204 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
                   size="small"
                   onClick={() => setForm({ ...form, status: opt })}
                   sx={{
-                    fontSize: '0.72rem',
+                    fontSize: "0.72rem",
                     height: 22,
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    bgcolor: form.status === opt ? STATUS_HEX[opt] : 'transparent',
-                    color: form.status === opt ? '#fff' : '#6b7280',
-                    border: '1px solid',
-                    borderColor: form.status === opt ? STATUS_HEX[opt] : '#e5e7eb',
-                    '&:hover': { bgcolor: form.status === opt ? STATUS_HEX[opt] : '#f3f4f6' },
-                    transition: 'all 0.1s',
+                    cursor: "pointer",
+                    bgcolor:
+                      form.status === opt ? STATUS_HEX[opt] : "transparent",
+                    color: form.status === opt ? "#fff" : "#6b7280",
+                    border: "1px solid",
+                    borderColor:
+                      form.status === opt ? STATUS_HEX[opt] : "#e5e7eb",
+                    "&:hover": {
+                      bgcolor:
+                        form.status === opt ? STATUS_HEX[opt] : "#f3f4f6",
+                    },
+                    transition: "all 0.1s",
                   }}
                 />
               ))}
             </Stack>
           </PropertyRow>
 
-          {/* Scheduled Date */}
           <PropertyRow icon={EventOutlinedIcon} label="Scheduled Date">
             <TextField
               type="date"
               size="small"
               value={form.scheduledDate}
-              onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, scheduledDate: e.target.value })
+              }
               variant="standard"
               InputLabelProps={{ shrink: true }}
               sx={{
-                '& .MuiInput-root': {
-                  fontSize: '0.9rem', color: '#37352f',
-                  '&:before, &:after': { display: 'none' },
+                "& .MuiInput-root": {
+                  fontSize: "0.9rem",
+                  color: "#37352f",
+                  "&:before, &:after": { display: "none" },
                 },
-                '& .MuiInputBase-input': { p: '4px 8px', lineHeight: 1.5 },
+                "& .MuiInputBase-input": { p: "4px 8px", lineHeight: 1.5 },
               }}
             />
           </PropertyRow>
 
-          {/* Multi-Day */}
           <PropertyRow icon={CalendarViewWeekOutlinedIcon} label="Multi-Day">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Switch
                 size="small"
                 checked={form.multiDay}
-                onChange={(e) => setForm({ ...form, multiDay: e.target.checked })}
-                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#4caf50' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#4caf50' } }}
+                onChange={(e) =>
+                  setForm({ ...form, multiDay: e.target.checked })
+                }
+                sx={{
+                  "& .MuiSwitch-switchBase.Mui-checked": { color: "#4caf50" },
+                  "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+                    bgcolor: "#4caf50",
+                  },
+                }}
               />
-              <Typography sx={{ fontSize: '0.82rem', color: form.multiDay ? '#4caf50' : '#9b9a97' }}>
-                {form.multiDay ? 'Yes' : 'No'}
+              <Typography
+                sx={{
+                  fontSize: "0.82rem",
+                  color: form.multiDay ? "#4caf50" : "#9b9a97",
+                }}
+              >
+                {form.multiDay ? "Yes" : "No"}
               </Typography>
             </Box>
           </PropertyRow>
 
           <Divider sx={{ my: 2 }} />
 
-          {/* Description */}
           <PropertyRow icon={NotesOutlinedIcon} label="Description">
             <InlineField
               multiline
               rows={3}
               placeholder="Add description..."
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
             />
           </PropertyRow>
 
           <Divider sx={{ my: 2 }} />
 
-          {/* Service History */}
           <PropertyRow icon={HistoryOutlinedIcon} label="Service History">
             <InlineField
               multiline
               rows={3}
               placeholder="Previous service notes..."
               value={form.serviceHistory}
-              onChange={(e) => setForm({ ...form, serviceHistory: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, serviceHistory: e.target.value })
+              }
             />
           </PropertyRow>
 
-          {/* Work Performed */}
           <PropertyRow icon={HandymanOutlinedIcon} label="Work Performed">
             <InlineField
               multiline
               rows={3}
               placeholder="Describe work performed..."
               value={form.workPerformed}
-              onChange={(e) => setForm({ ...form, workPerformed: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, workPerformed: e.target.value })
+              }
             />
           </PropertyRow>
 
           <Divider sx={{ my: 2 }} />
 
-          {/* Execution Status */}
           <PropertyRow icon={VerifiedOutlinedIcon} label="Execution Status">
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: '2px' }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ mt: "2px" }}
+            >
               {EXECUTION_STATUS_OPTIONS.map((opt) => (
                 <Chip
                   key={opt}
                   label={opt}
                   size="small"
-                  onClick={() => setForm({ ...form, executionStatus: form.executionStatus === opt ? '' : opt })}
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      executionStatus: form.executionStatus === opt ? "" : opt,
+                    })
+                  }
                   sx={{
-                    fontSize: '0.72rem',
+                    fontSize: "0.72rem",
                     height: 22,
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    bgcolor: form.executionStatus === opt ? (STATUS_HEX[opt] || '#6b7280') : 'transparent',
-                    color: form.executionStatus === opt ? '#fff' : '#6b7280',
-                    border: '1px solid',
-                    borderColor: form.executionStatus === opt ? (STATUS_HEX[opt] || '#6b7280') : '#e5e7eb',
-                    '&:hover': { bgcolor: form.executionStatus === opt ? (STATUS_HEX[opt] || '#6b7280') : '#f3f4f6' },
-                    transition: 'all 0.1s',
+                    cursor: "pointer",
+                    bgcolor:
+                      form.executionStatus === opt
+                        ? STATUS_HEX[opt] || "#6b7280"
+                        : "transparent",
+                    color: form.executionStatus === opt ? "#fff" : "#6b7280",
+                    border: "1px solid",
+                    borderColor:
+                      form.executionStatus === opt
+                        ? STATUS_HEX[opt] || "#6b7280"
+                        : "#e5e7eb",
+                    "&:hover": {
+                      bgcolor:
+                        form.executionStatus === opt
+                          ? STATUS_HEX[opt] || "#6b7280"
+                          : "#f3f4f6",
+                    },
+                    transition: "all 0.1s",
                   }}
                 />
               ))}
             </Stack>
           </PropertyRow>
 
-          {/* Parts Ordered */}
           <PropertyRow icon={InventoryOutlinedIcon} label="Parts Ordered">
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: '2px' }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ mt: "2px" }}
+            >
               {PARTS_ORDERED_OPTIONS.map((opt) => (
                 <Chip
                   key={opt}
                   label={opt}
                   size="small"
-                  onClick={() => setForm({ ...form, partsOrdered: form.partsOrdered === opt ? '' : opt })}
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      partsOrdered: form.partsOrdered === opt ? "" : opt,
+                    })
+                  }
                   sx={{
-                    fontSize: '0.72rem',
+                    fontSize: "0.72rem",
                     height: 22,
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    bgcolor: form.partsOrdered === opt ? (PARTS_HEX[opt] || '#6b7280') : 'transparent',
-                    color: form.partsOrdered === opt ? '#fff' : '#6b7280',
-                    border: '1px solid',
-                    borderColor: form.partsOrdered === opt ? (PARTS_HEX[opt] || '#6b7280') : '#e5e7eb',
-                    '&:hover': { bgcolor: form.partsOrdered === opt ? (PARTS_HEX[opt] || '#6b7280') : '#f3f4f6' },
-                    transition: 'all 0.1s',
+                    cursor: "pointer",
+                    bgcolor:
+                      form.partsOrdered === opt
+                        ? PARTS_HEX[opt] || "#6b7280"
+                        : "transparent",
+                    color: form.partsOrdered === opt ? "#fff" : "#6b7280",
+                    border: "1px solid",
+                    borderColor:
+                      form.partsOrdered === opt
+                        ? PARTS_HEX[opt] || "#6b7280"
+                        : "#e5e7eb",
+                    "&:hover": {
+                      bgcolor:
+                        form.partsOrdered === opt
+                          ? PARTS_HEX[opt] || "#6b7280"
+                          : "#f3f4f6",
+                    },
+                    transition: "all 0.1s",
                   }}
                 />
               ))}
@@ -411,25 +512,40 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
         </Stack>
       </Box>
 
-      {/* Nested Drawers */}
       <CustomerDrawer
         open={!!pendingNewCustomer}
-        customer={pendingNewCustomer}
+        customer={
+          pendingNewCustomer
+            ? { id: "__new__", name: pendingNewCustomer.name, column_values: [] }
+            : { id: "", name: "", column_values: [] }
+        }
         onClose={() => setPendingNewCustomer(null)}
         onSaveNew={async (custForm) => {
           const result = await dispatch(createCustomer(custForm)).unwrap();
-          setForm(prev => ({ ...prev, customerId: result.id, customerName: result.name }));
+          setForm((prev) => ({
+            ...prev,
+            customerId: result.id,
+            customerName: result.name,
+          }));
           setPendingNewCustomer(null);
         }}
       />
 
       <LocationDrawer
         open={!!pendingNewLocation}
-        location={pendingNewLocation}
+        location={
+          pendingNewLocation
+            ? { id: "__new__", name: pendingNewLocation.name, column_values: [] }
+            : null
+        }
         onClose={() => setPendingNewLocation(null)}
         onSaveNew={async (locForm) => {
           const result = await dispatch(createLocation(locForm)).unwrap();
-          setForm(prev => ({ ...prev, locationId: result.id, locationName: result.name }));
+          setForm((prev) => ({
+            ...prev,
+            locationId: result.id,
+            locationName: result.name,
+          }));
           setPendingNewLocation(null);
         }}
       />

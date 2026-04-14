@@ -18,13 +18,16 @@ import SearchIcon from "@mui/icons-material/Search";
 import { fetchLocations } from "../store/locationsSlice";
 import { fetchCustomers } from "../store/customersSlice";
 import { fetchWorkOrders } from "../store/workOrderSlice";
-import { COL } from "../services/mondayMutations";
+import { MONDAY_COLUMNS } from "../constants/index";
+import { getColumnDisplayValue } from "../utils/mondayUtils";
 import StatusChip from "./StatusChip";
 import LocationDrawer from "./LocationDrawer";
 import { createLocation as createLocationThunk } from "../store/locationsSlice";
 import { BoardGroup, BoardTable, DATA_CELL_SX, DASH, TruncCell } from "./BoardTable";
 
 
+
+const COL = MONDAY_COLUMNS.LOCATIONS;
 
 export default function LocationsBoard({ createLocation }) {
   const dispatch = useDispatch();
@@ -59,20 +62,16 @@ export default function LocationsBoard({ createLocation }) {
     return "";
   };
 
-  // Resolve linked customer name from the Customers board relation column
   const getCustomerName = (item) => {
     const col = item.column_values?.find(
-      (cv) => cv.id === COL.LOCATIONS.CUSTOMERS_REL,
+      (cv) => cv.id === COL.CUSTOMERS_REL,
     );
-    if (!col) return "";
-    return col.display_value || col.text || "";
+    return col?.display_value || col?.text || "";
   };
 
-  // Resolve linked names from any board relation column (returns comma-separated string)
   const getRelationNames = (item, colId) => {
     const col = item.column_values?.find((cv) => cv.id === colId);
-    if (!col) return "";
-    return col.display_value || col.text || "";
+    return col?.display_value || col?.text || "";
   };
 
   if (loading) {
@@ -126,10 +125,10 @@ export default function LocationsBoard({ createLocation }) {
   ];
 
   const renderLocationRow = (l) => {
-    const status         = getCol(l, COL.LOCATIONS.STATUS);
+    const status         = getColumnDisplayValue(l, COL.STATUS);
     const customerName   = getCustomerName(l);
-    const workOrderNames = getRelationNames(l, COL.LOCATIONS.WORK_ORDERS_REL);
-    const equipmentNames = getRelationNames(l, COL.LOCATIONS.EQUIPMENTS_REL);
+    const workOrderNames = getRelationNames(l, COL.WORK_ORDERS_REL);
+    const equipmentNames = getRelationNames(l, COL.EQUIPMENTS_REL);
     return (
       <TableRow key={l.id} hover sx={{ cursor: 'pointer' }} onClick={() => setOpenDialog(l)}>
         <TableCell sx={{ ...DATA_CELL_SX, py: '5px' }}>
@@ -144,14 +143,14 @@ export default function LocationsBoard({ createLocation }) {
             </Tooltip>
           </Box>
         </TableCell>
-        <TruncCell value={getCol(l, COL.LOCATIONS.STREET_ADDRESS)} />
-        <TruncCell value={getCol(l, COL.LOCATIONS.CITY)} />
-        <TruncCell value={getCol(l, COL.LOCATIONS.STATE)} />
-        <TruncCell value={getCol(l, COL.LOCATIONS.ZIP)} />
+        <TruncCell value={getColumnDisplayValue(l, COL.STREET_ADDRESS)} />
+        <TruncCell value={getColumnDisplayValue(l, COL.CITY)} />
+        <TruncCell value={getColumnDisplayValue(l, COL.STATE)} />
+        <TruncCell value={getColumnDisplayValue(l, COL.ZIP)} />
         <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
           {status ? <StatusChip status={status} /> : DASH}
         </TableCell>
-        <TruncCell value={getCol(l, COL.LOCATIONS.NOTES)} />
+        <TruncCell value={getColumnDisplayValue(l, COL.NOTES)} />
         <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
           {workOrderNames ? (
             <Tooltip title={workOrderNames} placement="top" enterDelay={600} arrow>

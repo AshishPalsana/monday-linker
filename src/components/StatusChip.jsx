@@ -1,5 +1,5 @@
 import { Chip } from '@mui/material'
-import { STATUS_HEX } from '../constants'
+import { STATUS_HEX } from '../constants/index'
 
 export default function StatusChip({ status, size = 'small', onClick }) {
   const color = STATUS_HEX[status] || '#6b7280'

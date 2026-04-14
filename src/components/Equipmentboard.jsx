@@ -15,17 +15,21 @@ import {
   createLocationAndLink,
 } from '../store/equipmentslice';
 import { fetchLocations } from '../store/locationsSlice';
-import { COL } from '../services/mondayMutations';
+import { MONDAY_COLUMNS } from '../constants/index';
+import { getColumnDisplayValue, getColumnSnapshot } from '../utils/mondayUtils';
 import StatusChip from './StatusChip';
 import EquipmentDrawer from './Equipmentdrawer';
 import LocationDrawer from './LocationDrawer';
 import RelationCell from './RelationCell';
 import { BoardGroup, BoardTable, DATA_CELL_SX, DASH, TruncCell } from './BoardTable';
 
+const EQ_COL = MONDAY_COLUMNS.EQUIPMENT;
+const EMPTY_ARRAY = [];
+
 export default function EquipmentBoard() {
   const dispatch = useDispatch();
   const { board, loading, error } = useSelector((s) => s.equipment);
-  const locations = useSelector((s) => s.locations.board?.items_page?.items || []);
+  const locations = useSelector((s) => s.locations.board?.items_page?.items || EMPTY_ARRAY);
   const [search, setSearch] = useState('');
   const { id } = useParams();
   const [openDrawer, setOpenDrawer] = useState(null);
@@ -49,14 +53,10 @@ export default function EquipmentBoard() {
     setOpenDrawer({ id: '__new__', name: '', column_values: [] });
   };
 
-
-  // ── Column value reader ───────────────────────────────────────────────────
   const getCol = (item, colId) => {
     const col = item.column_values?.find((cv) => cv.id === colId);
     if (!col) return '';
-    // For relation columns: prefer display_value/text (set by optimistic update)
-    // then fall back to resolving from locationMap
-    if (colId === COL.EQUIPMENT.LOCATION) {
+    if (colId === EQ_COL.LOCATION) {
       if (col.display_value && col.display_value.trim()) return col.display_value;
       if (col.text && col.text.trim()) return col.text;
       return '';
@@ -73,7 +73,7 @@ export default function EquipmentBoard() {
   };
 
   const handleLinkLocation = (item, locationId, locationName) => {
-    const previousSnapshot = getRawColumn(item, COL.EQUIPMENT.LOCATION);
+    const previousSnapshot = getColumnSnapshot(item, EQ_COL.LOCATION);
     dispatch(linkExistingLocation({ equipmentId: item.id, locationId, locationName, previousSnapshot }));
   };
 
@@ -115,7 +115,7 @@ export default function EquipmentBoard() {
   ];
 
   const renderEquipmentRow = (item) => {
-    const status = getCol(item, COL.EQUIPMENT.STATUS);
+    const status = getColumnDisplayValue(item, EQ_COL.STATUS);
     return (
       <TableRow key={item.id} hover sx={{ cursor: 'pointer' }} onClick={() => setOpenDrawer(item)}>
         <TableCell sx={{ ...DATA_CELL_SX, py: '5px' }}>
@@ -132,7 +132,7 @@ export default function EquipmentBoard() {
         </TableCell>
         <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible', py: '5px' }} onClick={(e) => e.stopPropagation()}>
           <RelationCell
-            value={getCol(item, COL.EQUIPMENT.LOCATION)}
+            value={getColumnDisplayValue(item, EQ_COL.LOCATION)}
             options={locations}
             placeholder="— add location"
             chipBgColor="rgba(168,85,247,0.1)"
@@ -143,14 +143,14 @@ export default function EquipmentBoard() {
             onCreateNew={(inputValue) => setPendingNewLocation({ name: inputValue, equipmentId: item.id })}
           />
         </TableCell>
-        <TruncCell value={getCol(item, COL.EQUIPMENT.MANUFACTURER)} />
-        <TruncCell value={getCol(item, COL.EQUIPMENT.MODEL_NUMBER)} />
-        <TruncCell value={getCol(item, COL.EQUIPMENT.SERIAL_NUMBER)} />
-        <TruncCell value={getCol(item, COL.EQUIPMENT.INSTALL_DATE)} />
+        <TruncCell value={getColumnDisplayValue(item, EQ_COL.MANUFACTURER)} />
+        <TruncCell value={getColumnDisplayValue(item, EQ_COL.MODEL_NUMBER)} />
+        <TruncCell value={getColumnDisplayValue(item, EQ_COL.SERIAL_NUMBER)} />
+        <TruncCell value={getColumnDisplayValue(item, EQ_COL.INSTALL_DATE)} />
         <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
           {status ? <StatusChip status={status} /> : DASH}
         </TableCell>
-        <TruncCell value={getCol(item, COL.EQUIPMENT.NOTES)} />
+        <TruncCell value={getColumnDisplayValue(item, EQ_COL.NOTES)} />
       </TableRow>
     );
  };

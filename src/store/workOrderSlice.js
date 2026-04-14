@@ -1,42 +1,23 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { mondayClient } from '../services/mondayAPI';
-import { gql } from '@apollo/client';
-import { apiCreateWorkOrder, apiUpdateWorkOrder } from '../services/mondayMutations';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { mondayClient } from "../services/monday/client";
+import {
+  createWorkOrder as svcCreateWorkOrder,
+  updateWorkOrder as svcUpdateWorkOrder,
+  FETCH_BOARD_DATA,
+} from "../services/monday";
+import { BOARD_IDS } from "../constants/index";
+import { deepClone } from "../utils/cloneUtils";
 
 export const fetchWorkOrders = createAsyncThunk(
-  'workOrders/fetchWorkOrders',
+  "workOrders/fetchWorkOrders",
   async (_, { rejectWithValue }) => {
-    const query = gql`
-      query GetBoardData {
-        boards(ids: 18402613691) {
-          id
-          name
-          groups { id title color }
-          columns { id title type }
-          items_page(limit: 100) {
-            items {
-              id
-              name
-              group { id title }
-              column_values {
-                id
-                text
-                value
-                ... on StatusValue { label index }
-                ... on BoardRelationValue { display_value }
-                ... on MirrorValue { display_value }
-                ... on CheckboxValue { value }
-              }
-              created_at
-              updated_at
-            }
-          }
-        }
-      }
-    `;
     try {
-      const { data } = await mondayClient.query({ query, fetchPolicy: 'network-only' });
-      return JSON.parse(JSON.stringify(data.boards[0]));
+      const { data } = await mondayClient.query({
+        query: FETCH_BOARD_DATA,
+        variables: { boardId: [BOARD_IDS.WORK_ORDERS] },
+        fetchPolicy: "network-only",
+      });
+      return deepClone(data.boards[0]);
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -44,34 +25,34 @@ export const fetchWorkOrders = createAsyncThunk(
 );
 
 export const createWorkOrder = createAsyncThunk(
-  'workOrders/createWorkOrder',
+  "workOrders/createWorkOrder",
   async (form, { dispatch, rejectWithValue }) => {
     try {
-      const created = await apiCreateWorkOrder(form);
+      const created = await svcCreateWorkOrder(form);
       // Wait for refetch so the board is always up to date
       await dispatch(fetchWorkOrders());
       return created;
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 export const updateWorkOrder = createAsyncThunk(
-  'workOrders/updateWorkOrder',
+  "workOrders/updateWorkOrder",
   async ({ workOrderId, form }, { dispatch, rejectWithValue }) => {
     try {
-      await apiUpdateWorkOrder(workOrderId, form);
+      await svcUpdateWorkOrder(workOrderId, form);
       await dispatch(fetchWorkOrders());
       return { workOrderId };
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 const workOrderSlice = createSlice({
-  name: 'workOrders',
+  name: "workOrders",
   initialState: {
     board: null,
     loading: false,
@@ -90,10 +71,8 @@ const workOrderSlice = createSlice({
       if (!col) return;
       col.display_value = displayText;
       col.text = displayText;
-      // Store linkedPulseIds so getColumnValue resolver also works
-      col.value = JSON.stringify({
-        item_ids: [String(linkedId)],
-      });
+      // Store linked ids so getColumnValue resolver also works
+      col.value = JSON.stringify({ item_ids: [Number(linkedId)] });
     },
     // Revert a single item's column back to previous values on API failure
     revertRelation(state, action) {
@@ -148,5 +127,6 @@ const workOrderSlice = createSlice({
   },
 });
 
-export const { optimisticUpdateRelation, revertRelation } = workOrderSlice.actions;
+export const { optimisticUpdateRelation, revertRelation } =
+  workOrderSlice.actions;
 export default workOrderSlice.reducer;

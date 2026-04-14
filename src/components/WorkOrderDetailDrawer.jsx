@@ -31,13 +31,14 @@ import CalendarViewWeekOutlinedIcon from "@mui/icons-material/CalendarViewWeekOu
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
 import { LinkedGroup, RecordPill } from "./LinkedRecordItem";
 
-import { 
-  MONDAY_COLUMN_IDS, 
-  STATUS_OPTIONS, 
+const EMPTY_ARRAY = [];
+
+import {
+  MONDAY_COLUMNS,
+  STATUS_OPTIONS,
   STATUS_HEX,
-  PARTS_ORDERED_OPTIONS,
-  PARTS_HEX
-} from "../constants";
+  VALIDATION_STATUSES,
+} from "../constants/index";
 import { updateWorkOrder } from "../store/workOrderSlice";
 import {
   linkExistingCustomer,
@@ -51,58 +52,22 @@ import StatusChip from "./StatusChip";
 import RelationCell from "./RelationCell";
 import CustomerDrawer from "./CustomerDrawer";
 import LocationDrawer from "./LocationDrawer";
+import {
+  getColumnDisplayValue,
+  getColumnSnapshot,
+  parseRelationIds,
+} from "../utils/mondayUtils";
 
-const WO_EXECUTION_OPTIONS = [
-  'In Progress', 
-  'Additional Trip Needed (Parts Ordered)', 
-  'Additional Trip Needed (Need Parts)', 
-  'Additional Trip Needed (Time Only)', 
-  'Completed',
-  'Cancelled'
-];
+const WO_COL = MONDAY_COLUMNS.WORK_ORDERS;
+const WO_EXECUTION_OPTIONS = VALIDATION_STATUSES.EXECUTION;
+const PARTS_ORDERED_OPTIONS = VALIDATION_STATUSES.PARTS_ORDERED;
 
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const getCol = (item, colId) =>
-  item?.column_values?.find((cv) => cv.id === colId);
-
-const getColText = (item, colId) => {
-  const col = getCol(item, colId);
-  if (!col) return "";
-  return col.display_value || col.label || col.text || "";
-};
-
-const getLinkedId = (item, colId) => {
-  const ids = getLinkedIds(item, colId);
-  return ids.length > 0 ? ids[0] : "";
-};
-
-const getLinkedIds = (item, colId) => {
-  const col = getCol(item, colId);
-  if (!col?.value) return [];
-  try {
-    const parsed = JSON.parse(col.value);
-    const ids = parsed?.item_ids || parsed?.linkedPulseIds || parsed?.linked_item_ids || [];
-    return ids.map((idObj) => {
-      const id = typeof idObj === "object" ? idObj.linkedPulseId || idObj.id : idObj;
-      return String(id);
-    });
-  } catch {
-    return [];
-  }
-};
-
-const getMultiDay = (item) => {
-  const col = getCol(item, MONDAY_COLUMN_IDS.WORK_ORDERS.MULTI_DAY);
-  try {
-    return col?.value
-      ? JSON.parse(col.value)?.checked === true ||
-          JSON.parse(col.value)?.checked === "true"
-      : false;
-  } catch {
-    return false;
-  }
+const PARTS_HEX = {
+  "Not Required": "#6b7280",
+  Pending: "#f59e0b",
+  Ordered: "#4f8ef7",
+  Received: "#22c55e",
+  Installed: "#a855f7",
 };
 
 // ── Shared UI components ──────────────────────────────────────────────────────
@@ -215,68 +180,45 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
   const dispatch = useDispatch();
   const saving = useSelector((s) => s.workOrders.saving);
   const customers = useSelector(
-    (s) => s.customers.board?.items_page?.items || [],
+    (s) => s.customers.board?.items_page?.items || EMPTY_ARRAY,
   );
   const locations = useSelector(
-    (s) => s.locations.board?.items_page?.items || [],
+    (s) => s.locations.board?.items_page?.items || EMPTY_ARRAY,
   );
   const allEquipment = useSelector(
-    (s) => s.equipment.board?.items_page?.items || [],
+    (s) => s.equipment.board?.items_page?.items || EMPTY_ARRAY,
   );
 
   const [form, setForm] = useState(() => ({
     name: workOrder?.name || "",
-    description: getColText(
-      workOrder,
-      MONDAY_COLUMN_IDS.WORK_ORDERS.DESCRIPTION,
-    ),
-    status: getColText(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.STATUS),
-    scheduledDate: getColText(
-      workOrder,
-      MONDAY_COLUMN_IDS.WORK_ORDERS.SCHEDULED_DATE,
-    ),
-    multiDay: getMultiDay(workOrder),
-    serviceHistory: getColText(
-      workOrder,
-      MONDAY_COLUMN_IDS.WORK_ORDERS.SERVICE_HISTORY,
-    ),
-    workPerformed: getColText(
-      workOrder,
-      MONDAY_COLUMN_IDS.WORK_ORDERS.WORK_PERFORMED,
-    ),
-    executionStatus: getColText(
-      workOrder,
-      MONDAY_COLUMN_IDS.WORK_ORDERS.EXECUTION_STATUS,
-    ),
-    partsOrdered: getColText(
-      workOrder,
-      MONDAY_COLUMN_IDS.WORK_ORDERS.PARTS_ORDERED,
-    ),
-    customerName: getColText(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER),
-    customerId: getLinkedId(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.CUSTOMER),
-    locationName: getColText(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.LOCATION),
-    locationId: getLinkedId(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.LOCATION),
+    description: getColumnDisplayValue(workOrder, WO_COL.DESCRIPTION),
+    status: getColumnDisplayValue(workOrder, WO_COL.STATUS),
+    scheduledDate: getColumnDisplayValue(workOrder, WO_COL.SCHEDULED_DATE),
+    multiDay: getColumnDisplayValue(workOrder, WO_COL.MULTI_DAY) === "Yes",
+    serviceHistory: getColumnDisplayValue(workOrder, WO_COL.SERVICE_HISTORY),
+    workPerformed: getColumnDisplayValue(workOrder, WO_COL.WORK_PERFORMED),
+    executionStatus: getColumnDisplayValue(workOrder, WO_COL.EXECUTION_STATUS),
+    partsOrdered: getColumnDisplayValue(workOrder, WO_COL.PARTS_ORDERED),
+    customerName: getColumnDisplayValue(workOrder, WO_COL.CUSTOMER),
+    customerId: parseRelationIds(
+      workOrder?.column_values?.find((cv) => cv.id === WO_COL.CUSTOMER)?.value,
+    )[0],
+    locationName: getColumnDisplayValue(workOrder, WO_COL.LOCATION),
+    locationId: parseRelationIds(
+      workOrder?.column_values?.find((cv) => cv.id === WO_COL.LOCATION)?.value,
+    )[0],
   }));
+
   const [pendingNewCustomer, setPendingNewCustomer] = useState(null);
   const [pendingNewLocation, setPendingNewLocation] = useState(null);
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
-  const woId = workOrder
-    ? getColText(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.WORKORDER_ID)
-    : "";
-  const model = workOrder
-    ? getColText(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.MODEL)
-    : "";
-  const serialNumber = workOrder
-    ? getColText(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.SERIAL_NUMBER)
-    : "";
-  const equipment = workOrder
-    ? getColText(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.EQUIPMENT)
-    : "";
-  const technician = workOrder
-    ? getColText(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.TECHNICIAN)
-    : "";
+  const woId = getColumnDisplayValue(workOrder, WO_COL.WORKORDER_ID);
+  const model = getColumnDisplayValue(workOrder, WO_COL.MODEL);
+  const serialNumber = getColumnDisplayValue(workOrder, WO_COL.SERIAL_NUMBER);
+  const equipment = getColumnDisplayValue(workOrder, WO_COL.EQUIPMENTS_REL);
+  const technician = getColumnDisplayValue(workOrder, WO_COL.TECHNICIAN);
 
   const handleSave = async () => {
     await dispatch(
@@ -346,9 +288,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                   },
                 }}
               />
-              <Typography
-                sx={{ fontSize: "0.78rem", color: "#9b9a97", mt: 0.3 }}
-              >
+              <Typography sx={{ fontSize: "0.78rem", color: "#9b9a97", mt: 0.3 }}>
                 Work order details
               </Typography>
             </Box>
@@ -389,11 +329,10 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                       workOrderId: workOrder.id,
                       customerId: id,
                       customerName: name,
-                      previousSnapshot: {
-                        value: null,
-                        text: null,
-                        display_value: null,
-                      },
+                      previousSnapshot: getColumnSnapshot(
+                        workOrder,
+                        WO_COL.CUSTOMER,
+                      ),
                     }),
                   );
                 }}
@@ -417,11 +356,10 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                       workOrderId: workOrder.id,
                       locationId: id,
                       locationName: name,
-                      previousSnapshot: {
-                        value: null,
-                        text: null,
-                        display_value: null,
-                      },
+                      previousSnapshot: getColumnSnapshot(
+                        workOrder,
+                        WO_COL.LOCATION,
+                      ),
                     }),
                   );
                 }}
@@ -509,39 +447,26 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                 {equipment && (
                   <PropertyRow icon={BuildOutlinedIcon} label="Equipment">
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                      {allEquipment.filter(eq => {
-                        const linkedIds = getLinkedIds(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.EQUIPMENT);
-                        return linkedIds.includes(String(eq.id));
-                      }).map((eq) => (
-                        <RecordPill
-                          key={eq.id}
-                          id={eq.id}
-                          type="equipment"
-                          name={eq.name}
-                          bgColor="rgba(34,197,94,0.1)"
-                          textColor="#15803d"
-                          borderColor="rgba(34,197,94,0.2)"
-                        />
-                      ))}
-                      {/* Fallback if not found in Redux items yet */}
-                      {!allEquipment.some(eq => String(eq.id) === getLinkedId(workOrder, MONDAY_COLUMN_IDS.WORK_ORDERS.EQUIPMENT)) && equipment && (
-                         equipment.split(",").map((e, i) => (
-                          <Chip
-                            key={i}
-                            label={e.trim()}
-                            size="small"
-                            sx={{
-                              height: 20,
-                              fontSize: "0.73rem",
-                              bgcolor: "rgba(34,197,94,0.1)",
-                              color: "#15803d",
-                              border: "1px solid rgba(34,197,94,0.2)",
-                              borderRadius: "4px",
-                              "& .MuiChip-label": { px: 1 },
-                            }}
+                      {allEquipment
+                        .filter((eq) => {
+                          const linkedIds = parseRelationIds(
+                            workOrder?.column_values?.find(
+                              (cv) => cv.id === WO_COL.EQUIPMENTS_REL,
+                            )?.value,
+                          );
+                          return linkedIds.includes(String(eq.id));
+                        })
+                        .map((eq) => (
+                          <RecordPill
+                            key={eq.id}
+                            id={eq.id}
+                            type="equipment"
+                            name={eq.name}
+                            bgColor="rgba(34,197,94,0.1)"
+                            textColor="#15803d"
+                            borderColor="rgba(34,197,94,0.2)"
                           />
-                        ))
-                      )}
+                        ))}
                     </Box>
                   </PropertyRow>
                 )}
@@ -611,14 +536,14 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
             </PropertyRow>
           </Box>
 
-          <Divider sx={{ borderColor: '#e8e6e1', my: 2 }} />
+          <Divider sx={{ borderColor: "#e8e6e1", my: 2 }} />
           <Section>Linked Records</Section>
           <Stack spacing={2} sx={{ px: 1, mt: 1 }}>
             <LinkedGroup
               icon={PersonOutlineIcon}
               label="Customer"
               iconColor="#4f8ef7"
-              items={customers.filter(c => String(c.id) === form.customerId)}
+              items={customers.filter((c) => String(c.id) === form.customerId)}
               renderItem={(c) => (
                 <RecordPill
                   key={c.id}
@@ -635,7 +560,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
               icon={LocationOnOutlinedIcon}
               label="Location"
               iconColor="#c084fc"
-              items={locations.filter(l => String(l.id) === form.locationId)}
+              items={locations.filter((l) => String(l.id) === form.locationId)}
               renderItem={(l) => (
                 <RecordPill
                   key={l.id}
@@ -721,20 +646,13 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
         open={!!pendingNewCustomer}
         customer={
           pendingNewCustomer
-            ? {
-                id: "__new__",
-                name: pendingNewCustomer.name,
-                column_values: [],
-              }
+            ? { id: "__new__", name: pendingNewCustomer.name, column_values: [] }
             : null
         }
         onClose={() => setPendingNewCustomer(null)}
         onSaveNew={async (custForm) => {
           await dispatch(
-            createCustomerAndLink({
-              form: custForm,
-              workOrderId: workOrder.id,
-            }),
+            createCustomerAndLink({ form: custForm, workOrderId: workOrder.id }),
           );
           setPendingNewCustomer(null);
         }}
@@ -743,11 +661,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
         open={!!pendingNewLocation}
         location={
           pendingNewLocation
-            ? {
-                id: "__new__",
-                name: pendingNewLocation.name,
-                column_values: [],
-              }
+            ? { id: "__new__", name: pendingNewLocation.name, column_values: [] }
             : null
         }
         onClose={() => setPendingNewLocation(null)}

@@ -15,12 +15,15 @@ import AppButton from './AppButton';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import { fetchCustomers, createCustomer as createCustomerThunk } from '../store/customersSlice';
-import { MONDAY_COLUMN_IDS } from '../constants';
+import { MONDAY_COLUMNS } from '../constants/index';
+import { getColumnDisplayValue } from '../utils/mondayUtils';
 import StatusChip from './StatusChip';
 import CustomerDrawer from './CustomerDrawer';
 import { BoardGroup, BoardTable, DATA_CELL_SX, DASH, TruncCell } from './BoardTable';
 
 
+
+const COL = MONDAY_COLUMNS.CUSTOMERS;
 
 export default function CustomersBoard({ createCustomer }) {
   const dispatch = useDispatch();
@@ -29,7 +32,6 @@ export default function CustomersBoard({ createCustomer }) {
   const [openDialog, setOpenDialog] = useState(null);
   const [search, setSearch] = useState('');
 
-  // Deep linking
   useEffect(() => {
     if (id && board?.items_page?.items) {
       const item = board.items_page.items.find(i => String(i.id) === id);
@@ -40,23 +42,6 @@ export default function CustomersBoard({ createCustomer }) {
   useEffect(() => {
     dispatch(fetchCustomers());
   }, [dispatch]);
-
-  const getColumnValue = (item, colId) => {
-    const col = item.column_values?.find((cv) => cv.id === colId);
-    if (!col) return '';
-    if (col.text && col.text.trim() !== '') return col.text;
-    if (col.value) {
-      try {
-        const parsed = JSON.parse(col.value);
-        if (parsed.email) return parsed.email;
-        if (parsed.phone) return parsed.phone;
-        if (parsed.text && typeof parsed.text === 'string') return parsed.text;
-      } catch {
-        // ignore
-      }
-    }
-    return '';
-  };
 
   if (loading) {
     return (
@@ -102,8 +87,8 @@ export default function CustomersBoard({ createCustomer }) {
   ];
 
   const renderCustomerRow = (c) => {
-    const status     = getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.STATUS);
-    const xeroStatus = getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.XERO_SYNC_STATUS);
+    const status     = getColumnDisplayValue(c, COL.STATUS);
+    const xeroStatus = getColumnDisplayValue(c, COL.XERO_SYNC_STATUS);
     return (
       <TableRow key={c.id} hover sx={{ cursor: 'pointer' }} onClick={() => setOpenDialog(c)}>
         <TableCell sx={{ ...DATA_CELL_SX, py: '5px' }}>
@@ -118,19 +103,19 @@ export default function CustomersBoard({ createCustomer }) {
             </Tooltip>
           </Box>
         </TableCell>
-        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.EMAIL)} />
-        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.PHONE)} />
-        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.ACCOUNT_NUMBER)} />
+        <TruncCell value={getColumnDisplayValue(c, COL.EMAIL)} />
+        <TruncCell value={getColumnDisplayValue(c, COL.PHONE)} />
+        <TruncCell value={getColumnDisplayValue(c, COL.ACCOUNT_NUMBER)} />
         <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
           {status ? <StatusChip status={status} /> : DASH}
         </TableCell>
-        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.BILLING_ADDRESS)} />
-        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.BILLING_TERMS)} />
-        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.XERO_CONTACT_ID)} />
+        <TruncCell value={getColumnDisplayValue(c, COL.BILLING_ADDRESS)} />
+        <TruncCell value={getColumnDisplayValue(c, COL.BILLING_TERMS)} />
+        <TruncCell value={getColumnDisplayValue(c, COL.XERO_CONTACT_ID)} />
         <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
           {xeroStatus ? <StatusChip status={xeroStatus} /> : DASH}
         </TableCell>
-        <TruncCell value={getColumnValue(c, MONDAY_COLUMN_IDS.CUSTOMERS.NOTES)} />
+        <TruncCell value={getColumnDisplayValue(c, COL.NOTES)} />
       </TableRow>
     );
   };
