@@ -28,6 +28,7 @@ import { MONDAY_COLUMNS } from "../constants/index";
 import { updateCustomer } from "../store/customersSlice";
 import { LinkedGroup, RecordPill } from "./LinkedRecordItem";
 import { isValidMondayId, parseRelationIds } from "../utils/mondayUtils";
+import { validateEmail, cleanPhoneNumber } from "../utils/validationUtils";
 
 const EMPTY_ARRAY = [];
 
@@ -290,7 +291,6 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
     name: customer?.name || "",
     email: getCol(CUST_COL.EMAIL),
     phone: getCol(CUST_COL.PHONE),
-    accountNumber: getCol(CUST_COL.ACCOUNT_NUMBER),
     status: getCol(CUST_COL.STATUS) || "Active",
     billingAddress: getCol(CUST_COL.BILLING_ADDRESS),
     billingTerms: getCol(CUST_COL.BILLING_TERMS),
@@ -309,8 +309,12 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
     { key: "billingAddress", label: "Billing Address" },
   ];
   const missing = REQUIRED.filter((f) => !form[f.key]?.trim());
-  const isValid = missing.length === 0;
+  
+  const isEmailValid = !form.email || validateEmail(form.email);
+  const isValid = missing.length === 0 && isEmailValid;
+
   const err = (k) => attempted && !form[k]?.trim();
+  const formatErr = (k) => attempted && k === "email" && form.email && !validateEmail(form.email);
 
   const handleSave = async () => {
     setAttempted(true);
@@ -460,8 +464,11 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
             }}
           >
             <Typography sx={{ fontSize: "0.775rem", color: "#eb5757" }}>
-              Missing:{" "}
-              <strong>{missing.map((f) => f.label).join(", ")}</strong>
+              {missing.length > 0 ? (
+                <>Missing: <strong>{missing.map((f) => f.label).join(", ")}</strong></>
+              ) : (
+                <><strong>Invalid email format</strong></>
+              )}
             </Typography>
           </Box>
         )}
@@ -491,8 +498,13 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
               value={form.email}
               onChange={(e) => set("email", e.target.value)}
               placeholder="billing@company.com"
-              error={err("email")}
+              error={err("email") || formatErr("email")}
             />
+            {formatErr("email") && (
+              <Typography sx={{ fontSize: "0.68rem", color: "#eb5757", mt: -0.25, mb: 0.5 }}>
+                Enter a proper email address
+              </Typography>
+            )}
           </PropertyRow>
           <PropertyRow
             icon={PhoneOutlinedIcon}
@@ -502,16 +514,9 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
           >
             <InlineField
               value={form.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              placeholder="(555) 000-0000"
+              onChange={(e) => set("phone", cleanPhoneNumber(e.target.value))}
+              placeholder="Numbers only"
               error={err("phone")}
-            />
-          </PropertyRow>
-          <PropertyRow icon={TagIcon} label="Account No.">
-            <InlineField
-              value={form.accountNumber}
-              onChange={(e) => set("accountNumber", e.target.value)}
-              placeholder="ACT-999"
             />
           </PropertyRow>
         </Box>

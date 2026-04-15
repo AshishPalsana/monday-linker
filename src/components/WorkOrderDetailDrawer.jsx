@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Drawer,
@@ -57,6 +57,7 @@ import {
   getColumnSnapshot,
   parseRelationIds,
 } from "../utils/mondayUtils";
+import { integrationApi } from "../services/integrationApi";
 
 const WO_COL = MONDAY_COLUMNS.WORK_ORDERS;
 const WO_EXECUTION_OPTIONS = VALIDATION_STATUSES.EXECUTION;
@@ -211,6 +212,41 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
 
   const [pendingNewCustomer, setPendingNewCustomer] = useState(null);
   const [pendingNewLocation, setPendingNewLocation] = useState(null);
+
+  // ── Xero Project sync status ─────────────────────────────────────────────
+  const [xeroSync, setXeroSync] = useState(null);   // null = loading, object = result
+  const [xeroLoading, setXeroLoading] = useState(false);
+  const [xeroRetrying, setXeroRetrying] = useState(false);
+
+  useEffect(() => {
+    if (!open || !workOrder?.id) return;
+    let cancelled = false;
+    setXeroSync(null);
+    setXeroLoading(true);
+    integrationApi
+      .getXeroSyncStatus(workOrder.id)
+      .then((data) => { if (!cancelled) setXeroSync(data); })
+      .catch(() => { if (!cancelled) setXeroSync({ synced: false, error: "Could not fetch Xero status" }); })
+      .finally(() => { if (!cancelled) setXeroLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, workOrder?.id]);
+
+  const handleXeroRetry = async () => {
+    setXeroRetrying(true);
+    try {
+      const result = await integrationApi.retryXeroSync(workOrder.id);
+      setXeroSync({
+        synced: true,
+        xeroProjectId: result.xeroProjectId,
+        workOrderId: xeroSync?.workOrderId,
+      });
+    } catch (err) {
+      setXeroSync((prev) => ({ ...prev, error: err.message }));
+    } finally {
+      setXeroRetrying(false);
+    }
+  };
+  // ─────────────────────────────────────────────────────────────────────────
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -537,6 +573,179 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
           </Box>
 
           <Divider sx={{ borderColor: "#e8e6e1", my: 2 }} />
+
+          {/* ── Xero Project Integration ─────────────────────────────── */}
+          <Section>Xero Project</Section>
+          <Box
+            sx={{
+              mx: 1,
+              mb: 2.5,
+              mt: 0.75,
+              p: 1.5,
+              borderRadius: "6px",
+              border: "1px solid",
+              borderColor: xeroSync?.synced
+                ? "rgba(19,159,119,0.25)"
+                : xeroSync?.error
+                ? "rgba(235,87,87,0.25)"
+                : "#e8e6e1",
+              bgcolor: xeroSync?.synced
+                ? "rgba(19,159,119,0.04)"
+                : xeroSync?.error
+                ? "rgba(235,87,87,0.04)"
+                : "#fafafa",
+              transition: "all 0.2s",
+            }}
+          >
+            {xeroLoading ? (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <CircularProgress size={12} sx={{ color: "#9b9a97" }} />
+                <Typography sx={{ fontSize: "0.78rem", color: "#9b9a97" }}>
+                  Checking Xero sync…
+                </Typography>
+              </Box>
+            ) : xeroSync?.synced ? (
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor: "#139f77",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <Box>
+                    <Typography
+                      sx={{ fontSize: "0.78rem", fontWeight: 600, color: "#139f77" }}
+                    >
+                      Xero Project Linked
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: "0.72rem",
+                        color: "#9b9a97",
+                        fontFamily: "monospace",
+                        mt: 0.2,
+                      }}
+                    >
+                      {xeroSync.workOrderId}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Button
+                  size="small"
+                  component="a"
+                  href="https://go.xero.com/projects/list"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    fontSize: "0.72rem",
+                    textTransform: "none",
+                    color: "#139f77",
+                    fontWeight: 600,
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: "4px",
+                    border: "1px solid rgba(19,159,119,0.3)",
+                    "&:hover": { bgcolor: "rgba(19,159,119,0.08)" },
+                  }}
+                >
+                  Open in Xero ↗
+                </Button>
+              </Box>
+            ) : xeroSync?.error ? (
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor: "#eb5757",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <Box>
+                    <Typography
+                      sx={{ fontSize: "0.78rem", fontWeight: 600, color: "#eb5757" }}
+                    >
+                      Xero Sync Failed
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: "0.7rem",
+                        color: "#9b9a97",
+                        mt: 0.2,
+                        maxWidth: 240,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={xeroSync.error}
+                    >
+                      {xeroSync.error}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Button
+                  size="small"
+                  disabled={xeroRetrying}
+                  onClick={handleXeroRetry}
+                  sx={{
+                    fontSize: "0.72rem",
+                    textTransform: "none",
+                    color: "#eb5757",
+                    fontWeight: 600,
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: "4px",
+                    border: "1px solid rgba(235,87,87,0.3)",
+                    "&:hover": { bgcolor: "rgba(235,87,87,0.06)" },
+                    flexShrink: 0,
+                  }}
+                >
+                  {xeroRetrying ? (
+                    <CircularProgress size={10} sx={{ color: "#eb5757", mr: 0.5 }} />
+                  ) : null}
+                  Retry sync
+                </Button>
+              </Box>
+            ) : xeroSync?.pending ? (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    bgcolor: "#f59e0b",
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography sx={{ fontSize: "0.78rem", color: "#92400e" }}>
+                  Xero sync pending — may take a few seconds after creation.
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    bgcolor: "#d1d5db",
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography sx={{ fontSize: "0.78rem", color: "#9b9a97" }}>
+                  Xero not connected — go to Settings → Integrations to connect.
+                </Typography>
+              </Box>
+            )}
+          </Box>
+          {/* ───────────────────────────────────────────── */}
+
           <Section>Linked Records</Section>
           <Stack spacing={2} sx={{ px: 1, mt: 1 }}>
             <LinkedGroup

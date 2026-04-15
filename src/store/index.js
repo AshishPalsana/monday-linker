@@ -5,6 +5,9 @@ import workOrderReducer from './workOrderSlice';
 import customersReducer from './customersSlice';
 import locationsReducer from './locationsSlice';
 import equipmentReducer from './equipmentslice';
+import uiReducer from './uiSlice';
+import integrationReducer from './integrationSlice';
+import notificationMiddleware from './middleware/notificationMiddleware';
 
 const ACTIVE_ENTRY_KEY = 'ml_active_entry_v1';
 
@@ -16,7 +19,11 @@ const store = configureStore({
     customers:   customersReducer,
     locations:   locationsReducer,
     equipment:   equipmentReducer,
+    ui:          uiReducer,
+    integration: integrationReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(notificationMiddleware),
 });
 
 store.subscribe(() => {

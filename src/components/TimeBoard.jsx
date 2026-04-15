@@ -476,32 +476,6 @@ export default function TimeBoard() {
       : groupByWorkOrder(visible);
   const grandTotal = visible.reduce((s, e) => s + (e.hours ?? 0), 0);
 
-  // ── Admin-only gate (temporarily disabled for testing) ─────────────────
-  // if (accessError || (auth && !auth.technician?.isAdmin)) {
-  //   return (
-  //     <Box
-  //       sx={{
-  //         display: "flex",
-  //         flexDirection: "column",
-  //         alignItems: "center",
-  //         justifyContent: "center",
-  //         height: "100%",
-  //         gap: 2,
-  //         color: "#9ca3af",
-  //         p: 4,
-  //       }}
-  //     >
-  //       <LockOutlinedIcon sx={{ fontSize: 48, color: "#d1d5db" }} />
-  //       <Typography variant="h6" sx={{ fontWeight: 700, color: "#374151" }}>
-  //         Admin Access Required
-  //       </Typography>
-  //       <Typography variant="body2" sx={{ color: "#9ca3af", textAlign: "center", maxWidth: 340 }}>
-  //         The Time Board is only available to admin users. Contact your administrator if you need access.
-  //       </Typography>
-  //     </Box>
-  //   );
-  // }
-
   return (
     <Box sx={{ p: { xs: 2, sm: 3 }, height: "100%", overflow: "auto" }}>
       {/* Page header */}
@@ -723,3 +697,5 @@ export default function TimeBoard() {
     </Box>
   );
 }
+
+

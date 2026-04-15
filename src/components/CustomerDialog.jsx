@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { validateEmail, cleanPhoneNumber } from '../utils/validationUtils'
 import { useSelector } from 'react-redux'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
@@ -58,7 +59,10 @@ export default function CustomerDialog({ customer, onClose, onUpdate, data }) {
     { key: 'phone', label: 'Contact Phone Number' },
     { key: 'email', label: 'Contact Email' },
   ];
-  const isValid = requiredFields.every(f => (form[f.key] || '').trim() !== '');
+  
+  const isEmailValid = !form.email || validateEmail(form.email);
+  const isValid = requiredFields.every(f => (form[f.key] || '').trim() !== '') && isEmailValid;
+  const showEmailError = form.email && !validateEmail(form.email);
 
   return (
     <Dialog open maxWidth="md" fullWidth
@@ -98,13 +102,27 @@ export default function CustomerDialog({ customer, onClose, onUpdate, data }) {
         <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Contact Information</Typography>
         <Grid container spacing={2.5}>
           <Grid item xs={6}>
-            <TextField size="small" fullWidth label="Contact Email*" value={form.email || ''} onChange={e => set('email', e.target.value)} placeholder="billing@company.com" required error={!form.email} />
+            <TextField 
+              size="small" fullWidth 
+              label="Contact Email*" 
+              value={form.email || ''} 
+              onChange={e => set('email', e.target.value)} 
+              placeholder="billing@company.com" 
+              required 
+              error={!form.email || showEmailError} 
+              helperText={showEmailError ? "Enter a proper email address" : ""}
+            />
           </Grid>
           <Grid item xs={6}>
-            <TextField size="small" fullWidth label="Contact Phone Number*" value={form.phone || ''} onChange={e => set('phone', e.target.value)} placeholder="(555) 000-0000" required error={!form.phone} />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField size="small" fullWidth label="Account Number" value={form.accountNumber || ''} onChange={e => set('accountNumber', e.target.value)} />
+            <TextField 
+              size="small" fullWidth 
+              label="Contact Phone Number*" 
+              value={form.phone || ''} 
+              onChange={e => set('phone', cleanPhoneNumber(e.target.value))} 
+              placeholder="Numbers only" 
+              required 
+              error={!form.phone} 
+            />
           </Grid>
           <Grid item xs={6}>
             <FormControl fullWidth size="small">
