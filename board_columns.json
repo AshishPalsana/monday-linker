@@ -1,0 +1,496 @@
+﻿{
+    "data":  {
+                 "boards":  [
+                                {
+                                    "id":  "18407330739",
+                                    "name":  "Master Costs",
+                                    "columns":  [
+                                                    {
+                                                        "id":  "name",
+                                                        "title":  "Name",
+                                                        "type":  "name"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm26prz0",
+                                                        "title":  "Work Orders",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm25xk4h",
+                                                        "title":  "Type",
+                                                        "type":  "status"
+                                                    },
+                                                    {
+                                                        "id":  "numeric_mm256yw2",
+                                                        "title":  "Quantity / Hours",
+                                                        "type":  "numbers"
+                                                    },
+                                                    {
+                                                        "id":  "numeric_mm25xvx0",
+                                                        "title":  "Rate",
+                                                        "type":  "numbers"
+                                                    },
+                                                    {
+                                                        "id":  "text_mm25nhbc",
+                                                        "title":  "Description",
+                                                        "type":  "text"
+                                                    },
+                                                    {
+                                                        "id":  "numeric_mm25953b",
+                                                        "title":  "Total Cost",
+                                                        "type":  "numbers"
+                                                    },
+                                                    {
+                                                        "id":  "subtasks_mm25rt2n",
+                                                        "title":  "Subitems",
+                                                        "type":  "subtasks"
+                                                    },
+                                                    {
+                                                        "id":  "date_mm26snwa",
+                                                        "title":  "Date",
+                                                        "type":  "date"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm26qn4h",
+                                                        "title":  "Invoice Status",
+                                                        "type":  "status"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm26z5dh",
+                                                        "title":  "Technicians",
+                                                        "type":  "board_relation"
+                                                    }
+                                                ]
+                                },
+                                {
+                                    "id":  "18406939432",
+                                    "name":  "Expenses",
+                                    "columns":  [
+                                                    {
+                                                        "id":  "name",
+                                                        "title":  "Name",
+                                                        "type":  "name"
+                                                    },
+                                                    {
+                                                        "id":  "multiple_person_mm212yhb",
+                                                        "title":  "Technician",
+                                                        "type":  "people"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2cdgz8",
+                                                        "title":  "Time Entries",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2cw5x5",
+                                                        "title":  "Work Orders",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "file_mm21j7d7",
+                                                        "title":  "Receipt",
+                                                        "type":  "file"
+                                                    },
+                                                    {
+                                                        "id":  "text_mm213m15",
+                                                        "title":  "Description",
+                                                        "type":  "text"
+                                                    },
+                                                    {
+                                                        "id":  "dropdown_mm215jhc",
+                                                        "title":  "Expense Type",
+                                                        "type":  "dropdown"
+                                                    },
+                                                    {
+                                                        "id":  "numeric_mm21a0kv",
+                                                        "title":  "Amount",
+                                                        "type":  "numbers"
+                                                    },
+                                                    {
+                                                        "id":  "subtasks_mm21591z",
+                                                        "title":  "Subitems",
+                                                        "type":  "subtasks"
+                                                    }
+                                                ]
+                                },
+                                {
+                                    "id":  "18406939306",
+                                    "name":  "Time Entries",
+                                    "columns":  [
+                                                    {
+                                                        "id":  "name",
+                                                        "title":  "Name",
+                                                        "type":  "name"
+                                                    },
+                                                    {
+                                                        "id":  "numeric_mm21p49k",
+                                                        "title":  "Total Hours",
+                                                        "type":  "numbers"
+                                                    },
+                                                    {
+                                                        "id":  "date_mm21zkpj",
+                                                        "title":  "Clock In Time",
+                                                        "type":  "date"
+                                                    },
+                                                    {
+                                                        "id":  "date_mm2155gg",
+                                                        "title":  "Clock Out Time",
+                                                        "type":  "date"
+                                                    },
+                                                    {
+                                                        "id":  "dropdown_mm21wscp",
+                                                        "title":  "Task Type",
+                                                        "type":  "dropdown"
+                                                    },
+                                                    {
+                                                        "id":  "boolean_mm212dcy",
+                                                        "title":  "Expenses Added",
+                                                        "type":  "checkbox"
+                                                    },
+                                                    {
+                                                        "id":  "multiple_person_mm21m56s",
+                                                        "title":  "Technicians",
+                                                        "type":  "people"
+                                                    },
+                                                    {
+                                                        "id":  "subtasks_mm212j3x",
+                                                        "title":  "Subitems",
+                                                        "type":  "subtasks"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm21vtd1",
+                                                        "title":  "Locations",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2cy69m",
+                                                        "title":  "Work Orders",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2c169b",
+                                                        "title":  "Expenses",
+                                                        "type":  "board_relation"
+                                                    }
+                                                ]
+                                },
+                                {
+                                    "id":  "18403393439",
+                                    "name":  "Invoice Line Items",
+                                    "columns":  [
+                                                    {
+                                                        "id":  "name",
+                                                        "title":  "Name",
+                                                        "type":  "name"
+                                                    },
+                                                    {
+                                                        "id":  "subtasks_mm25syy3",
+                                                        "title":  "Subitems",
+                                                        "type":  "subtasks"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm1ae4as",
+                                                        "title":  "Work Orders",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "lookup_mm1ag56m",
+                                                        "title":  "Customer",
+                                                        "type":  "mirror"
+                                                    },
+                                                    {
+                                                        "id":  "lookup_mm1ac07c",
+                                                        "title":  "Location",
+                                                        "type":  "mirror"
+                                                    },
+                                                    {
+                                                        "id":  "dropdown_mm1ae5fd",
+                                                        "title":  "Item Type",
+                                                        "type":  "dropdown"
+                                                    },
+                                                    {
+                                                        "id":  "numeric_mm1ab4nj",
+                                                        "title":  "Quantity",
+                                                        "type":  "numbers"
+                                                    },
+                                                    {
+                                                        "id":  "numeric_mm1a6h84",
+                                                        "title":  "Unit Price",
+                                                        "type":  "numbers"
+                                                    },
+                                                    {
+                                                        "id":  "formula_mm1astxs",
+                                                        "title":  "Total",
+                                                        "type":  "formula"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm1ae7q7",
+                                                        "title":  "Billing Status",
+                                                        "type":  "status"
+                                                    },
+                                                    {
+                                                        "id":  "text_mm1ay1cy",
+                                                        "title":  "Invoice ID",
+                                                        "type":  "text"
+                                                    },
+                                                    {
+                                                        "id":  "long_text_mm1cdk36",
+                                                        "title":  "Description",
+                                                        "type":  "long_text"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm1csz5m",
+                                                        "title":  "Revenue Account",
+                                                        "type":  "status"
+                                                    }
+                                                ]
+                                },
+                                {
+                                    "id":  "18402613691",
+                                    "name":  "Work Orders",
+                                    "columns":  [
+                                                    {
+                                                        "id":  "name",
+                                                        "title":  "Name",
+                                                        "type":  "name"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2ctcg0",
+                                                        "title":  "Customers",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2czk6k",
+                                                        "title":  "Locations",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "long_text_mm14ee7h",
+                                                        "title":  "Description of Work",
+                                                        "type":  "long_text"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm14pf0q",
+                                                        "title":  "Scheduling Status",
+                                                        "type":  "status"
+                                                    },
+                                                    {
+                                                        "id":  "date_mm14sjdg",
+                                                        "title":  "Scheduled Date",
+                                                        "type":  "date"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm1s7ak1",
+                                                        "title":  "Progress Status",
+                                                        "type":  "status"
+                                                    },
+                                                    {
+                                                        "id":  "multiple_person_mm14sesj",
+                                                        "title":  "Technician",
+                                                        "type":  "people"
+                                                    },
+                                                    {
+                                                        "id":  "boolean_mm14act2",
+                                                        "title":  "Multi-Day Job",
+                                                        "type":  "checkbox"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm2dgedg",
+                                                        "title":  "Billing Stage",
+                                                        "type":  "status"
+                                                    },
+                                                    {
+                                                        "id":  "long_text_mm15p7rk",
+                                                        "title":  "Service History",
+                                                        "type":  "long_text"
+                                                    },
+                                                    {
+                                                        "id":  "long_text_mm15kfzp",
+                                                        "title":  "Work Performed",
+                                                        "type":  "long_text"
+                                                    },
+                                                    {
+                                                        "id":  "file_mm15n5d",
+                                                        "title":  "Photos / Documents",
+                                                        "type":  "file"
+                                                    },
+                                                    {
+                                                        "id":  "subtasks_mm154hg6",
+                                                        "title":  "Subitems",
+                                                        "type":  "subtasks"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm1ady0r",
+                                                        "title":  "Invoice Line Items",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm1bs0w7",
+                                                        "title":  "Parts Ordered",
+                                                        "type":  "status"
+                                                    },
+                                                    {
+                                                        "id":  "text_mm1s82bz",
+                                                        "title":  "Workorder ID",
+                                                        "type":  "text"
+                                                    },
+                                                    {
+                                                        "id":  "lookup_mm2cbwnf",
+                                                        "title":  "Mirror",
+                                                        "type":  "mirror"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2cx2br",
+                                                        "title":  "Equipment",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2cnxb5",
+                                                        "title":  "Time Entries",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2cgry0",
+                                                        "title":  "Expenses",
+                                                        "type":  "board_relation"
+                                                    }
+                                                ]
+                                },
+                                {
+                                    "id":  "18400965227",
+                                    "name":  "Locations",
+                                    "columns":  [
+                                                    {
+                                                        "id":  "name",
+                                                        "title":  "Name",
+                                                        "type":  "name"
+                                                    },
+                                                    {
+                                                        "id":  "subtasks_mm20by4z",
+                                                        "title":  "Subitems",
+                                                        "type":  "subtasks"
+                                                    },
+                                                    {
+                                                        "id":  "text_mm0r64n",
+                                                        "title":  "Street Address",
+                                                        "type":  "text"
+                                                    },
+                                                    {
+                                                        "id":  "text_mm0rv9zr",
+                                                        "title":  "City",
+                                                        "type":  "text"
+                                                    },
+                                                    {
+                                                        "id":  "dropdown_mm0r9ajj",
+                                                        "title":  "State",
+                                                        "type":  "dropdown"
+                                                    },
+                                                    {
+                                                        "id":  "text_mm0rrexv",
+                                                        "title":  "ZIP",
+                                                        "type":  "text"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm0rrea",
+                                                        "title":  "Location Status",
+                                                        "type":  "status"
+                                                    },
+                                                    {
+                                                        "id":  "long_text_mm0rns1x",
+                                                        "title":  "Notes",
+                                                        "type":  "long_text"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2c2r5k",
+                                                        "title":  "Customers",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2c3m20",
+                                                        "title":  "Work Orders",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2cf3hv",
+                                                        "title":  "Equipment",
+                                                        "type":  "board_relation"
+                                                    }
+                                                ]
+                                },
+                                {
+                                    "id":  "18400951947",
+                                    "name":  "Customers",
+                                    "columns":  [
+                                                    {
+                                                        "id":  "name",
+                                                        "title":  "Name",
+                                                        "type":  "name"
+                                                    },
+                                                    {
+                                                        "id":  "email_mm0rhasv",
+                                                        "title":  "Email",
+                                                        "type":  "email"
+                                                    },
+                                                    {
+                                                        "id":  "phone_mm0rpam7",
+                                                        "title":  "Phone",
+                                                        "type":  "phone"
+                                                    },
+                                                    {
+                                                        "id":  "text_mm0ryhr9",
+                                                        "title":  "Account Number",
+                                                        "type":  "text"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm0rjkns",
+                                                        "title":  "Customer Status",
+                                                        "type":  "status"
+                                                    },
+                                                    {
+                                                        "id":  "long_text_mm0r9ndz",
+                                                        "title":  "Billing Address",
+                                                        "type":  "long_text"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2c6xbt",
+                                                        "title":  "Locations",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2c58x9",
+                                                        "title":  "Work Orders",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm26rszz",
+                                                        "title":  "Master Costs Board",
+                                                        "type":  "board_relation"
+                                                    },
+                                                    {
+                                                        "id":  "long_text_mm0rppk5",
+                                                        "title":  "Notes",
+                                                        "type":  "long_text"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm0rxh2b",
+                                                        "title":  "Xero Sync Status",
+                                                        "type":  "status"
+                                                    },
+                                                    {
+                                                        "id":  "text_mm0rdxmk",
+                                                        "title":  "Xero Contact ID",
+                                                        "type":  "text"
+                                                    },
+                                                    {
+                                                        "id":  "dropdown_mm0r9ywe",
+                                                        "title":  "Billing Terms",
+                                                        "type":  "dropdown"
+                                                    }
+                                                ]
+                                }
+                            ]
+             },
+    "extensions":  {
+                       "request_id":  "77ef4607-08a4-9d34-b0ab-284246f4a7f4"
+                   }
+}

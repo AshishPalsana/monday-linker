@@ -8,6 +8,7 @@ import {
 } from "../services/monday";
 import { BOARD_IDS, MONDAY_COLUMNS } from "../constants/index";
 import { deepClone } from "../utils/cloneUtils";
+import { parseBoardStatusColors } from "../utils/mondayUtils";
 import { optimisticUpdateRelation, revertRelation } from "./workOrderSlice";
 
 const COL = MONDAY_COLUMNS.CUSTOMERS;
@@ -16,13 +17,16 @@ export const fetchCustomers = createAsyncThunk(
   "customers/fetchCustomers",
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await mondayClient.query({
+      const resp = await mondayClient.query({
         query: FETCH_BOARD_DATA,
         variables: { boardId: [BOARD_IDS.CUSTOMERS] },
         fetchPolicy: "network-only",
       });
-      return deepClone(data.boards[0]);
+      if (resp.errors) throw new Error(resp.errors[0].message);
+      if (!resp.data?.boards?.[0]) throw new Error("Customers board not found.");
+      return deepClone(resp.data.boards[0]);
     } catch (e) {
+      console.error("[fetchCustomers] Error:", e);
       return rejectWithValue(e.message);
     }
   },
@@ -146,6 +150,7 @@ const customersSlice = createSlice({
     creating: false,
     saving: false,
     error: null,
+    statusColors: {},
   },
   reducers: {
     patchCustomer(state, action) {
@@ -203,6 +208,7 @@ const customersSlice = createSlice({
       .addCase(fetchCustomers.fulfilled, (state, action) => {
         state.loading = false;
         state.board = action.payload;
+        state.statusColors = parseBoardStatusColors(action.payload);
       })
       .addCase(fetchCustomers.rejected, (state, action) => {
         state.loading = false;

@@ -7,18 +7,35 @@ import {
 } from "../services/monday";
 import { BOARD_IDS } from "../constants/index";
 import { deepClone } from "../utils/cloneUtils";
+import { parseBoardStatusColors } from "../utils/mondayUtils";
 
 export const fetchWorkOrders = createAsyncThunk(
   "workOrders/fetchWorkOrders",
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await mondayClient.query({
+      const response = await mondayClient.query({
         query: FETCH_BOARD_DATA,
         variables: { boardId: [BOARD_IDS.WORK_ORDERS] },
         fetchPolicy: "network-only",
       });
-      return deepClone(data.boards[0]);
+
+      if (response.errors) {
+        console.error("[fetchWorkOrders] GraphQL Errors:", response.errors);
+        return rejectWithValue(response.errors[0].message);
+      }
+
+      if (
+        !response.data ||
+        !response.data.boards ||
+        response.data.boards.length === 0
+      ) {
+        console.error("[fetchWorkOrders] No board data returned:", response);
+        return rejectWithValue("No board data found for Work Orders.");
+      }
+
+      return deepClone(response.data.boards[0]);
     } catch (error) {
+      console.error("[fetchWorkOrders] Catch Error:", error);
       return rejectWithValue(error.message);
     }
   },
@@ -59,6 +76,7 @@ const workOrderSlice = createSlice({
     creating: false,
     saving: false,
     error: null,
+    statusColors: {},
   },
   reducers: {
     // Optimistically update a board_relation column's display text on a single item
@@ -97,6 +115,7 @@ const workOrderSlice = createSlice({
       .addCase(fetchWorkOrders.fulfilled, (state, action) => {
         state.loading = false;
         state.board = action.payload;
+        state.statusColors = parseBoardStatusColors(action.payload);
       })
       .addCase(fetchWorkOrders.rejected, (state, action) => {
         state.loading = false;

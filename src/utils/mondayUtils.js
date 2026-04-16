@@ -65,9 +65,11 @@ export function getColumnDisplayValue(item, colId, { idMap } = {}) {
   if (col.id.startsWith("boolean")) {
     try {
       const parsed = JSON.parse(col.value);
-      return parsed?.checked === "true" ? "Yes" : "No";
+      // Handle { "checked": "true"/"false" } or just true/false
+      const isChecked = parsed === true || parsed === "true" || parsed?.checked === "true" || parsed?.checked === true;
+      return isChecked ? "Yes" : "No";
     } catch {
-      return col.text || "";
+      return col.text === "v" || col.text === "Yes" ? "Yes" : "No";
     }
   }
 
@@ -89,4 +91,35 @@ export function getColumnSnapshot(item, colId) {
     text: col.text,
     display_value: col.display_value || null,
   };
+}
+
+/**
+ * Parses a board object from Monday API to extract color mappings for all status columns.
+ * Returns a combined mapping of { [labelText]: hexColor }
+ * @param {Object} board
+ * @returns {Record<string, string>}
+ */
+export function parseBoardStatusColors(board) {
+  const colors = {};
+  if (!board?.columns) return colors;
+
+  board.columns.forEach((col) => {
+    if (col.type === "status" && col.settings_str) {
+      try {
+        const settings = JSON.parse(col.settings_str);
+        if (settings.labels && settings.labels_colors) {
+          Object.entries(settings.labels).forEach(([id, text]) => {
+            const colorInfo = settings.labels_colors[id];
+            if (colorInfo?.color && text) {
+              colors[text] = colorInfo.color;
+            }
+          });
+        }
+      } catch (err) {
+        console.warn(`[mondayUtils] Failed to parse settings_str for col ${col.id}:`, err);
+      }
+    }
+  });
+
+  return colors;
 }

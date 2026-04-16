@@ -34,6 +34,7 @@ export const FETCH_BOARD_DATA = gql`
         id
         title
         type
+        settings_str
       }
       items_page(limit: 100) {
         items {

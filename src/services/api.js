@@ -31,3 +31,7 @@ export const timeEntriesApi = {
   clockIn:   (token, data)     => request('POST',  '/api/time-entries/clock-in',     data,      token),
   clockOut:  (token, id, data) => request('PATCH', `/api/time-entries/${id}/clock-out`, data,  token),
 };
+
+export const workOrderApi = {
+  prepareInvoice: (id, token) => request('POST', `/api/billing/work-orders/${id}/prepare-invoice`, {}, token),
+};

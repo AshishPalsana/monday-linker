@@ -49,14 +49,6 @@ export const STATUS_HEX = {
   Complete: "#22c55e",
 };
 
-export const PARTS_ORDERED_OPTIONS = [
-  "Not Required",
-  "Pending",
-  "Ordered",
-  "Received",
-  "Installed",
-];
-
 export const PARTS_HEX = {
   "Not Required": "#6b7280",
   Pending: "#f59e0b",
@@ -65,3 +57,30 @@ export const PARTS_HEX = {
   Installed: "#a855f7",
 };
 
+export const BILLING_STAGE_OPTIONS = [
+  "Not Ready",
+  "Ready for Billing",
+  "Sent to Xero",
+  "Paid",
+];
+
+export const BILLING_STAGE_HEX = {
+  "Not Ready":        "#9b9a97",
+  "Ready for Billing":"#f59e0b",
+  "Sent to Xero":     "#4f8ef7",
+  Paid:               "#22c55e",
+};
+
+export const COST_TYPE_OPTIONS = ["Labor", "Parts", "Expense"];
+
+export const COST_TYPE_HEX = {
+  Labor:   "#4f8ef7",
+  Parts:   "#a855f7",
+  Expense: "#f59e0b",
+};
+
+export const ENTRY_TYPE_HEX = {
+  Job:     "#1a6ef7",
+  Travel:  "#a855f7",
+  "Non-Job": "#f59e0b",
+};

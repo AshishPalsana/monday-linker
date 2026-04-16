@@ -1,21 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import Sidebar from './Sidebar';
+import BoardHeader from './BoardHeader';
+import { BoardHeaderProvider } from '../contexts/BoardHeaderContext';
 
 export default function AppShell({ children }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  // Desktop: collapsed = icon-only. Default expanded on lg+, collapsed on md.
   const isLarge = useMediaQuery(theme.breakpoints.up('lg'));
-  const [collapsed, setCollapsed] = useState(!isLarge);
 
-  // Mobile: drawer open/close
+  const [collapsed, setCollapsed] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Auto-expand on large screens, collapse on smaller
+  useEffect(() => {
+    if (!isMobile) {
+      setCollapsed(!isLarge);
+    }
+  }, [isLarge, isMobile]);
+
+  // Close mobile drawer when switching to desktop
+  useEffect(() => {
+    if (!isMobile) {
+      setMobileOpen(false);
+    }
+  }, [isMobile]);
+
   return (
-    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden', bgcolor: 'background.default' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        height: '100dvh',
+        overflow: 'hidden',
+        bgcolor: 'background.default',
+      }}
+    >
       <Sidebar
         collapsed={collapsed}
         onToggle={() => setCollapsed((c) => !c)}
@@ -23,36 +43,69 @@ export default function AppShell({ children }) {
         onMobileClose={() => setMobileOpen(false)}
       />
 
-      <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* Mobile top bar with hamburger */}
-        {isMobile && (
+      <BoardHeaderProvider>
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {/* Mobile top bar */}
+          {isMobile && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                px: 1.5,
+                height: 48,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                flexShrink: 0,
+              }}
+            >
+              <IconButton
+                size="small"
+                onClick={() => setMobileOpen(true)}
+                sx={{
+                  color: 'text.secondary',
+                  borderRadius: '6px',
+                  p: 0.75,
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+              >
+                <MenuIcon sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Box>
+          )}
+
+          {/* Page content area */}
           <Box
             sx={{
+              flex: 1,
+              minHeight: 0,
+              overflow: 'hidden',
               display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              px: 1.5,
-              py: 1,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              flexShrink: 0,
+              flexDirection: 'column',
             }}
           >
-            <IconButton
-              size="small"
-              onClick={() => setMobileOpen(true)}
-              sx={{ color: '#555' }}
+            <BoardHeader />
+            <Box
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+              }}
             >
-              <MenuIcon sx={{ fontSize: 20 }} />
-            </IconButton>
+              {children}
+            </Box>
           </Box>
-        )}
-
-        <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {children}
         </Box>
-      </Box>
+      </BoardHeaderProvider>
     </Box>
   );
 }

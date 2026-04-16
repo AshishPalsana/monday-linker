@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { fetchWorkOrders } from "../store/workOrderSlice";
 import {
   fetchCustomers,
@@ -19,18 +19,17 @@ import {
   Typography,
   TableCell,
   TableRow,
-  TextField,
   CircularProgress,
 } from "@mui/material";
+import { useBoardHeader, useBoardHeaderContext } from "../contexts/BoardHeaderContext";
 import AppButton from "./AppButton";
-import AddIcon from "@mui/icons-material/Add";
-import SearchIcon from "@mui/icons-material/Search";
 import CheckIcon from "@mui/icons-material/Check";
 import { MONDAY_COLUMNS } from "../constants/index";
 import StatusChip from "./StatusChip";
 import WorkOrderDrawer from "./WorkOrderDrawer";
 import WorkOrderDetailDrawer from "./WorkOrderDetailDrawer";
 import RelationCell from "./RelationCell";
+import FileCell from "./FileCell";
 import { BoardGroup, BoardTable, DATA_CELL_SX } from "./BoardTable";
 import { getColumnDisplayValue, getColumnSnapshot } from "../utils/mondayUtils";
 
@@ -39,27 +38,41 @@ const EMPTY_ARRAY = [];
 
 export default function WorkOrdersBoard() {
   const dispatch = useDispatch();
-  const { board, loading, error } = useSelector((s) => s.workOrders);
+  const navigate = useNavigate();
+  const { board, loading, error, statusColors } = useSelector((s) => s.workOrders);
+  const { search } = useBoardHeaderContext();
+
   const customers = useSelector(
     (s) => s.customers.board?.items_page?.items || EMPTY_ARRAY,
   );
   const locations = useSelector(
     (s) => s.locations.board?.items_page?.items || EMPTY_ARRAY,
   );
-  const [search, setSearch] = useState("");
   const [pendingNewCustomer, setPendingNewCustomer] = useState(null);
   const [pendingNewLocation, setPendingNewLocation] = useState(null);
   const [openWorkOrderDrawer, setOpenWorkOrderDrawer] = useState(false);
   const { id } = useParams();
-  const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
 
-  // Deep linking for work order details
-  useEffect(() => {
-    if (id && board?.items_page?.items) {
-      const item = board.items_page.items.find((i) => String(i.id) === id);
-      if (item) setSelectedWorkOrder(item);
-    }
+  // Derived state for the selected work order based on the URL ID
+  const selectedWorkOrder = useMemo(() => {
+    if (!id || !board?.items_page?.items) return null;
+    return board.items_page.items.find((i) => String(i.id) === id) || null;
   }, [id, board]);
+
+  // URL Cleanup: if an ID is provided but doesn't exist in the board, clear it.
+  useEffect(() => {
+    if (id && board?.items_page?.items && !selectedWorkOrder && !loading) {
+      navigate("/workorders", { replace: true });
+    }
+  }, [id, board, selectedWorkOrder, loading, navigate]);
+
+  const handleSelectWorkOrder = (item) => {
+    navigate(`/workorders/${item.id}`);
+  };
+
+  const handleCloseDetail = () => {
+    navigate("/workorders");
+  };
 
   useEffect(() => {
     dispatch(fetchWorkOrders());
@@ -100,6 +113,168 @@ export default function WorkOrdersBoard() {
     );
   };
 
+  const allItems = board?.items_page?.items || [];
+  const groups = board?.groups || [];
+
+  const filteredItems = allItems.filter(
+    (item) =>
+      !search || item.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const handleNewBoardOrder = useCallback(() => setOpenWorkOrderDrawer(true), []);
+
+  useBoardHeader({
+    title: "Work Orders",
+    count: filteredItems.length,
+    buttonLabel: "New work order",
+    onButtonClick: handleNewBoardOrder,
+  });
+
+  const itemsByGroup = filteredItems.reduce((acc, item) => {
+    const groupId = item.group?.id || "default";
+    if (!acc[groupId]) acc[groupId] = [];
+    acc[groupId].push(item);
+    return acc;
+  }, {});
+
+  const WO_COLUMNS = [
+    { label: "WO-ID", width: 100 },
+    { label: "Work order", width: 240 },
+    { label: "Customer", width: 200 },
+    { label: "Location", width: 200 },
+    { label: "Progress Status", width: 340 },
+    { label: "Technician", width: 160 },
+    { label: "Multi-Day", width: 110 },
+    { label: "Billing Stage", width: 200 },
+    { label: "Service History", width: 250 },
+    { label: "Work Performed", width: 250 },
+    { label: "Photos / Docs", width: 140 },
+    { label: "Invoice Items", width: 180 },
+    { label: "Parts Ordered", width: 150 },
+    { label: "Scheduling Status", width: 240 },
+    { label: "Scheduled Date", width: 140 },
+    { label: "Equipments", width: 160 },
+    { label: "Time Entries", width: 160 },
+    { label: "Expenses", width: 160 },
+    { label: "Mirror", width: 140 },
+  ];
+
+  const renderWORow = (item) => (
+    <TableRow
+      key={item.id}
+      hover
+      sx={{ cursor: "pointer" }}
+      onClick={() => handleSelectWorkOrder(item)}
+    >
+      <TableCell sx={{ ...DATA_CELL_SX, fontFamily: "monospace" }}>
+        {getColumnDisplayValue(item, WO_COL.WORKORDER_ID) || "—"}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>
+          {item.name}
+        </Typography>
+      </TableCell>
+      <TableCell
+        sx={{ ...DATA_CELL_SX, overflow: "visible", py: "5px" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <RelationCell
+          value={getColumnDisplayValue(item, WO_COL.CUSTOMER)}
+          options={customers}
+          placeholder="— add customer"
+          chipBgColor="#e6f4ff"
+          chipTextColor="#0958d9"
+          chipBorderColor="#91caae"
+          createLabel="Customer"
+          onSelectExisting={(id, name) => handleLinkCustomer(item, id, name)}
+          onCreateNew={(name) =>
+            setPendingNewCustomer({ name, workOrderId: item.id })
+          }
+        />
+      </TableCell>
+      <TableCell
+        sx={{ ...DATA_CELL_SX, overflow: "visible", py: "5px" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <RelationCell
+          value={getColumnDisplayValue(item, WO_COL.LOCATION)}
+          options={locations}
+          placeholder="— add location"
+          chipBgColor="rgba(168,85,247,0.1)"
+          chipTextColor="#a855f7"
+          chipBorderColor="rgba(168,85,247,0.2)"
+          createLabel="Location"
+          onSelectExisting={(id, name) => handleLinkLocation(item, id, name)}
+          onCreateNew={(name) =>
+            setPendingNewLocation({ name, workOrderId: item.id })
+          }
+        />
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible" }}>
+        {(() => {
+          const s = getColumnDisplayValue(item, WO_COL.EXECUTION_STATUS);
+          return s ? <StatusChip status={s} colorMap={statusColors} /> : "—";
+        })()}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.TECHNICIAN) || "—"}
+      </TableCell>
+      <TableCell sx={{ textAlign: "center" }}>
+        {(() => {
+          const val = getColumnDisplayValue(item, WO_COL.MULTI_DAY);
+          return val === "Yes" ? (
+            <CheckIcon sx={{ fontSize: 18, color: "#4caf50", display: "block", mx: "auto" }} />
+          ) : "—";
+        })()}
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible" }}>
+        {(() => {
+          const s = getColumnDisplayValue(item, WO_COL.BILLING_STAGE);
+          return s ? <StatusChip status={s} colorMap={statusColors} /> : "—";
+        })()}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.SERVICE_HISTORY) || "—"}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.WORK_PERFORMED) || "—"}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        <FileCell item={item} columnId={WO_COL.PHOTOS_DOCUMENTS} />
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.INVOICE_ITEMS_REL) || "—"}
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible" }}>
+        {(() => {
+          const s = getColumnDisplayValue(item, WO_COL.PARTS_ORDERED);
+          return s ? <StatusChip status={s} colorMap={statusColors} /> : "—";
+        })()}
+      </TableCell>
+      <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible" }}>
+        {(() => {
+          const s = getColumnDisplayValue(item, WO_COL.STATUS);
+          return s ? <StatusChip status={s} colorMap={statusColors} /> : "—";
+        })()}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.SCHEDULED_DATE) || "—"}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.EQUIPMENTS_REL) || "—"}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.TIME_ENTRIES_REL) || "—"}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.EXPENSES_REL) || "—"}
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.MIRROR) || "—"}
+      </TableCell>
+    </TableRow>
+  );
+
   if (loading) {
     return (
       <Box
@@ -117,159 +292,6 @@ export default function WorkOrdersBoard() {
   if (error) return <div>Error: {error}</div>;
   if (!board) return null;
 
-  const allItems = board.items_page.items;
-  const groups = board.groups || [];
-
-  const filteredItems = allItems.filter(
-    (item) =>
-      !search || item.name.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const itemsByGroup = filteredItems.reduce((acc, item) => {
-    const groupId = item.group?.id || "default";
-    if (!acc[groupId]) acc[groupId] = [];
-    acc[groupId].push(item);
-    return acc;
-  }, {});
-
-  const WO_COLUMNS = [
-    { label: "WO #", width: 90 },
-    { label: "Work order", width: 220 },
-    { label: "Customers", width: 180 },
-    { label: "Locations", width: 200 },
-    { label: "Description of Work", width: 300 },
-    { label: "Status", width: 150 },
-    { label: "Technician", width: 160 },
-    { label: "Scheduled Date", width: 130 },
-    { label: "Multi-Day", width: 120 },
-    { label: "Model", width: 140 },
-    { label: "Serial Number", width: 150 },
-    { label: "Service History", width: 250 },
-    { label: "Work Performed", width: 250 },
-    { label: "Equipments", width: 160 },
-    { label: "Execution Status", width: 150 },
-    { label: "Parts Ordered", width: 140 },
-  ];
-
-  const renderWORow = (item) => (
-    <TableRow
-      key={item.id}
-      hover
-      sx={{ cursor: "pointer" }}
-      onClick={() => setSelectedWorkOrder(item)}
-    >
-      <TableCell sx={{ ...DATA_CELL_SX, fontFamily: "monospace" }}>
-        {getColumnDisplayValue(item, WO_COL.WORKORDER_ID) || "—"}
-      </TableCell>
-      <TableCell sx={DATA_CELL_SX}>
-        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>
-          {item.name}
-        </Typography>
-      </TableCell>
-      <TableCell
-        sx={{ ...DATA_CELL_SX, overflow: "visible" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <RelationCell
-          value={getColumnDisplayValue(item, WO_COL.CUSTOMER, {
-            idMap: customerMap,
-          })}
-          options={customers}
-          placeholder="— add customer"
-          chipBgColor="rgba(79,142,247,0.1)"
-          chipTextColor="primary.light"
-          chipBorderColor="rgba(79,142,247,0.2)"
-          createLabel="customer"
-          onSelectExisting={(id, name) => handleLinkCustomer(item, id, name)}
-          onCreateNew={(v) =>
-            setPendingNewCustomer({ name: v, workOrderId: item.id })
-          }
-        />
-      </TableCell>
-      <TableCell
-        sx={{ ...DATA_CELL_SX, overflow: "visible" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <RelationCell
-          value={getColumnDisplayValue(item, WO_COL.LOCATION, {
-            idMap: locationMap,
-          })}
-          options={locations}
-          placeholder="— add location"
-          chipBgColor="rgba(168,85,247,0.1)"
-          chipTextColor="#c084fc"
-          chipBorderColor="rgba(168,85,247,0.2)"
-          createLabel="location"
-          onSelectExisting={(id, name) => handleLinkLocation(item, id, name)}
-          onCreateNew={(v) =>
-            setPendingNewLocation({ name: v, workOrderId: item.id })
-          }
-        />
-      </TableCell>
-      <TableCell sx={DATA_CELL_SX}>
-        {getColumnDisplayValue(item, WO_COL.DESCRIPTION) || "—"}
-      </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible" }}>
-        {(() => {
-          const s = getColumnDisplayValue(item, WO_COL.STATUS);
-          return s ? <StatusChip status={s} /> : "—";
-        })()}
-      </TableCell>
-      <TableCell sx={DATA_CELL_SX}>
-        {getColumnDisplayValue(item, WO_COL.TECHNICIAN) || "—"}
-      </TableCell>
-      <TableCell sx={DATA_CELL_SX}>
-        {getColumnDisplayValue(item, WO_COL.SCHEDULED_DATE) || "—"}
-      </TableCell>
-      <TableCell sx={{ textAlign: "center" }}>
-        {(() => {
-          const val = getColumnDisplayValue(item, WO_COL.MULTI_DAY);
-          return val === "Yes" ? (
-            <CheckIcon
-              sx={{
-                fontSize: 18,
-                color: "#4caf50",
-                display: "block",
-                mx: "auto",
-              }}
-            />
-          ) : (
-            <Typography sx={{ fontSize: "0.75rem", color: "text.disabled" }}>
-              —
-            </Typography>
-          );
-        })()}
-      </TableCell>
-      <TableCell sx={DATA_CELL_SX}>
-        {getColumnDisplayValue(item, WO_COL.MODEL) || "—"}
-      </TableCell>
-      <TableCell sx={DATA_CELL_SX}>
-        {getColumnDisplayValue(item, WO_COL.SERIAL_NUMBER) || "—"}
-      </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, whiteSpace: "nowrap" }}>
-        {getColumnDisplayValue(item, WO_COL.SERVICE_HISTORY) || "—"}
-      </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, whiteSpace: "nowrap" }}>
-        {getColumnDisplayValue(item, WO_COL.WORK_PERFORMED) || "—"}
-      </TableCell>
-      <TableCell sx={DATA_CELL_SX}>
-        {getColumnDisplayValue(item, WO_COL.EQUIPMENTS_REL) || "—"}
-      </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible" }}>
-        {(() => {
-          const s = getColumnDisplayValue(item, WO_COL.EXECUTION_STATUS);
-          return s ? <StatusChip status={s} /> : "—";
-        })()}
-      </TableCell>
-      <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible" }}>
-        {(() => {
-          const s = getColumnDisplayValue(item, WO_COL.PARTS_ORDERED);
-          return s ? <StatusChip status={s} /> : "—";
-        })()}
-      </TableCell>
-    </TableRow>
-  );
-
   return (
     <Box
       sx={{
@@ -279,72 +301,6 @@ export default function WorkOrdersBoard() {
         overflow: "hidden",
       }}
     >
-      <Box
-        sx={{
-          px: { xs: 2, sm: 3 },
-          py: { xs: 1.5, sm: 2 },
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          bgcolor: "background.paper",
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: { xs: "flex-start", sm: "center" },
-          gap: 2,
-          flexShrink: 0,
-        }}
-      >
-        <Box>
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 800, fontSize: "1.25rem", letterSpacing: "-0.3px" }}
-          >
-            Work Orders
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {filteredItems.length} total
-          </Typography>
-        </Box>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-            ml: { xs: 0, sm: "auto" },
-            width: { xs: "100%", sm: "auto" },
-          }}
-        >
-          <TextField
-            size="small"
-            placeholder="Search work orders…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <SearchIcon
-                  sx={{ fontSize: 16, color: "text.disabled", mr: 0.5 }}
-                />
-              ),
-            }}
-            sx={{
-              flex: { xs: 1, sm: "none" },
-              width: { xs: "auto", sm: 260 },
-              "& .MuiOutlinedInput-root": {
-                height: 36,
-                borderRadius: "8px",
-                bgcolor: "#fff",
-              },
-            }}
-          />
-          <AppButton
-            startIcon={<AddIcon />}
-            onClick={() => setOpenWorkOrderDrawer(true)}
-            sx={{ flexShrink: 0 }}
-          >
-            New work order
-          </AppButton>
-        </Box>
-      </Box>
-
       <Box
         sx={{
           flex: 1,
@@ -424,7 +380,7 @@ export default function WorkOrdersBoard() {
         key={selectedWorkOrder?.id}
         open={!!selectedWorkOrder}
         workOrder={selectedWorkOrder}
-        onClose={() => setSelectedWorkOrder(null)}
+        onClose={handleCloseDetail}
       />
     </Box>
   );

@@ -9,6 +9,7 @@ import {
 } from "../services/monday";
 import { BOARD_IDS, MONDAY_COLUMNS } from "../constants/index";
 import { deepClone } from "../utils/cloneUtils";
+import { parseBoardStatusColors } from "../utils/mondayUtils";
 
 const COL = MONDAY_COLUMNS.EQUIPMENT;
 
@@ -16,13 +17,16 @@ export const fetchEquipment = createAsyncThunk(
   "equipment/fetchEquipment",
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await mondayClient.query({
+      const resp = await mondayClient.query({
         query: FETCH_BOARD_DATA,
         variables: { boardId: [BOARD_IDS.EQUIPMENT] },
         fetchPolicy: "network-only",
       });
-      return deepClone(data.boards[0]);
+      if (resp.errors) throw new Error(resp.errors[0].message);
+      if (!resp.data?.boards?.[0]) throw new Error("Equipment board not found.");
+      return deepClone(resp.data.boards[0]);
     } catch (e) {
+      console.error("[fetchEquipment] Error:", e);
       return rejectWithValue(e.message);
     }
   },
@@ -142,6 +146,7 @@ const equipmentSlice = createSlice({
     creating: false,
     saving: false,
     error: null,
+    statusColors: {},
   },
   reducers: {
     patchLocationRelation(state, action) {
@@ -213,6 +218,7 @@ const equipmentSlice = createSlice({
       .addCase(fetchEquipment.fulfilled, (state, action) => {
         state.loading = false;
         state.board = action.payload;
+        state.statusColors = parseBoardStatusColors(action.payload);
       })
       .addCase(fetchEquipment.rejected, (state, action) => {
         state.loading = false;

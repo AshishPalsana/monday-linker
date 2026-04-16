@@ -8,7 +8,18 @@ const COL = MONDAY_COLUMNS.WORK_ORDERS;
 export async function createWorkOrder(form) {
   const cv = {};
   if (form.description) cv[COL.DESCRIPTION] = { text: form.description };
-  if (form.status) cv[COL.STATUS] = { label: form.status };
+  if (form.status)      cv[COL.STATUS]      = { label: form.status };
+
+  if (form.scheduledDate) {
+    cv[COL.SCHEDULED_DATE] = { date: form.scheduledDate };
+  }
+  if (form.multiDay !== undefined) {
+    cv[COL.MULTI_DAY] = { checked: form.multiDay ? "true" : "false" };
+  }
+  if (form.serviceHistory) cv[COL.SERVICE_HISTORY] = { text: form.serviceHistory };
+  if (form.workPerformed)  cv[COL.WORK_PERFORMED]  = { text: form.workPerformed };
+  if (form.executionStatus) cv[COL.EXECUTION_STATUS] = { label: form.executionStatus };
+  if (form.partsOrdered)    cv[COL.PARTS_ORDERED]    = { label: form.partsOrdered };
 
   const data = await executeMutation(
     CREATE_ITEM,
@@ -56,7 +67,8 @@ export async function updateWorkOrder(itemId, form) {
   if (form.serviceHistory !== undefined) cv[COL.SERVICE_HISTORY] = { text: form.serviceHistory };
   if (form.workPerformed !== undefined) cv[COL.WORK_PERFORMED] = { text: form.workPerformed };
   if (form.executionStatus !== undefined) cv[COL.EXECUTION_STATUS] = { label: form.executionStatus || "" };
-  if (form.partsOrdered !== undefined) cv[COL.PARTS_ORDERED] = { label: form.partsOrdered || "" };
+  if (form.partsOrdered   !== undefined) cv[COL.PARTS_ORDERED]    = { label: form.partsOrdered   || "" };
+  if (form.billingStage   !== undefined) cv[COL.BILLING_STAGE]    = { label: form.billingStage   || "" };
 
   if (Object.keys(cv).length > 0) {
     await executeMutation(

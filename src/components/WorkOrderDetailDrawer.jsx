@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Drawer,
@@ -14,6 +14,9 @@ import {
   Switch,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import AddIcon from "@mui/icons-material/Add";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import LockIcon from "@mui/icons-material/Lock";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
@@ -29,17 +32,29 @@ import HandymanOutlinedIcon from "@mui/icons-material/HandymanOutlined";
 import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
 import CalendarViewWeekOutlinedIcon from "@mui/icons-material/CalendarViewWeekOutlined";
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
+import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
+import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
+import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
+import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
+import ReceiptOutlinedIcon from "@mui/icons-material/ReceiptOutlined";
+import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 import { LinkedGroup, RecordPill } from "./LinkedRecordItem";
 
 const EMPTY_ARRAY = [];
 
 import {
   MONDAY_COLUMNS,
-  STATUS_OPTIONS,
+  SCHEDULING_STATUS_OPTIONS,
   STATUS_HEX,
   VALIDATION_STATUSES,
+  BILLING_STAGE_OPTIONS,
+  BILLING_STAGE_HEX,
+  COST_TYPE_HEX,
 } from "../constants/index";
-import { updateWorkOrder } from "../store/workOrderSlice";
+import { updateWorkOrder, fetchWorkOrders } from "../store/workOrderSlice";
+import { fetchMasterCosts } from "../store/masterCostsSlice";
+import { useAuth } from "../hooks/useAuth";
+import MasterCostDrawer from "./MasterCostDrawer";
 import {
   linkExistingCustomer,
   createCustomerAndLink,
@@ -50,6 +65,7 @@ import {
 } from "../store/locationsSlice";
 import StatusChip from "./StatusChip";
 import RelationCell from "./RelationCell";
+import FileCell from "./FileCell";
 import CustomerDrawer from "./CustomerDrawer";
 import LocationDrawer from "./LocationDrawer";
 import {
@@ -58,6 +74,8 @@ import {
   parseRelationIds,
 } from "../utils/mondayUtils";
 import { integrationApi } from "../services/integrationApi";
+import { workOrderApi } from "../services/api";
+import { useSnackbar } from "notistack";
 
 const WO_COL = MONDAY_COLUMNS.WORK_ORDERS;
 const WO_EXECUTION_OPTIONS = VALIDATION_STATUSES.EXECUTION;
@@ -200,6 +218,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
     workPerformed: getColumnDisplayValue(workOrder, WO_COL.WORK_PERFORMED),
     executionStatus: getColumnDisplayValue(workOrder, WO_COL.EXECUTION_STATUS),
     partsOrdered: getColumnDisplayValue(workOrder, WO_COL.PARTS_ORDERED),
+    billingStage: getColumnDisplayValue(workOrder, WO_COL.BILLING_STAGE),
     customerName: getColumnDisplayValue(workOrder, WO_COL.CUSTOMER),
     customerId: parseRelationIds(
       workOrder?.column_values?.find((cv) => cv.id === WO_COL.CUSTOMER)?.value,
@@ -208,7 +227,32 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
     locationId: parseRelationIds(
       workOrder?.column_values?.find((cv) => cv.id === WO_COL.LOCATION)?.value,
     )[0],
+    photos: getColumnDisplayValue(workOrder, WO_COL.PHOTOS_DOCUMENTS),
+    mirror: getColumnDisplayValue(workOrder, WO_COL.MIRROR),
   }));
+
+  const { enqueueSnackbar } = useSnackbar();
+  const isLocked = form.billingStage === "Sent to Xero" || workOrder?.isLocked;
+  const [promoting, setPromoting] = useState(false);
+
+  const { auth } = useAuth();
+  const allCosts = useSelector((s) => s.masterCosts.items);
+  const costsLoading = useSelector((s) => s.masterCosts.loading);
+  const [costDrawerOpen, setCostDrawerOpen] = useState(false);
+  const [editingCost, setEditingCost] = useState(null);
+
+  useEffect(() => {
+    if (open && workOrder?.id) {
+      dispatch(fetchMasterCosts({ workOrderId: workOrder.id, token: auth?.token }));
+    }
+  }, [open, workOrder?.id, dispatch, auth?.token]);
+
+  const totalCost = useMemo(() => {
+    return allCosts.reduce((sum, cost) => {
+      const val = cost.column_values?.find(c => c.id === MONDAY_COLUMNS.MASTER_COSTS.TOTAL_COST)?.text || 0;
+      return sum + parseFloat(val);
+    }, 0);
+  }, [allCosts]);
 
   const [pendingNewCustomer, setPendingNewCustomer] = useState(null);
   const [pendingNewLocation, setPendingNewLocation] = useState(null);
@@ -255,6 +299,19 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
   const serialNumber = getColumnDisplayValue(workOrder, WO_COL.SERIAL_NUMBER);
   const equipment = getColumnDisplayValue(workOrder, WO_COL.EQUIPMENTS_REL);
   const technician = getColumnDisplayValue(workOrder, WO_COL.TECHNICIAN);
+
+  const handlePromote = async () => {
+    setPromoting(true);
+    try {
+      const { data } = await workOrderApi.prepareInvoice(workOrder.id, auth?.token);
+      enqueueSnackbar(`Successfully promoted ${data.promoted} items to invoice.`, { variant: "success" });
+      dispatch(fetchMasterCosts({ workOrderId: workOrder.id, token: auth?.token }));
+    } catch (err) {
+      enqueueSnackbar(`Failed to promote items: ${err.message}`, { variant: "error" });
+    } finally {
+      setPromoting(false);
+    }
+  };
 
   const handleSave = async () => {
     await dispatch(
@@ -324,9 +381,12 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                   },
                 }}
               />
-              <Typography sx={{ fontSize: "0.78rem", color: "#9b9a97", mt: 0.3 }}>
-                Work order details
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.3 }}>
+                <Typography sx={{ fontSize: "0.78rem", color: isLocked ? "#eb5757" : "#9b9a97" }}>
+                  {isLocked ? "This work order is locked for billing" : "Work order details"}
+                </Typography>
+                {isLocked && <LockIcon sx={{ fontSize: 12, color: "#eb5757" }} />}
+              </Box>
             </Box>
             <IconButton
               size="small"
@@ -402,23 +462,13 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                 onCreateNew={(v) => setPendingNewLocation({ name: v })}
               />
             </PropertyRow>
-            <PropertyRow icon={VerifiedOutlinedIcon} label="Status">
+            <PropertyRow icon={VerifiedOutlinedIcon} label="Scheduling Status">
               <StatusChips
-                options={STATUS_OPTIONS}
+                options={SCHEDULING_STATUS_OPTIONS}
                 hexMap={STATUS_HEX}
                 value={form.status}
                 onChange={(v) => set("status", v)}
               />
-            </PropertyRow>
-            <PropertyRow icon={EngineeringOutlinedIcon} label="Technician">
-              <Typography
-                sx={{
-                  fontSize: "0.875rem",
-                  color: technician ? "#37352f" : "#c1bfbc",
-                }}
-              >
-                {technician || "—"}
-              </Typography>
             </PropertyRow>
             <PropertyRow icon={EventOutlinedIcon} label="Scheduled Date">
               <TextField
@@ -438,7 +488,17 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                 }}
               />
             </PropertyRow>
-            <PropertyRow icon={CalendarViewWeekOutlinedIcon} label="Multi-Day">
+            <PropertyRow icon={EngineeringOutlinedIcon} label="Technician">
+              <Typography
+                sx={{
+                  fontSize: "0.875rem",
+                  color: technician ? "#37352f" : "#c1bfbc",
+                }}
+              >
+                {technician || "—"}
+              </Typography>
+            </PropertyRow>
+            <PropertyRow icon={CalendarViewWeekOutlinedIcon} label="Multi-Day Job">
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Switch
                   size="small"
@@ -474,64 +534,6 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                 rows={3}
               />
             </PropertyRow>
-          </Box>
-
-          {(equipment || model || serialNumber) && (
-            <>
-              <Section>Equipment</Section>
-              <Box sx={{ mb: 2.5 }}>
-                {equipment && (
-                  <PropertyRow icon={BuildOutlinedIcon} label="Equipment">
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                      {allEquipment
-                        .filter((eq) => {
-                          const linkedIds = parseRelationIds(
-                            workOrder?.column_values?.find(
-                              (cv) => cv.id === WO_COL.EQUIPMENTS_REL,
-                            )?.value,
-                          );
-                          return linkedIds.includes(String(eq.id));
-                        })
-                        .map((eq) => (
-                          <RecordPill
-                            key={eq.id}
-                            id={eq.id}
-                            type="equipment"
-                            name={eq.name}
-                            bgColor="rgba(34,197,94,0.1)"
-                            textColor="#15803d"
-                            borderColor="rgba(34,197,94,0.2)"
-                          />
-                        ))}
-                    </Box>
-                  </PropertyRow>
-                )}
-                {model && (
-                  <PropertyRow icon={TagIcon} label="Model">
-                    <Typography sx={{ fontSize: "0.875rem", color: "#37352f" }}>
-                      {model}
-                    </Typography>
-                  </PropertyRow>
-                )}
-                {serialNumber && (
-                  <PropertyRow icon={QrCodeOutlinedIcon} label="Serial Number">
-                    <Typography
-                      sx={{
-                        fontSize: "0.875rem",
-                        color: "#37352f",
-                        fontFamily: "monospace",
-                      }}
-                    >
-                      {serialNumber}
-                    </Typography>
-                  </PropertyRow>
-                )}
-              </Box>
-            </>
-          )}
-
-          <Section>Service</Section>
-          <Box sx={{ mb: 2.5 }}>
             <PropertyRow icon={HistoryOutlinedIcon} label="Service History">
               <InlineField
                 value={form.serviceHistory || ""}
@@ -552,9 +554,16 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
             </PropertyRow>
           </Box>
 
-          <Section>Execution</Section>
+          <Section>Photos / Documents</Section>
           <Box sx={{ mb: 2.5 }}>
-            <PropertyRow icon={VerifiedOutlinedIcon} label="Execution Status">
+            <PropertyRow icon={PhotoCameraOutlinedIcon} label="Files">
+               <FileCell item={workOrder} columnId={WO_COL.PHOTOS_DOCUMENTS} />
+            </PropertyRow>
+          </Box>
+
+          <Section>Execution & Hardware</Section>
+          <Box sx={{ mb: 2.5 }}>
+            <PropertyRow icon={VerifiedOutlinedIcon} label="Progress Status">
               <StatusChips
                 options={WO_EXECUTION_OPTIONS}
                 hexMap={STATUS_HEX}
@@ -570,7 +579,76 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                 onChange={(v) => set("partsOrdered", v)}
               />
             </PropertyRow>
+            <PropertyRow icon={BuildOutlinedIcon} label="Linked Equipment">
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                {allEquipment
+                  .filter((eq) => {
+                    const linkedIds = parseRelationIds(
+                      workOrder?.column_values?.find(
+                        (cv) => cv.id === WO_COL.EQUIPMENTS_REL,
+                      )?.value,
+                    );
+                    return linkedIds.includes(String(eq.id));
+                  })
+                  .map((eq) => (
+                    <RecordPill
+                      key={eq.id}
+                      id={eq.id}
+                      type="equipment"
+                      name={eq.name}
+                      bgColor="rgba(34,197,94,0.1)"
+                      textColor="#15803d"
+                      borderColor="rgba(34,197,94,0.2)"
+                    />
+                  ))}
+                {equipment === "—" && <Typography sx={{ fontSize: "0.875rem", color: "#c1bfbc" }}>— no equipment</Typography>}
+              </Box>
+            </PropertyRow>
+            <PropertyRow icon={LinkOutlinedIcon} label="Mirror Tracking">
+               <Typography sx={{ fontSize: "0.875rem", color: form.mirror ? "#37352f" : "#c1bfbc", fontFamily: "monospace" }}>
+                {form.mirror || "—"}
+              </Typography>
+            </PropertyRow>
           </Box>
+
+          {/* ── Billing Stage ─────────────────────────────────────────── */}
+          <Section>Billing</Section>
+          <Box sx={{ mb: 2.5 }}>
+            <PropertyRow icon={CalendarViewWeekOutlinedIcon} label="Billing Stage">
+              <StatusChips
+                options={BILLING_STAGE_OPTIONS}
+                hexMap={BILLING_STAGE_HEX}
+                value={form.billingStage}
+                onChange={(v) => !isLocked && set("billingStage", v)}
+              />
+            </PropertyRow>
+
+            {form.billingStage === "Ready for Billing" && (
+              <Box sx={{ mt: 1.5, px: 1 }}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={promoting ? <CircularProgress size={14} /> : <ReceiptLongIcon />}
+                  disabled={promoting || isLocked}
+                  onClick={handlePromote}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "0.8rem",
+                    borderColor: "#2f6feb",
+                    color: "#2f6feb",
+                    "&:hover": { bgcolor: "rgba(47,111,235,0.04)", borderColor: "#1a56d6" }
+                  }}
+                >
+                  {promoting ? "Promoting Costs..." : "Promote Costs to Invoice Items"}
+                </Button>
+                <Typography variant="caption" sx={{ display: "block", mt: 1, color: "text.disabled", textAlign: "center", fontStyle: "italic" }}>
+                  Promotion is 1:1 and applies configured markups.
+                </Typography>
+              </Box>
+            )}
+          </Box>
+          {/* ─────────────────────────────────────────────────────────── */}
 
           <Divider sx={{ borderColor: "#e8e6e1", my: 2 }} />
 
@@ -587,13 +665,13 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
               borderColor: xeroSync?.synced
                 ? "rgba(19,159,119,0.25)"
                 : xeroSync?.error
-                ? "rgba(235,87,87,0.25)"
-                : "#e8e6e1",
+                  ? "rgba(235,87,87,0.25)"
+                  : "#e8e6e1",
               bgcolor: xeroSync?.synced
                 ? "rgba(19,159,119,0.04)"
                 : xeroSync?.error
-                ? "rgba(235,87,87,0.04)"
-                : "#fafafa",
+                  ? "rgba(235,87,87,0.04)"
+                  : "#fafafa",
               transition: "all 0.2s",
             }}
           >
@@ -746,41 +824,135 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
           </Box>
           {/* ───────────────────────────────────────────── */}
 
+          {/* ── Job Costs ─────────────────────────────────────── */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+            <Section>Job Costs</Section>
+            {!isLocked && (
+              <Button
+                size="small"
+                variant="text"
+                startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+                onClick={() => { setEditingCost(null); setCostDrawerOpen(true); }}
+                sx={{ fontSize: "0.65rem", py: 0, textTransform: "none" }}
+              >
+                Add Cost
+              </Button>
+            )}
+          </Box>
+
+          <Box sx={{ mb: 2.5, px: 1 }}>
+            {costsLoading ? (
+              <CircularProgress size={16} sx={{ color: "#9b9a97", my: 1 }} />
+            ) : allCosts.length === 0 ? (
+              <Typography sx={{ fontSize: "0.75rem", color: "#9b9a97", fontStyle: "italic" }}>
+                No labor or parts costs recorded yet.
+              </Typography>
+            ) : (
+              <Stack spacing={1}>
+                {allCosts.map((cost) => {
+                  const type = cost.column_values?.find(c => c.id === MONDAY_COLUMNS.MASTER_COSTS.TYPE)?.text;
+                  const total = cost.column_values?.find(c => c.id === MONDAY_COLUMNS.MASTER_COSTS.TOTAL_COST)?.text;
+                  const desc = cost.column_values?.find(c => c.id === MONDAY_COLUMNS.MASTER_COSTS.DESCRIPTION)?.text;
+
+                  return (
+                    <Box
+                      key={cost.id}
+                      onClick={() => { setEditingCost(cost); setCostDrawerOpen(true); }}
+                      sx={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        p: 1.25, borderRadius: "6px", border: "1px solid #e8e6e1",
+                        cursor: "pointer", "&:hover": { bgcolor: "#f7f6f3", borderColor: "#d1cfc9" },
+                        transition: "all 0.1s"
+                      }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                        <Box sx={{
+                          px: 0.8, py: 0.15, borderRadius: "3px",
+                          bgcolor: `${COST_TYPE_HEX[type]}15`, color: COST_TYPE_HEX[type],
+                          fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase"
+                        }}>
+                          {type}
+                        </Box>
+                        <Box>
+                          <Typography sx={{ fontSize: "0.78rem", fontWeight: 600, color: "#37352f", lineHeight: 1.2 }}>
+                            {desc || "Cost Item"}
+                          </Typography>
+                          <Typography sx={{ fontSize: "0.68rem", color: "#9b9a97", mt: 0.1 }}>
+                            {cost.name}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Typography sx={{ fontSize: "0.85rem", fontWeight: 700, color: "#37352f" }}>
+                        ${parseFloat(total || 0).toFixed(2)}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+
+                <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 1, pr: 1.25 }}>
+                  <Typography sx={{ fontSize: "0.7rem", color: "#9b9a97", textTransform: "uppercase", letterSpacing: "0.05em", mr: 1, mt: 0.4 }}>
+                    Total Job Cost
+                  </Typography>
+                  <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color: "#22c55e" }}>
+                    ${totalCost.toFixed(2)}
+                  </Typography>
+                </Box>
+              </Stack>
+            )}
+          </Box>
+
+          <Divider sx={{ borderColor: "#e8e6e1", my: 2 }} />
+
           <Section>Linked Records</Section>
-          <Stack spacing={2} sx={{ px: 1, mt: 1 }}>
-            <LinkedGroup
-              icon={PersonOutlineIcon}
-              label="Customer"
-              iconColor="#4f8ef7"
-              items={customers.filter((c) => String(c.id) === form.customerId)}
-              renderItem={(c) => (
-                <RecordPill
-                  key={c.id}
-                  id={c.id}
-                  type="customer"
-                  name={c.name}
-                  bgColor="#ebf0fd"
-                  textColor="#1e40af"
-                  borderColor="#c7d7fb"
+          <Stack spacing={2} sx={{ px: 1, mt: 1.5 }}>
+            {(() => {
+              const cv = workOrder?.column_values?.find((c) => c.id === WO_COL.INVOICE_ITEMS_REL);
+              const names = cv?.text ? cv.text.split(",").map(s => s.trim()) : [];
+              const ids = parseRelationIds(cv?.value);
+              return (
+                <LinkedGroup
+                  icon={ReceiptOutlinedIcon}
+                  label="Invoice Line Items"
+                  iconColor="#4f8ef7"
+                  items={ids}
+                  renderItem={(id, idx) => <RecordPill key={id} id={id} type="invoice" name={names[idx] || `Item ${id}`} bgColor="#ebf0fd" textColor="#1e40af" borderColor="#c7d7fb" />}
                 />
-              )}
-            />
-            <LinkedGroup
-              icon={LocationOnOutlinedIcon}
-              label="Location"
-              iconColor="#c084fc"
-              items={locations.filter((l) => String(l.id) === form.locationId)}
-              renderItem={(l) => (
-                <RecordPill
-                  key={l.id}
-                  id={l.id}
-                  type="location"
-                  name={l.name}
-                  bgColor="#f3f0ff"
-                  textColor="#6d28d9"
-                  borderColor="#ddd6fe"
+              );
+            })()}
+            {(() => {
+              const cv = workOrder?.column_values?.find((c) => c.id === WO_COL.TIME_ENTRIES_REL);
+              const names = cv?.text ? cv.text.split(",").map(s => s.trim()) : [];
+              const ids = parseRelationIds(cv?.value);
+              return (
+                <LinkedGroup
+                  icon={AccessTimeOutlinedIcon}
+                  label="Time Entries"
+                  iconColor="#c084fc"
+                  items={ids}
+                  renderItem={(id, idx) => <RecordPill key={id} id={id} type="time" name={names[idx] || `Entry ${id}`} bgColor="#f3f0ff" textColor="#6d28d9" borderColor="#ddd6fe" />}
                 />
-              )}
+              );
+            })()}
+            {(() => {
+              const cv = workOrder?.column_values?.find((c) => c.id === WO_COL.EXPENSES_REL);
+              const names = cv?.text ? cv.text.split(",").map(s => s.trim()) : [];
+              const ids = parseRelationIds(cv?.value);
+              return (
+                <LinkedGroup
+                  icon={PaymentsOutlinedIcon}
+                  label="Expenses"
+                  iconColor="#22c55e"
+                  items={ids}
+                  renderItem={(id, idx) => <RecordPill key={id} id={id} type="expense" name={names[idx] || `Expense ${id}`} bgColor="#f0fdf4" textColor="#15803d" borderColor="#dcfce7" />}
+                />
+              );
+            })()}
+            <LinkedGroup
+              icon={SubtitlesOutlinedIcon}
+              label="Subitems"
+              iconColor="#94a3b8"
+              items={workOrder?.subitems || []}
+              renderItem={(s) => <RecordPill key={s.id} id={s.id} type="subitem" name={s.name} bgColor="#f8fafc" textColor="#475569" borderColor="#e2e8f0" />}
             />
           </Stack>
         </Box>
@@ -829,7 +1001,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
               onClick={handleSave}
               variant="contained"
               disableElevation
-              disabled={saving}
+              disabled={saving || isLocked}
               startIcon={
                 saving ? <CircularProgress size={14} color="inherit" /> : null
               }
@@ -840,8 +1012,8 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                 fontSize: "0.82rem",
                 fontWeight: 600,
                 textTransform: "none",
-                bgcolor: "#2f6feb",
-                "&:hover": { bgcolor: "#1a56d6" },
+                bgcolor: isLocked ? "#e3e2df" : "#2f6feb",
+                "&:hover": { bgcolor: isLocked ? "#e3e2df" : "#1a56d6" },
                 "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
               }}
             >
@@ -880,6 +1052,12 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
           );
           setPendingNewLocation(null);
         }}
+      />
+      <MasterCostDrawer
+        open={costDrawerOpen}
+        onClose={() => setCostDrawerOpen(false)}
+        costItem={editingCost}
+        defaultWorkOrderId={workOrder?.id}
       />
     </>
   );

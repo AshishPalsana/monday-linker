@@ -1,0 +1,118 @@
+﻿{
+    "data":  {
+                 "boards":  [
+                                {
+                                    "columns":  [
+                                                    {
+                                                        "id":  "name",
+                                                        "title":  "Name",
+                                                        "settings_str":  "{}"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2ctcg0",
+                                                        "title":  "Customers",
+                                                        "settings_str":  "{\"boardIds\":[18400951947],\"allowCreateReflectionColumn\":true}"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2czk6k",
+                                                        "title":  "Locations",
+                                                        "settings_str":  "{\"boardIds\":[18400965227],\"allowCreateReflectionColumn\":true}"
+                                                    },
+                                                    {
+                                                        "id":  "long_text_mm14ee7h",
+                                                        "title":  "Description of Work",
+                                                        "settings_str":  "{}"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm14pf0q",
+                                                        "title":  "Scheduling Status",
+                                                        "settings_str":  "{\"done_colors\":[1],\"color_mapping\":{\"0\":18,\"1\":9,\"2\":19,\"4\":1,\"6\":12,\"8\":13,\"9\":4,\"10\":109,\"11\":11,\"12\":6,\"13\":110,\"14\":103,\"18\":107,\"19\":0,\"103\":14,\"104\":104,\"107\":8,\"109\":10,\"110\":2},\"deactivated_labels\":[],\"labels\":{\"0\":\"Incomplete\",\"1\":\"Unscheduled\",\"2\":\"Scheduled\",\"3\":\"Pre-scheduled\",\"4\":\"Return Trip Unscheduled\",\"6\":\"Return Trip Scheduled\"},\"labels_positions_v2\":{\"0\":2,\"1\":0,\"2\":3,\"3\":4,\"4\":5,\"5\":1,\"6\":6},\"labels_colors\":{\"0\":{\"color\":\"#7f5347\",\"border\":\"#70493e\",\"var_name\":\"brown\"},\"1\":{\"color\":\"#ffcb00\",\"border\":\"#c0ab1b\",\"var_name\":\"yellow\"},\"2\":{\"color\":\"#ff6d3b\",\"border\":\"#e05828\",\"var_name\":\"dark-orange\"},\"3\":{\"color\":\"#007eb5\",\"border\":\"#3db0df\",\"var_name\":\"blue-links\"},\"4\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"6\":{\"color\":\"#ff007f\",\"border\":\"#e01279\",\"var_name\":\"dark-pink\"}}}"
+                                                    },
+                                                    {
+                                                        "id":  "date_mm14sjdg",
+                                                        "title":  "Scheduled Date",
+                                                        "settings_str":  "{}"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm1s7ak1",
+                                                        "title":  "Progress Status",
+                                                        "settings_str":  "{\"done_colors\":[],\"color_mapping\":{\"1\":19,\"19\":1},\"labels\":{\"0\":\"In Progress\",\"2\":\"Completed\",\"3\":\"Additional Trip Needed (parts ordered)\",\"4\":\"Additional Trip Needed (need parts)\",\"6\":\"Additional Trip Needed (Time Only)\"},\"labels_positions_v2\":{\"0\":0,\"2\":1,\"3\":3,\"4\":4,\"5\":2,\"6\":5},\"labels_colors\":{\"0\":{\"color\":\"#fdab3d\",\"border\":\"#e99729\",\"var_name\":\"orange\"},\"2\":{\"color\":\"#df2f4a\",\"border\":\"#ce3048\",\"var_name\":\"red-shadow\"},\"3\":{\"color\":\"#007eb5\",\"border\":\"#3db0df\",\"var_name\":\"blue-links\"},\"4\":{\"color\":\"#9d50dd\",\"border\":\"#9238af\",\"var_name\":\"purple\"},\"6\":{\"color\":\"#037f4c\",\"border\":\"#006b38\",\"var_name\":\"grass-green\"}}}"
+                                                    },
+                                                    {
+                                                        "id":  "multiple_person_mm14sesj",
+                                                        "title":  "Technician",
+                                                        "settings_str":  "{}"
+                                                    },
+                                                    {
+                                                        "id":  "boolean_mm14act2",
+                                                        "title":  "Multi-Day Job",
+                                                        "settings_str":  "{}"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm2dgedg",
+                                                        "title":  "Billing Stage",
+                                                        "settings_str":  "{\"color_mapping\":{\"0\":9,\"1\":19,\"2\":0,\"3\":1,\"4\":18},\"done_colors\":[3],\"labels\":{\"2\":\"Billed\",\"3\":\"Ready for Billing\",\"5\":\"Not Ready\"},\"labels_positions_v2\":{\"2\":0,\"3\":1,\"5\":3},\"labels_colors\":{\"2\":{\"color\":\"#fdab3d\",\"border\":\"#e99729\",\"var_name\":\"orange\"},\"3\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"5\":{\"color\":\"#c4c4c4\",\"border\":\"#b0b0b0\",\"var_name\":\"grey\"}}}"
+                                                    },
+                                                    {
+                                                        "id":  "long_text_mm15p7rk",
+                                                        "title":  "Service History",
+                                                        "settings_str":  "{}"
+                                                    },
+                                                    {
+                                                        "id":  "long_text_mm15kfzp",
+                                                        "title":  "Work Performed",
+                                                        "settings_str":  "{}"
+                                                    },
+                                                    {
+                                                        "id":  "file_mm15n5d",
+                                                        "title":  "Photos / Documents",
+                                                        "settings_str":  "{}"
+                                                    },
+                                                    {
+                                                        "id":  "subtasks_mm154hg6",
+                                                        "title":  "Subitems",
+                                                        "settings_str":  "{\"displayType\":\"BOARD_INLINE\",\"itemTypeName\":\"column.subtasks.title\",\"allowMultipleItems\":true,\"boardIds\":[18402678393]}"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm1ady0r",
+                                                        "title":  "Invoice Line Items",
+                                                        "settings_str":  "{\"allowCreateReflectionColumn\":true,\"boardIds\":[18403393439]}"
+                                                    },
+                                                    {
+                                                        "id":  "color_mm1bs0w7",
+                                                        "title":  "Parts Ordered",
+                                                        "settings_str":  "{\"done_colors\":[1],\"labels\":{\"0\":\"Waiting on Parts\",\"1\":\"Yes\",\"2\":\"No\"},\"labels_colors\":{\"0\":{\"color\":\"#fdab3d\",\"border\":\"#e99729\",\"var_name\":\"orange\"},\"1\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"2\":{\"color\":\"#df2f4a\",\"border\":\"#ce3048\",\"var_name\":\"red-shadow\"}}}"
+                                                    },
+                                                    {
+                                                        "id":  "text_mm1s82bz",
+                                                        "title":  "Workorder ID",
+                                                        "settings_str":  "{}"
+                                                    },
+                                                    {
+                                                        "id":  "lookup_mm2cbwnf",
+                                                        "title":  "Mirror",
+                                                        "settings_str":  "{\"relation_column\":{\"board_relation_mm2ctcg0\":true},\"displayed_column\":{},\"displayed_linked_columns\":{\"18400951947\":[\"color_mm0rjkns\"]}}"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2cx2br",
+                                                        "title":  "Equipment",
+                                                        "settings_str":  "{\"boardIds\":[18403226725],\"allowCreateReflectionColumn\":true}"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2cnxb5",
+                                                        "title":  "Time Entries",
+                                                        "settings_str":  "{\"boardIds\":[18406939306],\"allowCreateReflectionColumn\":true}"
+                                                    },
+                                                    {
+                                                        "id":  "board_relation_mm2cgry0",
+                                                        "title":  "Expenses",
+                                                        "settings_str":  "{\"allowCreateReflectionColumn\":true,\"boardIds\":[18406939432]}"
+                                                    }
+                                                ]
+                                }
+                            ]
+             },
+    "extensions":  {
+                       "request_id":  "bdd52201-8e22-945e-873a-48c9152ad106"
+                   }
+}

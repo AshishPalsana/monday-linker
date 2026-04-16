@@ -19,11 +19,9 @@ const NotificationManager = () => {
         key,
         autoHideDuration: 4000,
         ...options,
-        onClose: () => {
-          // Remove from Redux once closed
-          dispatch(removeNotification(key));
-        },
       });
+      // Remove from Redux immediately so it's not re-processed on next render
+      dispatch(removeNotification(key));
     });
   }, [notifications, enqueueSnackbar, dispatch]);
 

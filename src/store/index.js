@@ -7,6 +7,7 @@ import locationsReducer from './locationsSlice';
 import equipmentReducer from './equipmentslice';
 import uiReducer from './uiSlice';
 import integrationReducer from './integrationSlice';
+import masterCostsReducer from './masterCostsSlice';
 import notificationMiddleware from './middleware/notificationMiddleware';
 
 const ACTIVE_ENTRY_KEY = 'ml_active_entry_v1';
@@ -21,6 +22,7 @@ const store = configureStore({
     equipment:   equipmentReducer,
     ui:          uiReducer,
     integration: integrationReducer,
+    masterCosts: masterCostsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(notificationMiddleware),

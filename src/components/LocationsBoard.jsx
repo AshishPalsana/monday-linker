@@ -1,105 +1,69 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { fetchLocations, createLocation as createLocationThunk } from "../store/locationsSlice";
 import {
   Box,
   Typography,
   TableCell,
   TableRow,
-  TextField,
   Avatar,
-  Chip,
   Tooltip,
   CircularProgress,
 } from "@mui/material";
-import AppButton from "./AppButton";
-import AddIcon from "@mui/icons-material/Add";
-import SearchIcon from "@mui/icons-material/Search";
-import { fetchLocations } from "../store/locationsSlice";
-import { fetchCustomers } from "../store/customersSlice";
-import { fetchWorkOrders } from "../store/workOrderSlice";
+import { useBoardHeader, useBoardHeaderContext } from "../contexts/BoardHeaderContext";
 import { MONDAY_COLUMNS } from "../constants/index";
 import { getColumnDisplayValue } from "../utils/mondayUtils";
 import StatusChip from "./StatusChip";
 import LocationDrawer from "./LocationDrawer";
-import { createLocation as createLocationThunk } from "../store/locationsSlice";
 import { BoardGroup, BoardTable, DATA_CELL_SX, DASH, TruncCell } from "./BoardTable";
-
-
 
 const COL = MONDAY_COLUMNS.LOCATIONS;
 
-export default function LocationsBoard({ createLocation }) {
+export default function LocationsBoard() {
   const dispatch = useDispatch();
-  const { board: locBoard, loading, error } = useSelector((s) => s.locations);
-  const custBoard = useSelector((s) => s.customers.board);
-
+  const { board, loading, error, statusColors } = useSelector((state) => state.locations);
+  const { search } = useBoardHeaderContext();
   const { id } = useParams();
-  const [openDialog, setOpenDialog] = useState(null);
-  const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
-  // Deep linking
+  // Derived state for the selected location based on the URL ID
+  const openDialog = useMemo(() => {
+    if (!id || !board?.items_page?.items) return null;
+    return board.items_page.items.find((i) => String(i.id) === id) || null;
+  }, [id, board]);
+
+  // URL Cleanup: if an ID is provided but doesn't exist in the board, clear it.
   useEffect(() => {
-    if (id && locBoard?.items_page?.items) {
-      const item = locBoard.items_page.items.find(i => String(i.id) === id);
-      if (item) setOpenDialog(item);
+    if (id && board?.items_page?.items && !openDialog && !loading) {
+      if (id !== "__new__") {
+        navigate("/locations", { replace: true });
+      }
     }
-  }, [id, locBoard]);
+  }, [id, board, openDialog, loading, navigate]);
 
   useEffect(() => {
     dispatch(fetchLocations());
-    dispatch(fetchCustomers());
-    dispatch(fetchWorkOrders());
   }, [dispatch]);
 
-  // Get a column value by its real Monday column ID
-  const getCol = (item, colId) => {
-    const col = item.column_values?.find((cv) => cv.id === colId);
-    if (!col) return "";
-    if (col.label && col.label.trim()) return col.label;
-    if (col.text && col.text.trim()) return col.text;
-    if (col.display_value && col.display_value.trim()) return col.display_value;
-    return "";
-  };
+  const handleNew = useCallback(() => {
+    navigate("/locations/__new__");
+  }, [navigate]);
 
-  const getCustomerName = (item) => {
-    const col = item.column_values?.find(
-      (cv) => cv.id === COL.CUSTOMERS_REL,
-    );
-    return col?.display_value || col?.text || "";
-  };
+  const allLocations = board?.items_page?.items || [];
+  const groups = board?.groups || [];
 
-  const getRelationNames = (item, colId) => {
-    const col = item.column_values?.find((cv) => cv.id === colId);
-    return col?.display_value || col?.text || "";
-  };
-
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100vh",
-        }}
-      >
-        <CircularProgress size={40} />
-      </Box>
-    );
-  }
-  if (error) return <Box sx={{ p: 3 }}>Error: {error}</Box>;
-  if (!locBoard) return null;
-
-  const allLocations = locBoard.items_page.items;
-  const groups = locBoard.groups || [];
-
-  // Filter items by search once
-  const filteredLocations = allLocations.filter(loc => 
-    !search || loc.name.toLowerCase().includes(search.toLowerCase())
+  const filteredLocations = allLocations.filter((item) =>
+    !search || item.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Group items by group.id
+  useBoardHeader({
+    title: 'Locations',
+    count: filteredLocations.length,
+    buttonLabel: 'New location',
+    onButtonClick: handleNew,
+  });
+
   const locationsByGroup = filteredLocations.reduce((acc, loc) => {
     const groupId = loc.group?.id || 'default';
     if (!acc[groupId]) acc[groupId] = [];
@@ -107,74 +71,60 @@ export default function LocationsBoard({ createLocation }) {
     return acc;
   }, {});
 
-  const handleNew = () => {
-    setOpenDialog({ id: '__new__', name: '', column_values: [] });
-  };
-
   const LOCATION_COLUMNS = [
-    { label: 'Location Name',  width: 200 },
-    { label: 'Street Address', width: 220 },
-    { label: 'City',           width: 130 },
-    { label: 'State',          width: 80  },
-    { label: 'ZIP',            width: 80  },
-    { label: 'Status',         width: 130 },
-    { label: 'Notes',          width: 250 },
-    { label: 'Work Orders',    width: 160 },
-    { label: 'Customer',       width: 160 },
-    { label: 'Equipments',     width: 160 },
+    { label: "Location Name", width: 220 },
+    { label: "Customer Name", width: 220 },
+    { label: "Address", width: 250 },
+    { label: "Phone", width: 140 },
+    { label: "Email", width: 200 },
+    { label: "Notes", width: 250 },
+    { label: "Location Status", width: 160 },
   ];
 
-  const renderLocationRow = (l) => {
-    const status         = getColumnDisplayValue(l, COL.STATUS);
-    const customerName   = getCustomerName(l);
-    const workOrderNames = getRelationNames(l, COL.WORK_ORDERS_REL);
-    const equipmentNames = getRelationNames(l, COL.EQUIPMENTS_REL);
+  const renderLocationRow = (loc) => {
+    const status = getColumnDisplayValue(loc, COL.STATUS);
     return (
-      <TableRow key={l.id} hover sx={{ cursor: 'pointer' }} onClick={() => setOpenDialog(l)}>
+      <TableRow
+        key={loc.id}
+        hover
+        sx={{ cursor: "pointer" }}
+        onClick={() => navigate(`/locations/${loc.id}`)}
+      >
         <TableCell sx={{ ...DATA_CELL_SX, py: '5px' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
-            <Avatar sx={{ width: 26, height: 26, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0, bgcolor: 'rgba(168,85,247,0.2)', color: '#c084fc' }}>
-              {l.name.slice(0, 2).toUpperCase()}
+            <Avatar sx={{ width: 26, height: 26, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0, bgcolor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}>
+              {loc.name?.slice(0, 2).toUpperCase() || '??'}
             </Avatar>
-            <Tooltip title={l.name} placement="top" enterDelay={600} arrow>
+            <Tooltip title={loc.name} placement="top" enterDelay={600} arrow>
               <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {l.name}
+                {loc.name}
               </Typography>
             </Tooltip>
           </Box>
         </TableCell>
-        <TruncCell value={getColumnDisplayValue(l, COL.STREET_ADDRESS)} />
-        <TruncCell value={getColumnDisplayValue(l, COL.CITY)} />
-        <TruncCell value={getColumnDisplayValue(l, COL.STATE)} />
-        <TruncCell value={getColumnDisplayValue(l, COL.ZIP)} />
+        <TruncCell value={getColumnDisplayValue(loc, COL.CUSTOMER_NAME)} />
+        <TruncCell value={getColumnDisplayValue(loc, COL.ADDRESS)} />
+        <TruncCell value={getColumnDisplayValue(loc, COL.PHONE)} />
+        <TruncCell value={getColumnDisplayValue(loc, COL.EMAIL)} />
+        <TruncCell value={getColumnDisplayValue(loc, COL.NOTES)} />
         <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
-          {status ? <StatusChip status={status} /> : DASH}
-        </TableCell>
-        <TruncCell value={getColumnDisplayValue(l, COL.NOTES)} />
-        <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
-          {workOrderNames ? (
-            <Tooltip title={workOrderNames} placement="top" enterDelay={600} arrow>
-              <Chip label={workOrderNames} size="small" sx={{ maxWidth: '100%', fontSize: '0.72rem', height: 22, bgcolor: 'rgba(79,142,247,0.08)', color: '#4f8ef7', border: '1px solid rgba(79,142,247,0.2)' }} />
-            </Tooltip>
-          ) : DASH}
-        </TableCell>
-        <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
-          {customerName ? (
-            <Tooltip title={customerName} placement="top" enterDelay={600} arrow>
-              <Chip label={customerName} size="small" sx={{ maxWidth: '100%', fontSize: '0.72rem', height: 22, bgcolor: 'rgba(79,142,247,0.1)', color: 'primary.light', border: '1px solid rgba(79,142,247,0.2)' }} />
-            </Tooltip>
-          ) : DASH}
-        </TableCell>
-        <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>
-          {equipmentNames ? (
-            <Tooltip title={equipmentNames} placement="top" enterDelay={600} arrow>
-              <Chip label={equipmentNames} size="small" sx={{ maxWidth: '100%', fontSize: '0.72rem', height: 22, bgcolor: 'rgba(34,197,94,0.08)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.2)' }} />
-            </Tooltip>
+          {status ? (
+            <StatusChip status={status} colorMap={statusColors} />
           ) : DASH}
         </TableCell>
       </TableRow>
     );
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
+        <CircularProgress size={40} />
+      </Box>
+    );
+  }
+  if (error) return <Box sx={{ p: 3 }}>Error: {error}</Box>;
+  if (!board) return null;
 
   return (
     <Box
@@ -185,62 +135,6 @@ export default function LocationsBoard({ createLocation }) {
         overflow: "hidden",
       }}
     >
-      <Box
-        sx={{
-          px: { xs: 2, sm: 3 },
-          py: { xs: 1.5, sm: 2 },
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          bgcolor: "background.paper",
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: { xs: "flex-start", sm: "center" },
-          gap: 2,
-          flexShrink: 0,
-        }}
-      >
-        <Box>
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 800,
-              fontSize: "1.25rem",
-              letterSpacing: "-0.3px",
-            }}
-          >
-            Locations
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {filteredLocations.length} total locations
-          </Typography>
-        </Box>
-        <Box
-          sx={{ display: "flex", alignItems: "center", gap: 1.5, ml: { xs: 0, sm: "auto" }, width: { xs: "100%", sm: "auto" } }}
-        >
-          <TextField
-            size="small"
-            placeholder="Search locations…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <SearchIcon
-                  sx={{ fontSize: 16, color: "text.disabled", mr: 0.5 }}
-                />
-              ),
-            }}
-            sx={{
-              flex: { xs: 1, sm: "none" },
-              width: { xs: "auto", sm: 260 },
-              '& .MuiOutlinedInput-root': { height: 36, borderRadius: '8px', bgcolor: '#fff' },
-            }}
-          />
-          <AppButton startIcon={<AddIcon />} onClick={handleNew} sx={{ flexShrink: 0 }}>
-            New location
-          </AppButton>
-        </Box>
-      </Box>
-
       <Box sx={{ flex: 1, overflow: "auto", px: { xs: 1.5, sm: 3 }, py: { xs: 1.5, sm: 2 } }}>
         {groups.map((group) => {
           const rows = locationsByGroup[group.id] || [];
@@ -251,7 +145,7 @@ export default function LocationsBoard({ createLocation }) {
                 rows={rows}
                 renderRow={renderLocationRow}
                 emptyMessage="No locations"
-                minWidth={1590}
+                minWidth={1450}
               />
             </BoardGroup>
           );
@@ -262,10 +156,10 @@ export default function LocationsBoard({ createLocation }) {
         <LocationDrawer
           open={true}
           location={openDialog}
-          onClose={() => setOpenDialog(null)}
+          onClose={() => navigate("/locations")}
           onSaveNew={async (form) => {
             await dispatch(createLocationThunk(form));
-            setOpenDialog(null);
+            navigate("/locations");
           }}
         />
       )}

@@ -3,11 +3,14 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setActiveEntry, clearActiveEntry } from '../store/activeEntrySlice';
 
 export function useActiveEntry() {
-  const dispatch    = useDispatch();
-  const activeEntry = useSelector((state) => state.activeEntry);
+  const dispatch = useDispatch();
+  const activeEntries = useSelector((state) => state.activeEntry);
 
-  const set   = useCallback((entry) => dispatch(setActiveEntry(entry)),  [dispatch]);
-  const clear = useCallback(()      => dispatch(clearActiveEntry()),      [dispatch]);
+  const set = useCallback((type, entry) => 
+    dispatch(setActiveEntry({ type, entry })), [dispatch]);
+    
+  const clear = useCallback((type) => 
+    dispatch(clearActiveEntry(type)), [dispatch]);
 
-  return { activeEntry, setActiveEntry: set, clearActiveEntry: clear };
+  return { activeEntries, setActiveEntry: set, clearActiveEntry: clear };
 }

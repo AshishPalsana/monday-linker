@@ -1,11 +1,12 @@
 export const BOARD_IDS = {
-  CUSTOMERS: "18400951947",
-  LOCATIONS: "18400965227",
-  WORK_ORDERS: "18402613691",
-  EQUIPMENT: "18403226725",
-  TIME_ENTRIES: "18406939306",
-  EXPENSES: "18406939432",
+  CUSTOMERS:     "18400951947",
+  LOCATIONS:     "18400965227",
+  WORK_ORDERS:   "18402613691",
+  EQUIPMENT:     "18403226725",
+  TIME_ENTRIES:  "18406939306",
+  EXPENSES:      "18406939432",
   INVOICE_ITEMS: "18403393439",
+  MASTER_COSTS:  "18407330739",
 };
 
 export const GROUP_IDS = {
@@ -44,23 +45,26 @@ export const MONDAY_COLUMNS = {
     EQUIPMENTS_REL: "board_relation_mm2cf3hv",
   },
   WORK_ORDERS: {
-    CUSTOMER: "board_relation_mm2ctcg0",
-    LOCATION: "board_relation_mm2czk6k",
-    DESCRIPTION: "long_text_mm14ee7h",
-    STATUS: "color_mm14pf0q",
-    TECHNICIAN: "multiple_person_mm14sesj",
-    SCHEDULED_DATE: "date_mm14sjdg",
-    MULTI_DAY: "boolean_mm14act2",
-    MODEL: "lookup_mm19ygma",
-    SERIAL_NUMBER: "lookup_mm19423v",
-    SERVICE_HISTORY: "long_text_mm15p7rk",
-    WORK_PERFORMED: "long_text_mm15kfzp",
-    EQUIPMENTS_REL: "board_relation_mm19cxzv",
+    CUSTOMER:          "board_relation_mm2ctcg0",
+    LOCATION:          "board_relation_mm2czk6k",
+    DESCRIPTION:       "long_text_mm14ee7h",
+    STATUS:            "color_mm14pf0q",         // Scheduling Status
+    SCHEDULED_DATE:    "date_mm14sjdg",
+    EXECUTION_STATUS:  "color_mm1s7ak1",         // Progress Status
+    TECHNICIAN:        "multiple_person_mm14sesj",
+    MULTI_DAY:         "boolean_mm14act2",
+    BILLING_STAGE:     "color_mm2dgedg",         // Billing Stage
+    SERVICE_HISTORY:   "long_text_mm15p7rk",
+    WORK_PERFORMED:    "long_text_mm15kfzp",
+    PHOTOS_DOCUMENTS:  "file_mm15n5d",           // Photos / Documents
     INVOICE_ITEMS_REL: "board_relation_mm1ady0r",
-    PARTS_ORDERED: "color_mm1bs0w7",
-    WORKORDER_ID: "text_mm1s82bz",
-    EXECUTION_STATUS: "color_mm1s7ak1",
-    MASTER_COSTS: "board_relation_mm21aenv",
+    PARTS_ORDERED:     "color_mm1bs0w7",
+    WORKORDER_ID:      "text_mm1s82bz",
+    MIRROR:            "lookup_mm2cbwnf",
+    EQUIPMENTS_REL:    "board_relation_mm2cx2br",
+    TIME_ENTRIES_REL:  "board_relation_mm2cnxb5",
+    EXPENSES_REL:      "board_relation_mm2cgry0",
+    DESCRIPTION_OLD:   "long_text_mm14ee7h",     // Alias for clarity
   },
   EQUIPMENT: {
     LOCATION: "board_relation_mm2c5c1q",
@@ -87,12 +91,13 @@ export const MONDAY_COLUMNS = {
     EXPENSES_ADDED: "boolean_mm212dcy",
   },
   EXPENSES: {
-    TECHNICIAN: "multiple_person_mm212yhb",
-    RECEIPT: "file_mm21j7d7",
-    DESCRIPTION: "text_mm213m15",
-    EXPENSE_TYPE: "dropdown_mm215jhc",
-    WORK_ORDER: "text_mm218mcp",
-    AMOUNT: "numeric_mm21a0kv",
+    TECHNICIAN:    "multiple_person_mm212yhb",
+    TIME_ENTRY_REL:"board_relation_mm2cdgz8",  // Link to Time Entries board
+    WORK_ORDER_REL:"board_relation_mm2cw5x5",  // Link to Work Orders board (board_relation, not text)
+    RECEIPT:       "file_mm21j7d7",
+    DESCRIPTION:   "text_mm213m15",
+    EXPENSE_TYPE:  "dropdown_mm215jhc",
+    AMOUNT:        "numeric_mm21a0kv",
   },
   INVOICE_ITEMS: {
     WORK_ORDERS_REL: "board_relation_mm1ae4as",
@@ -107,17 +112,28 @@ export const MONDAY_COLUMNS = {
     DESCRIPTION: "long_text_mm1cdk36",
     REVENUE_ACCOUNT: "color_mm1csz5m",
   },
+  MASTER_COSTS: {
+    WORK_ORDERS_REL:  "board_relation_mm26prz0",  // Link to Work Orders
+    TECHNICIANS_REL:  "board_relation_mm26z5dh",  // Link to Technicians
+    TYPE:             "color_mm25xk4h",            // Labor | Parts | Expense
+    QUANTITY:         "numeric_mm256yw2",
+    RATE:             "numeric_mm25xvx0",
+    DESCRIPTION:      "text_mm25nhbc",
+    TOTAL_COST:       "numeric_mm25953b",
+    DATE:             "date_mm26snwa",
+    INVOICE_STATUS:   "color_mm26qn4h",
+  },
   TECHNICIANS: {
-    STATUS: "color_mm0w8tnj",
-    POSITION: "dropdown_mm0w3f6c",
-    PHONE: "phone_mm0w2yzw",
-    EMAIL: "email_mm0w15ry",
-    HOURLY_RATE: "numeric_mm0wgqn1",
-    EMPLOYEE_ID: "text_mm0wb6v3",
-    NOTES: "long_text_mm0wa2d8",
+    STATUS:          "color_mm0w8tnj",
+    POSITION:        "dropdown_mm0w3f6c",
+    PHONE:           "phone_mm0w2yzw",
+    EMAIL:           "email_mm0w15ry",
+    HOURLY_RATE:     "numeric_mm0wgqn1",
+    EMPLOYEE_ID:     "text_mm0wb6v3",
+    NOTES:           "long_text_mm0wa2d8",
     WORK_ORDERS_REL: "board_relation_mm0wbc5",
-    HOURS_REL: "board_relation_mm0wm97w",
-    EXPENSES_REL: "board_relation_mm0xz48z",
+    HOURS_REL:       "board_relation_mm0wm97w",
+    EXPENSES_REL:    "board_relation_mm0xz48z",
   },
 };
 

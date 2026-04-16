@@ -15,12 +15,18 @@ import {
   FormControl,
   CircularProgress,
 } from "@mui/material";
+import { useBoardHeader } from "../contexts/BoardHeaderContext";
+import { parseBoardStatusColors } from "../utils/mondayUtils";
+import { BOARD_IDS } from "../constants/monday";
+import { FETCH_BOARD_DATA } from "../services/monday/queries";
+import { mondayClient } from "../services/monday/client";
+import StatusChip from "./StatusChip";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useSocket } from "../hooks/useSocket";
 
@@ -108,50 +114,11 @@ const BODY_CELL_SX = {
   color: "#374151",
 };
 
-function EntryTypeChip({ type }) {
-  const color = ENTRY_TYPE_COLOR[type] ?? "#888";
-  return (
-    <Box
-      sx={{
-        display: "inline-flex",
-        alignItems: "center",
-        px: 1,
-        py: 0.25,
-        borderRadius: 1,
-        bgcolor: color + "18",
-        border: `1px solid ${color}33`,
-      }}
-    >
-      <Typography
-        sx={{ fontSize: "0.72rem", fontWeight: 600, color, lineHeight: 1.4 }}
-      >
-        {type}
-      </Typography>
-    </Box>
-  );
+function StatusChipSmall({ status, colorMap }) {
+  return <StatusChip status={status} colorMap={colorMap} />;
 }
 
-function StatusChip({ status }) {
-  const color = STATUS_COLOR[status] ?? "#8c8c8c";
-  return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-      <Box
-        sx={{
-          width: 7,
-          height: 7,
-          borderRadius: "50%",
-          bgcolor: color,
-          flexShrink: 0,
-        }}
-      />
-      <Typography sx={{ fontSize: "0.75rem", color: "#6b7280" }}>
-        {status}
-      </Typography>
-    </Box>
-  );
-}
-
-function GroupSection({ group, groupBy, defaultOpen = true }) {
+function GroupSection({ group, groupBy, statusColors, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
   const weekTotal = group.entries.reduce((s, e) => s + (e.hours ?? 0), 0);
 
@@ -270,7 +237,7 @@ function GroupSection({ group, groupBy, defaultOpen = true }) {
                       {entry.description}
                     </TableCell>
                     <TableCell sx={BODY_CELL_SX}>
-                      <EntryTypeChip type={entry.entryType} />
+                      <StatusChip status={entry.entryType} colorMap={statusColors} />
                     </TableCell>
                     <TableCell
                       sx={{
@@ -304,7 +271,7 @@ function GroupSection({ group, groupBy, defaultOpen = true }) {
                       {entry.hours.toFixed(1)}
                     </TableCell>
                     <TableCell sx={BODY_CELL_SX}>
-                      <StatusChip status={entry.status} />
+                      <StatusChipSmall status={entry.status} colorMap={statusColors} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -360,6 +327,7 @@ export default function TimeBoard() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [accessError, setAccessError] = useState(null);
+  const [statusColors, setStatusColors] = useState({});
 
   const { auth } = useAuth();
   const socket = useSocket();
@@ -450,6 +418,17 @@ export default function TimeBoard() {
     socket.on("board:error", onBoardError);
     socket.on("clock_in", onClockIn);
     socket.on("clock_out", onClockOut);
+
+    // Fetch board metadata for colors
+    mondayClient.query({
+      query: FETCH_BOARD_DATA,
+      variables: { boardId: [BOARD_IDS.TIME_ENTRIES] }
+    }).then(({ data }) => {
+      if (data?.boards?.[0]) {
+        setStatusColors(parseBoardStatusColors(data.boards[0]));
+      }
+    }).catch(err => console.error("[time-board] Metadata fetch error:", err));
+
     return () => {
       socket.off("board:data", onBoardData);
       socket.off("board:error", onBoardError);
@@ -476,114 +455,54 @@ export default function TimeBoard() {
       : groupByWorkOrder(visible);
   const grandTotal = visible.reduce((s, e) => s + (e.hours ?? 0), 0);
 
-  return (
-    <Box sx={{ p: { xs: 2, sm: 3 }, height: "100%", overflow: "auto" }}>
-      {/* Page header */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 2,
-          mb: 3,
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <TableChartOutlinedIcon
-            sx={{ fontSize: 26, color: "#9ca3af", mt: 0.25 }}
-          />
-          <Box>
-            <Typography
-              variant="h5"
-              sx={{ fontWeight: 800, letterSpacing: "-0.4px", lineHeight: 1.2 }}
-            >
-              Time Board
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#9ca3af", mt: 0.25 }}>
-              Weekly overview — all technicians
-            </Typography>
-          </Box>
-        </Box>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography
-            variant="body2"
-            sx={{ color: "#6b7280", fontWeight: 500, whiteSpace: "nowrap" }}
+  const headerExtra = useMemo(() => (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Typography variant="body2" sx={{ color: "#6b7280", fontWeight: 500, whiteSpace: "nowrap" }}>
+          Group by:
+        </Typography>
+        <FormControl size="small">
+          <Select
+            value={groupBy}
+            onChange={(e) => setGroupBy(e.target.value)}
+            sx={{
+              fontSize: "0.8125rem",
+              fontWeight: 600,
+              minWidth: 140,
+              borderRadius: 2,
+              height: 36,
+              "& .MuiOutlinedInput-notchedOutline": { borderColor: "#e5e7eb" },
+            }}
           >
-            Group by:
-          </Typography>
-          <FormControl size="small">
-            <Select
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value)}
-              sx={{
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                minWidth: 140,
-                borderRadius: 2,
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#e5e7eb",
-                },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#9ca3af",
-                },
-              }}
-            >
-              <MenuItem value="technician" sx={{ fontSize: "0.8125rem" }}>
-                Technician
-              </MenuItem>
-              <MenuItem value="workorder" sx={{ fontSize: "0.8125rem" }}>
-                Work Order
-              </MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
+            <MenuItem value="technician" sx={{ fontSize: "0.8125rem" }}>Technician</MenuItem>
+            <MenuItem value="workorder" sx={{ fontSize: "0.8125rem" }}>Work Order</MenuItem>
+          </Select>
+        </FormControl>
       </Box>
 
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 1,
-          mb: 3,
-        }}
-      >
-        <IconButton
-          size="small"
-          onClick={() => setWeekStart((w) => addDays(w, -7))}
-          sx={{
-            border: "1px solid #e5e7eb",
-            borderRadius: 1.5,
-            color: "#374151",
-          }}
-        >
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <IconButton size="small" onClick={() => setWeekStart((w) => addDays(w, -7))} sx={{ border: "1px solid #e5e7eb", borderRadius: 1.5 }}>
           <ChevronLeftIcon fontSize="small" />
         </IconButton>
-        <Typography
-          variant="body2"
-          sx={{
-            fontWeight: 600,
-            minWidth: 210,
-            textAlign: "center",
-            color: "#111827",
-          }}
-        >
+        <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 200, textAlign: "center" }}>
           {weekLabel}
         </Typography>
-        <IconButton
-          size="small"
-          onClick={() => setWeekStart((w) => addDays(w, 7))}
-          sx={{
-            border: "1px solid #e5e7eb",
-            borderRadius: 1.5,
-            color: "#374151",
-          }}
-        >
+        <IconButton size="small" onClick={() => setWeekStart((w) => addDays(w, 7))} sx={{ border: "1px solid #e5e7eb", borderRadius: 1.5 }}>
           <ChevronRightIcon fontSize="small" />
         </IconButton>
       </Box>
+    </Box>
+  ), [groupBy, weekLabel]);
+
+  useBoardHeader({
+    title: 'Time Board',
+    count: visible.length,
+    countLabel: 'entries',
+    extra: headerExtra,
+  });
+
+  return (
+    <Box sx={{ p: { xs: 2, sm: 3 }, height: "100%", overflow: "auto" }}>
 
       {loading && (
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -612,6 +531,7 @@ export default function TimeBoard() {
             key={group.groupKey}
             group={group}
             groupBy={groupBy}
+            statusColors={statusColors}
             defaultOpen
           />
         ))

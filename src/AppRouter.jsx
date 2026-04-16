@@ -9,6 +9,7 @@ import EquipmentBoard from './components/Equipmentboard';
 import AppShell from './components/AppShell';
 import TimeTrackingPage from './components/TimeTrackingPage';
 import TimeBoard from './components/TimeBoard';
+import MasterCostsBoard from './components/MasterCostsBoard';
 import { AuthProvider } from './providers/AuthProvider';
 import { SocketProvider } from './providers/SocketProvider';
 
@@ -33,6 +34,7 @@ export default function AppRouter() {
                 <Route path="/customers/:id?"   element={<AppShell><CustomersBoard /></AppShell>} />
                 <Route path="/locations/:id?"   element={<AppShell><LocationsBoard /></AppShell>} />
                 <Route path="/equipment/:id?"   element={<AppShell><EquipmentBoard /></AppShell>} />
+                <Route path="/master-costs"     element={<AppShell><MasterCostsBoard /></AppShell>} />
                 <Route path="/time-tracker" element={<AppShell><TimeTrackingPage /></AppShell>} />
                 <Route path="/time-board"   element={<AppShell><TimeBoard /></AppShell>} />
               </Routes>

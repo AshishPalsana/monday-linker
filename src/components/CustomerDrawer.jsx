@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import axios from "axios";
 import {
   Drawer,
   Box,
@@ -292,21 +293,63 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
     email: getCol(CUST_COL.EMAIL),
     phone: getCol(CUST_COL.PHONE),
     status: getCol(CUST_COL.STATUS) || "Active",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "USA",
     billingAddress: getCol(CUST_COL.BILLING_ADDRESS),
     billingTerms: getCol(CUST_COL.BILLING_TERMS),
     xeroContactId: getCol(CUST_COL.XERO_CONTACT_ID),
-    xeroSyncStatus: getCol(CUST_COL.XERO_SYNC_STATUS),
+    xeroSyncStatus: getCol(CUST_COL.XERO_SYNC_STATUS) || "Pending",
+    syncErrorMessage: "",
+    lastSyncAt: null,
+    syncVersion: 0,
     notes: getCol(CUST_COL.NOTES),
   });
+
+  // Fetch structured address from backend if this is an existing customer
+  useEffect(() => {
+    if (open && customer?.id && customer.id !== "__new__" && isValidMondayId(customer.id)) {
+      const fetchStructuredData = async () => {
+        try {
+          const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:3001") + "/api";
+          const res = await axios.get(`${API_BASE}/customers/${customer.id}`);
+          if (res.data.data) {
+            const d = res.data.data;
+            setForm(prev => ({
+              ...prev,
+              addressLine1: d.addressLine1 || "",
+              addressLine2: d.addressLine2 || "",
+              city: d.city || "",
+              state: d.state || "",
+              zip: d.zip || "",
+              country: d.country || "USA",
+              billingTerms: d.billingTerms || prev.billingTerms || "",
+              xeroSyncStatus: d.xeroSyncStatus || prev.xeroSyncStatus,
+              xeroContactId: d.xeroContactId || prev.xeroContactId,
+              syncErrorMessage: d.syncErrorMessage || "",
+              lastSyncAt: d.lastSyncAt || null,
+              syncVersion: d.syncVersion || 0,
+            }));
+          }
+        } catch (err) {
+          console.warn("[CustomerDrawer] No structured data found in backend for this customer.");
+        }
+      };
+      fetchStructuredData();
+    }
+  }, [open, customer?.id]);
 
   const [attempted, setAttempted] = useState(false);
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   const REQUIRED = [
     { key: "name", label: "Name" },
-    { key: "email", label: "Email" },
-    { key: "phone", label: "Phone" },
-    { key: "billingAddress", label: "Billing Address" },
+    { key: "addressLine1", label: "Address Line 1" },
+    { key: "city", label: "City" },
+    { key: "country", label: "Country" },
   ];
   const missing = REQUIRED.filter((f) => !form[f.key]?.trim());
   
@@ -521,23 +564,57 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
           </PropertyRow>
         </Box>
 
-        <Section>Billing</Section>
+        <Section>Billing Address</Section>
         <Box sx={{ mb: 3 }}>
-          <PropertyRow
-            icon={HomeOutlinedIcon}
-            label="Billing Address"
-            required
-            error={err("billingAddress")}
-          >
+          <PropertyRow icon={HomeOutlinedIcon} label="Address Line 1" required error={err("addressLine1")}>
             <InlineField
-              value={form.billingAddress}
-              onChange={(e) => set("billingAddress", e.target.value)}
-              placeholder="Street, City, State, ZIP"
-              error={err("billingAddress")}
-              multiline
-              rows={2}
+              value={form.addressLine1}
+              onChange={(e) => set("addressLine1", e.target.value)}
+              placeholder="e.g. 123 Main St"
+              error={err("addressLine1")}
             />
           </PropertyRow>
+          <PropertyRow icon={HomeOutlinedIcon} label="Address Line 2">
+            <InlineField
+              value={form.addressLine2}
+              onChange={(e) => set("addressLine2", e.target.value)}
+              placeholder="Apt, Suite, etc."
+            />
+          </PropertyRow>
+          <PropertyRow icon={LocationOnOutlinedIcon} label="City" required error={err("city")}>
+            <InlineField
+              value={form.city}
+              onChange={(e) => set("city", e.target.value)}
+              placeholder="City"
+              error={err("city")}
+            />
+          </PropertyRow>
+          <PropertyRow icon={LocationOnOutlinedIcon} label="State">
+            <InlineField
+              value={form.state}
+              onChange={(e) => set("state", e.target.value)}
+              placeholder="State/Province"
+            />
+          </PropertyRow>
+          <PropertyRow icon={TagIcon} label="Postal Code">
+            <InlineField
+              value={form.zip}
+              onChange={(e) => set("zip", e.target.value)}
+              placeholder="ZIP/Postal Code"
+            />
+          </PropertyRow>
+          <PropertyRow icon={SyncAltIcon} label="Country" required error={err("country")}>
+            <InlineField
+              value={form.country}
+              onChange={(e) => set("country", e.target.value)}
+              placeholder="Country"
+              error={err("country")}
+            />
+          </PropertyRow>
+        </Box>
+
+        <Section>Payment & Terms</Section>
+        <Box sx={{ mb: 3 }}>
           <PropertyRow icon={TagIcon} label="Billing Terms">
             <InlineField
               value={form.billingTerms}
@@ -550,28 +627,59 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
         <Section>Xero Integration</Section>
         <Box sx={{ mb: 3 }}>
           <PropertyRow icon={SyncAltIcon} label="Xero Contact ID">
-            <InlineField
-              value={form.xeroContactId}
-              onChange={(e) => set("xeroContactId", e.target.value)}
-              placeholder="e.g. XR-001"
-            />
+             <Typography sx={{ fontSize: "0.875rem", color: "#37352f", py: 0.5 }}>
+               {form.xeroContactId || "-- Not Synced --"}
+             </Typography>
           </PropertyRow>
-          <PropertyRow icon={VerifiedOutlinedIcon} label="Xero Sync Status">
-            <InlineSelect
-              value={form.xeroSyncStatus}
-              onChange={(v) => set("xeroSyncStatus", v)}
-              options={XERO_SYNC_STATUSES}
-              placeholder="Select status…"
-              getStatusColor={(val) => {
-                if (val === "Synced")
-                  return { bg: "#d3f8e2", color: "#0d6e48" };
-                if (val === "Error") return { bg: "#fde8e8", color: "#b91c1c" };
-                if (val === "Not Synced")
+          
+          <PropertyRow icon={VerifiedOutlinedIcon} label="Status">
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <InlineSelect
+                disabled
+                value={form.xeroSyncStatus}
+                onChange={() => {}} // Disabled
+                options={XERO_SYNC_STATUSES}
+                getStatusColor={(val) => {
+                  if (val === "Synced") return { bg: "#d3f8e2", color: "#0d6e48" };
+                  if (val === "Failed") return { bg: "#fde8e8", color: "#b91c1c" };
+                  if (val === "Pending") return { bg: "#fff4e5", color: "#663c00" };
                   return { bg: "#f1f1ef", color: "#787774" };
-                return null;
-              }}
-            />
+                }}
+              />
+              {form.xeroSyncStatus === "Failed" && (
+                <Button 
+                  size="small" 
+                  variant="outlined"
+                  onClick={async () => {
+                    const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:3001") + "/api";
+                    try {
+                      await axios.post(`${API_BASE}/customers/${customer.id}/retry`);
+                      set("xeroSyncStatus", "Pending");
+                    } catch (e) {
+                      console.error("Retry failed");
+                    }
+                  }}
+                  sx={{ height: 24, fontSize: "0.7rem", textTransform: "none" }}
+                >
+                  Retry
+                </Button>
+              )}
+            </Box>
           </PropertyRow>
+
+          {form.syncErrorMessage && (
+            <Box sx={{ ml: 4, mt: 0.5, p: 1, bgcolor: "#fef2f2", borderRadius: 1, border: "1px solid #fee2e2" }}>
+              <Typography sx={{ fontSize: "0.75rem", color: "#991b1b" }}>
+                <strong>Error:</strong> {form.syncErrorMessage}
+              </Typography>
+            </Box>
+          )}
+
+          {form.lastSyncAt && (
+            <Typography sx={{ ml: 4, mt: 0.5, fontSize: "0.65rem", color: "#b0ada8" }}>
+              Last Sync: {new Date(form.lastSyncAt).toLocaleString()}
+            </Typography>
+          )}
         </Box>
 
         <Section>Notes</Section>
