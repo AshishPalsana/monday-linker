@@ -4,12 +4,13 @@ import {
   createLocation as svcCreateLocation,
   updateLocation as svcUpdateLocation,
   setWorkOrderRelation,
+  setRelationColumn,
   FETCH_BOARD_DATA,
 } from "../services/monday";
 import { BOARD_IDS, MONDAY_COLUMNS } from "../constants/index";
 import { deepClone } from "../utils/cloneUtils";
 import { parseBoardStatusColors } from "../utils/mondayUtils";
-import { optimisticUpdateRelation, revertRelation } from "./workOrderSlice";
+import { optimisticUpdateRelation as optimisticWoRelation, revertRelation as revertWoRelation } from "./workOrderSlice";
 
 const COL = MONDAY_COLUMNS.LOCATIONS;
 
@@ -51,7 +52,7 @@ export const createLocationAndLink = createAsyncThunk(
     try {
       if (workOrderId) {
         dispatch(
-          optimisticUpdateRelation({
+          optimisticWoRelation({
             itemId: workOrderId,
             columnId: MONDAY_COLUMNS.WORK_ORDERS.LOCATION,
             displayText: form.name,
@@ -64,7 +65,7 @@ export const createLocationAndLink = createAsyncThunk(
 
       if (workOrderId && /^\d+$/.test(String(created.id))) {
         dispatch(
-          optimisticUpdateRelation({
+          optimisticWoRelation({
             itemId: workOrderId,
             columnId: MONDAY_COLUMNS.WORK_ORDERS.LOCATION,
             displayText: created.name,
@@ -93,7 +94,7 @@ export const linkExistingLocation = createAsyncThunk(
     { dispatch, rejectWithValue },
   ) => {
     dispatch(
-      optimisticUpdateRelation({
+      optimisticWoRelation({
         itemId: workOrderId,
         columnId: MONDAY_COLUMNS.WORK_ORDERS.LOCATION,
         displayText: locationName,
@@ -108,7 +109,7 @@ export const linkExistingLocation = createAsyncThunk(
       );
     } catch (e) {
       dispatch(
-        revertRelation({
+        revertWoRelation({
           itemId: workOrderId,
           columnId: MONDAY_COLUMNS.WORK_ORDERS.LOCATION,
           previousValue: previousSnapshot.value,
@@ -137,6 +138,46 @@ export const updateLocation = createAsyncThunk(
           locationsSlice.actions.restoreLocation({ locationId, previousItem }),
         );
       }
+      return rejectWithValue(e.message);
+    }
+  },
+);
+
+/**
+ * Generic thunk to link any record (Customer, Equipment, etc) to a Location.
+ * Stored in the Location item's relation column.
+ */
+export const linkRecordToLocation = createAsyncThunk(
+  "locations/linkRecord",
+  async (
+    { locationId, columnId, linkedId, linkedName, previousSnapshot },
+    { dispatch, rejectWithValue },
+  ) => {
+    dispatch(
+      locationsSlice.actions.optimisticUpdateRelation({
+        itemId: locationId,
+        columnId,
+        displayText: linkedName,
+        linkedId,
+      }),
+    );
+    try {
+      await setRelationColumn(
+        BOARD_IDS.LOCATIONS,
+        locationId,
+        columnId,
+        linkedId,
+      );
+    } catch (e) {
+      dispatch(
+        locationsSlice.actions.revertRelation({
+          itemId: locationId,
+          columnId,
+          previousValue: previousSnapshot.value,
+          previousText: previousSnapshot.text,
+          previousDisplay: previousSnapshot.display_value,
+        }),
+      );
       return rejectWithValue(e.message);
     }
   },
@@ -182,6 +223,29 @@ const locationsSlice = createSlice({
         statusCol.text = form.locationStatus || "";
         statusCol.label = form.locationStatus || "";
       }
+    },
+    optimisticUpdateRelation(state, action) {
+      const { itemId, columnId, displayText, linkedId } = action.payload;
+      if (!state.board) return;
+      const item = state.board.items_page.items.find((i) => i.id === itemId);
+      if (!item) return;
+      const col = item.column_values.find((cv) => cv.id === columnId);
+      if (!col) return;
+      col.display_value = displayText;
+      col.text = displayText;
+      col.value = JSON.stringify({ item_ids: [Number(linkedId)] });
+    },
+    revertRelation(state, action) {
+      const { itemId, columnId, previousValue, previousText, previousDisplay } =
+        action.payload;
+      if (!state.board) return;
+      const item = state.board.items_page.items.find((i) => i.id === itemId);
+      if (!item) return;
+      const col = item.column_values.find((cv) => cv.id === columnId);
+      if (!col) return;
+      col.value = previousValue;
+      col.text = previousText;
+      col.display_value = previousDisplay;
     },
     restoreLocation(state, action) {
       const { locationId, previousItem } = action.payload;
@@ -239,5 +303,5 @@ const locationsSlice = createSlice({
   },
 });
 
-export const { patchLocation, restoreLocation } = locationsSlice.actions;
+export const { patchLocation, restoreLocation, optimisticUpdateRelation, revertRelation } = locationsSlice.actions;
 export default locationsSlice.reducer;

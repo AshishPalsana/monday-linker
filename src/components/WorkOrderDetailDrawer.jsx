@@ -38,7 +38,8 @@ import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import ReceiptOutlinedIcon from "@mui/icons-material/ReceiptOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
-import { LinkedGroup, RecordPill } from "./LinkedRecordItem";
+import { LinkedGroup, RecordPill, LinkedTable } from "./LinkedRecordItem";
+import { useNavigate } from "react-router-dom";
 
 const EMPTY_ARRAY = [];
 
@@ -78,6 +79,7 @@ import { workOrderApi } from "../services/api";
 import { useSnackbar } from "notistack";
 
 const WO_COL = MONDAY_COLUMNS.WORK_ORDERS;
+const EQ_COL = MONDAY_COLUMNS.EQUIPMENT;
 const WO_EXECUTION_OPTIONS = VALIDATION_STATUSES.EXECUTION;
 const PARTS_ORDERED_OPTIONS = VALIDATION_STATUSES.PARTS_ORDERED;
 
@@ -197,6 +199,7 @@ const StatusChips = ({ options, hexMap, value, onChange }) => (
 
 export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const saving = useSelector((s) => s.workOrders.saving);
   const customers = useSelector(
     (s) => s.customers.board?.items_page?.items || EMPTY_ARRAY,
@@ -579,30 +582,29 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                 onChange={(v) => set("partsOrdered", v)}
               />
             </PropertyRow>
-            <PropertyRow icon={BuildOutlinedIcon} label="Linked Equipment">
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                {allEquipment
-                  .filter((eq) => {
-                    const linkedIds = parseRelationIds(
-                      workOrder?.column_values?.find(
-                        (cv) => cv.id === WO_COL.EQUIPMENTS_REL,
-                      )?.value,
-                    );
-                    return linkedIds.includes(String(eq.id));
-                  })
-                  .map((eq) => (
-                    <RecordPill
-                      key={eq.id}
-                      id={eq.id}
-                      type="equipment"
-                      name={eq.name}
-                      bgColor="rgba(34,197,94,0.1)"
-                      textColor="#15803d"
-                      borderColor="rgba(34,197,94,0.2)"
-                    />
-                  ))}
-                {equipment === "—" && <Typography sx={{ fontSize: "0.875rem", color: "#c1bfbc" }}>— no equipment</Typography>}
-              </Box>
+            <PropertyRow icon={BuildOutlinedIcon} label="Equipment">
+              <LinkedTable
+                icon={ConstructionOutlinedIcon}
+                label="Linked Equipment"
+                iconColor="#f97316"
+                items={allEquipment.filter((eq) => {
+                  const linkedIds = parseRelationIds(
+                    workOrder?.column_values?.find(
+                      (cv) => cv.id === WO_COL.EQUIPMENTS_REL,
+                    )?.value,
+                  );
+                  return linkedIds.includes(String(eq.id));
+                })}
+                onNavigate={(item) => navigate(`/equipment/${item.id}`)}
+                columns={[
+                  { label: "Name", width: "160px", key: "name" },
+                  { label: "Serial #", width: "120px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.SERIAL_NUMBER) },
+                  { label: "Manufacturer", width: "130px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.MANUFACTURER) },
+                  { label: "Model #", width: "120px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.MODEL_NUMBER) },
+                  { label: "Status", width: "100px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, EQ_COL.STATUS) },
+                ]}
+              />
+              {equipment === "—" && <Typography sx={{ fontSize: "0.875rem", color: "#c1bfbc", mt: 1 }}>— no equipment</Typography>}
             </PropertyRow>
             <PropertyRow icon={LinkOutlinedIcon} label="Mirror Tracking">
                <Typography sx={{ fontSize: "0.875rem", color: form.mirror ? "#37352f" : "#c1bfbc", fontFamily: "monospace" }}>

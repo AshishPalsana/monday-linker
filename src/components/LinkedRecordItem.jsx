@@ -1,4 +1,4 @@
-import { Box, Typography, Stack, Chip } from '@mui/material';
+import { Box, Typography, Stack, Chip, Divider } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 const STATUS_COLORS = {
@@ -99,6 +99,90 @@ export function LinkedGroup({ icon: Icon, label, iconColor, items, renderItem })
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.6 }}>
         {items.map(renderItem)}
+      </Box>
+    </Box>
+  );
+}
+
+/**
+ * A more detailed record view (table-like) for linked items.
+ */
+export function LinkedTable({ icon: Icon, label, iconColor, items, columns, onNavigate }) {
+  const navigate = useNavigate();
+  if (!items || !items.length) return null;
+
+  return (
+    <Box sx={{ mt: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 1, px: 1 }}>
+        <Icon sx={{ fontSize: 13, color: iconColor || '#9b9a97' }} />
+        <Typography sx={{ fontSize: '0.73rem', color: '#9b9a97', fontWeight: 600, letterSpacing: '0.02em' }}>
+          {label.toUpperCase()} <Box component="span" sx={{ color: '#c1bfbc', fontWeight: 500 }}>({items.length})</Box>
+        </Typography>
+      </Box>
+      
+      <Box sx={{ 
+        border: '1px solid #e8e6e1', 
+        borderRadius: '6px', 
+        bgcolor: '#fff',
+        overflow: 'hidden'
+      }}>
+        <Box sx={{ overflowX: 'auto' }}>
+          <Box sx={{ minWidth: '420px' }}>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: columns.map(c => c.width || '1fr').join(' '),
+              bgcolor: '#fafafa',
+              borderBottom: '1px solid #e8e6e1',
+              px: 1.5,
+              py: 0.75
+            }}>
+              {columns.map((col, i) => (
+                <Typography key={i} sx={{ fontSize: '0.65rem', color: '#9b9a97', fontWeight: 700, textTransform: 'uppercase' }}>
+                  {col.label}
+                </Typography>
+              ))}
+            </Box>
+
+            <Stack divider={<Divider />}>
+              {items.map((item) => (
+                <Box 
+                  key={item.id}
+                  onClick={() => onNavigate(item)}
+                  sx={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: columns.map(c => c.width || '1fr').join(' '),
+                    px: 1.5,
+                    py: 1,
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: '#f7f6f3' },
+                    transition: 'background 0.1s'
+                  }}
+                >
+                  {columns.map((col, i) => {
+                    const value = col.getValue ? col.getValue(item) : (item[col.key] || '');
+                    return (
+                      <Box key={i} sx={{ display: 'flex', alignItems: 'center', pr: 1, overflow: 'hidden' }}>
+                        {col.isStatus ? (
+                          value ? <StatusBadge label={value} /> : <Typography sx={{ color: '#c1bfbc', fontSize: '0.75rem' }}>—</Typography>
+                        ) : (
+                          <Typography sx={{ 
+                            fontSize: '0.75rem', 
+                            color: '#37352f',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {value || '—'}
+                          </Typography>
+                        )}
+                      </Box>
+                    );
+                  })}
+                </Box>
+              ))}
+            </Stack>
+          </Box>
+        </Box>
       </Box>
     </Box>
   );

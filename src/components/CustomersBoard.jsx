@@ -29,7 +29,9 @@ export default function CustomersBoard() {
 
   // Derived state for the selected customer based on the URL ID
   const openDialog = useMemo(() => {
-    if (!id || !board?.items_page?.items) return null;
+    if (!id) return null;
+    if (id === '__new__') return { id: '__new__', name: '', column_values: [] };
+    if (!board?.items_page?.items) return null;
     return board.items_page.items.find(i => String(i.id) === id) || null;
   }, [id, board]);
 

@@ -25,12 +25,14 @@ import { updateEquipment } from "../store/equipmentslice";
 import { fetchLocations } from "../store/locationsSlice";
 import RelationCell from "./RelationCell";
 import LocationDrawer from "./LocationDrawer";
-import { LinkedGroup, RecordPill } from "./LinkedRecordItem";
+import { LinkedGroup, RecordPill, LinkedTable } from "./LinkedRecordItem";
 import { isValidMondayId, parseRelationIds, getColumnDisplayValue } from "../utils/mondayUtils";
 import { createLocation } from "../services/monday";
+import { useNavigate } from "react-router-dom";
 
 const EQ_COL = MONDAY_COLUMNS.EQUIPMENT;
 const WO_COL = MONDAY_COLUMNS.WORK_ORDERS;
+const CUST_COL = MONDAY_COLUMNS.CUSTOMERS;
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
@@ -120,6 +122,7 @@ const Section = ({ children }) => (
 
 export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open }) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { creating: apiCreating, saving: apiSaving } = useSelector(
     (s) => s.equipment,
   );
@@ -247,7 +250,7 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: 460,
+          width: 500,
           bgcolor: "#fff",
           display: "flex",
           flexDirection: "column",
@@ -414,44 +417,38 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
 
         {!isNew && hasLinked && (
           <>
-            <Divider sx={{ borderColor: "#e8e6e1", mb: 2 }} />
+            <Divider sx={{ borderColor: "#e8e6e1", mb: 2, mt: 1 }} />
             <Section>Linked Records</Section>
-            <Stack spacing={2} sx={{ px: 1, mt: 1 }}>
-              <LinkedGroup
+            <Stack spacing={2.5} sx={{ mt: 1.5 }}>
+              <LinkedTable
                 icon={AssignmentOutlinedIcon}
                 label="Work Orders"
                 iconColor="#4f8ef7"
                 items={linkedWorkOrders}
-                renderItem={(wo) => (
-                  <RecordPill
-                    key={wo.id}
-                    id={wo.id}
-                    type="workorder"
-                    name={wo.name}
-                    statusLabel={getWoStatus(wo)}
-                    bgColor="#ebf0fd"
-                    textColor="#1e40af"
-                    borderColor="#c7d7fb"
-                  />
-                )}
+                onNavigate={(item) => navigate(`/workorders/${item.id}`)}
+                columns={[
+                  { label: "ID", width: "90px", getValue: (item) => getColumnDisplayValue(item, WO_COL.WORKORDER_ID) },
+                  { label: "Name", width: "180px", key: "name" },
+                  { label: "Progress", width: "110px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.EXECUTION_STATUS) },
+                  { label: "Status", width: "110px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.STATUS) },
+                  { label: "Date", width: "100px", getValue: (item) => getColumnDisplayValue(item, WO_COL.SCHEDULED_DATE) },
+                  { label: "Tech", width: "120px", getValue: (item) => getColumnDisplayValue(item, WO_COL.TECHNICIAN) },
+                  { label: "Billing", width: "110px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.BILLING_STAGE) },
+                ]}
               />
 
-              <LinkedGroup
+              <LinkedTable
                 icon={PersonOutlineIcon}
                 label="Customers"
                 iconColor="#22c55e"
                 items={linkedCustomers}
-                renderItem={(c) => (
-                  <RecordPill
-                    key={c.id}
-                    id={c.id}
-                    type="customer"
-                    name={c.name}
-                    bgColor="#f0fdf4"
-                    textColor="#166534"
-                    borderColor="#bbf7d0"
-                  />
-                )}
+                onNavigate={(item) => navigate(`/customers/${item.id}`)}
+                columns={[
+                  { label: "Customer Name", width: "160px", key: "name" },
+                  { label: "Status", width: "100px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, CUST_COL.STATUS) },
+                  { label: "Email", width: "180px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.EMAIL) },
+                  { label: "Phone", width: "120px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.PHONE) },
+                ]}
               />
             </Stack>
           </>
