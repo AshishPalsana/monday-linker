@@ -39,6 +39,10 @@ const NAV_TIME = [
   { id: 'time-board', icon: TableChartOutlinedIcon, label: 'Time Board', path: '/time-board' },
 ];
 
+const NAV_SETTINGS = [
+  { id: 'integrations', icon: BuildIcon, label: 'Integrations', path: '/settings/integrations' },
+];
+
 function SectionLabel({ collapsed, children }) {
   if (collapsed) return null;
   return (
@@ -232,6 +236,16 @@ function SidebarContent({ collapsed, onToggle }) {
         <SectionLabel collapsed={collapsed}>Time & Labor</SectionLabel>
         <List dense disablePadding sx={{ px: collapsed ? 0.5 : 0.75 }}>
           {visibleTimeNav.map((item) => (
+            <NavItem key={item.id} {...item} collapsed={collapsed} clockedIn={clockedIn} />
+          ))}
+        </List>
+
+        <Divider sx={{ my: 1.25 }} />
+
+        {/* Settings */}
+        <SectionLabel collapsed={collapsed}>Settings</SectionLabel>
+        <List dense disablePadding sx={{ px: collapsed ? 0.5 : 0.75 }}>
+          {NAV_SETTINGS.map((item) => (
             <NavItem key={item.id} {...item} collapsed={collapsed} clockedIn={clockedIn} />
           ))}
         </List>

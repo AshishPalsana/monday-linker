@@ -10,6 +10,7 @@ import AppShell from './components/AppShell';
 import TimeTrackingPage from './components/TimeTrackingPage';
 import TimeBoard from './components/TimeBoard';
 import MasterCostsBoard from './components/MasterCostsBoard';
+import IntegrationsPage from './components/IntegrationsPage';
 import { AuthProvider } from './providers/AuthProvider';
 import { SocketProvider } from './providers/SocketProvider';
 
@@ -37,6 +38,7 @@ export default function AppRouter() {
                 <Route path="/master-costs"     element={<AppShell><MasterCostsBoard /></AppShell>} />
                 <Route path="/time-tracker" element={<AppShell><TimeTrackingPage /></AppShell>} />
                 <Route path="/time-board"   element={<AppShell><TimeBoard /></AppShell>} />
+                <Route path="/settings/integrations" element={<AppShell><IntegrationsPage /></AppShell>} />
               </Routes>
             </HashRouter>
           </SocketProvider>

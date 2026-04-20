@@ -427,13 +427,15 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
                 items={linkedWorkOrders}
                 onNavigate={(item) => navigate(`/workorders/${item.id}`)}
                 columns={[
-                  { label: "ID", width: "90px", getValue: (item) => getColumnDisplayValue(item, WO_COL.WORKORDER_ID) },
-                  { label: "Name", width: "180px", key: "name" },
-                  { label: "Progress", width: "110px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.EXECUTION_STATUS) },
-                  { label: "Status", width: "110px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.STATUS) },
-                  { label: "Date", width: "100px", getValue: (item) => getColumnDisplayValue(item, WO_COL.SCHEDULED_DATE) },
-                  { label: "Tech", width: "120px", getValue: (item) => getColumnDisplayValue(item, WO_COL.TECHNICIAN) },
-                  { label: "Billing", width: "110px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.BILLING_STAGE) },
+                  { label: "WO-ID", width: "100px", getValue: (item) => getColumnDisplayValue(item, WO_COL.WORKORDER_ID) },
+                  { label: "WORK ORDER", width: "180px", key: "name" },
+                  { label: "DESCRIPTION OF WORK", width: "200px", getValue: (item) => getColumnDisplayValue(item, WO_COL.DESCRIPTION) },
+                  { label: "PROGRESS STATUS", width: "150px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.EXECUTION_STATUS) },
+                  { label: "TECHNICIAN", width: "140px", getValue: (item) => getColumnDisplayValue(item, WO_COL.TECHNICIAN) },
+                  { label: "MULTI-DAY", width: "100px", getValue: (item) => getColumnDisplayValue(item, WO_COL.MULTI_DAY) },
+                  { label: "BILLING STAGE", width: "140px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.BILLING_STAGE) },
+                  { label: "SERVICE HISTORY", width: "220px", getValue: (item) => getColumnDisplayValue(item, WO_COL.SERVICE_HISTORY) },
+                  { label: "WORK PERFORMED", width: "220px", getValue: (item) => getColumnDisplayValue(item, WO_COL.WORK_PERFORMED) },
                 ]}
               />
 
@@ -444,10 +446,10 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
                 items={linkedCustomers}
                 onNavigate={(item) => navigate(`/customers/${item.id}`)}
                 columns={[
-                  { label: "Customer Name", width: "160px", key: "name" },
-                  { label: "Status", width: "100px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, CUST_COL.STATUS) },
-                  { label: "Email", width: "180px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.EMAIL) },
-                  { label: "Phone", width: "120px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.PHONE) },
+                  { label: "CUSTOMER NAME", width: "180px", key: "name" },
+                  { label: "EMAIL", width: "200px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.EMAIL) },
+                  { label: "PHONE", width: "140px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.PHONE) },
+                  { label: "STATUS", width: "110px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, CUST_COL.STATUS) },
                 ]}
               />
             </Stack>

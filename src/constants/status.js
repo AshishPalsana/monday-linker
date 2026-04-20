@@ -15,7 +15,6 @@ export const PROGRESS_STATUS_OPTIONS = [
   "Complete",
 ];
 
-// Combine for backward compatibility or general lists
 export const STATUS_OPTIONS = [
   ...SCHEDULING_STATUS_OPTIONS,
   ...PROGRESS_STATUS_OPTIONS,
@@ -50,11 +49,9 @@ export const STATUS_HEX = {
 };
 
 export const PARTS_HEX = {
-  "Not Required": "#6b7280",
-  Pending: "#f59e0b",
-  Ordered: "#4f8ef7",
-  Received: "#22c55e",
-  Installed: "#a855f7",
+  Yes: "#22c55e",
+  "Waiting on Parts": "#f59e0b",
+  No: "#df2f4a",
 };
 
 export const BILLING_STAGE_OPTIONS = [
@@ -65,22 +62,22 @@ export const BILLING_STAGE_OPTIONS = [
 ];
 
 export const BILLING_STAGE_HEX = {
-  "Not Ready":        "#9b9a97",
-  "Ready for Billing":"#f59e0b",
-  "Sent to Xero":     "#4f8ef7",
-  Paid:               "#22c55e",
+  "Not Ready": "#9b9a97",
+  "Ready for Billing": "#f59e0b",
+  "Sent to Xero": "#4f8ef7",
+  Paid: "#22c55e",
 };
 
 export const COST_TYPE_OPTIONS = ["Labor", "Parts", "Expense"];
 
 export const COST_TYPE_HEX = {
-  Labor:   "#4f8ef7",
-  Parts:   "#a855f7",
+  Labor: "#4f8ef7",
+  Parts: "#a855f7",
   Expense: "#f59e0b",
 };
 
 export const ENTRY_TYPE_HEX = {
-  Job:     "#1a6ef7",
-  Travel:  "#a855f7",
+  Job: "#1a6ef7",
+  Travel: "#a855f7",
   "Non-Job": "#f59e0b",
 };

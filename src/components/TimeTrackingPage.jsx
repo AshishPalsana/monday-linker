@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { useBoardHeader } from "../contexts/BoardHeaderContext";
 import { parseBoardStatusColors } from "../utils/mondayUtils";
-import { BOARD_IDS } from "../constants/monday";
+import { BOARD_IDS, MONDAY_COLUMNS } from "../constants/monday";
 import { ENTRY_TYPE_HEX } from "../constants/status";
 import { BoardTable, DATA_CELL_SX, DASH } from "./BoardTable";
 import { mondayClient } from "../services/monday/client";
@@ -30,15 +30,18 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import WorkOutlineIcon from "@mui/icons-material/WorkOutline";
 import HandymanOutlinedIcon from "@mui/icons-material/HandymanOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchWorkOrders } from "../store/workOrderSlice";
+import { fetchLocations } from "../store/locationsSlice";
 import ClockInModal from "./ClockInModal";
 import ClockOutModal from "./ClockOutModal";
 import { useAuth } from "../hooks/useAuth";
 import { useActiveEntry } from "../hooks/useActiveEntry";
 import { useSocket } from "../hooks/useSocket";
 import { timeEntriesApi } from "../services/api";
+import { setRelationColumn } from "../services/monday/baseService";
+import { createExpense } from "../services/monday/expenseService";
 
 function formatEntry(entry) {
   return {
@@ -51,9 +54,9 @@ function formatEntry(entry) {
     }),
     clockOut: entry.clockOut
       ? new Date(entry.clockOut).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
+        hour: "2-digit",
+        minute: "2-digit",
+      })
       : DASH,
     hours: parseFloat(entry.hoursWorked) || 0,
     status: entry.status,
@@ -85,18 +88,18 @@ function totalHours(entries) {
 function useElapsedTimer(startIso) {
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef(null);
-  
+
   useEffect(() => {
     if (!startIso) {
       setElapsed(0);
       return;
     }
-    
+
     const update = () => {
       const diff = Math.floor((Date.now() - new Date(startIso)) / 1000);
       setElapsed(Math.max(0, diff));
     };
-    
+
     update();
     intervalRef.current = setInterval(update, 1000);
     return () => clearInterval(intervalRef.current);
@@ -328,11 +331,11 @@ function TimingPanel({
           </Box>
           {Object.entries(activeEntries).map(([type, entry]) => {
             if (!entry) return null;
-            const label = entry.entryType === "Job" 
+            const label = entry.entryType === "Job"
               ? (entry.workOrder?.label ?? "Work Order")
               : (entry.taskDescription ?? entry.entryType);
             const typeColor = ENTRY_TYPE_HEX[entry.entryType === "NonJob" ? "Non-Job" : entry.entryType];
-            
+
             return (
               <Box
                 key={type}
@@ -543,7 +546,8 @@ export default function TimeTrackingPage() {
   useEffect(() => {
     if (!token) return;
     dispatch(fetchWorkOrders());
-    
+    dispatch(fetchLocations());
+
     // Fetch board metadata for colors
     mondayClient.query({
       query: FETCH_BOARD_DATA,
@@ -644,11 +648,11 @@ export default function TimeTrackingPage() {
   const userInitials =
     userName !== "…"
       ? userName
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2)
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
       : "?";
 
   const workOrders = rawWorkOrders.map((item) => {
@@ -663,9 +667,9 @@ export default function TimeTrackingPage() {
   async function handleClockIn(data) {
     const typeKey = data.entryType === "Non-Job" ? "NonJob" : data.entryType;
     const optimistic = { ...data, backendEntryId: null };
-    
+
     // If starting a new Job, auto-clear previous Job optimistic state
-    setActiveEntry(typeKey, optimistic); 
+    setActiveEntry(typeKey, optimistic);
     setClockInOpen(false);
 
     if (!token) return;
@@ -721,13 +725,26 @@ export default function TimeTrackingPage() {
       status: "Open",
     };
 
-    const captured = activeToOut;
+    let captured = activeToOut;
     const clockInIsToday = isToday(captured.clockInTime);
 
     if (!captured.backendEntryId) {
-      setApiError("Clock-out failed: your session wasn't synced. Try again.");
-      setClockOutOpen(false);
-      return;
+      try {
+        const { data: todayData } = await timeEntriesApi.getToday(token);
+        const openEntry = (todayData ?? []).find((e) => !e.clockOut);
+        if (openEntry?.id) {
+          captured = { ...captured, backendEntryId: openEntry.id };
+          setActiveEntry(typeKey, captured);
+        } else {
+          setApiError("Clock-out failed: no active session found on server.");
+          setClockOutOpen(false);
+          return;
+        }
+      } catch {
+        setApiError("Clock-out failed: could not reach server. Try again.");
+        setClockOutOpen(false);
+        return;
+      }
     }
 
     if (clockInIsToday) {
@@ -738,12 +755,39 @@ export default function TimeTrackingPage() {
     setActiveToOut(null);
 
     try {
-      await timeEntriesApi.clockOut(token, captured.backendEntryId, {
+      const clockOutResult = await timeEntriesApi.clockOut(token, captured.backendEntryId, {
         narrative: data.narrative,
-        jobLocation: data.location,
+        jobLocation: data.location?.label ?? data.location ?? "",
+        jobLocationId: data.location?.id ?? null,
         expenses: data.expenses,
         markComplete: data.markComplete ?? false,
       });
+
+      const mondayItemId = clockOutResult?.data?.mondayItemId;
+
+      if (data.location?.id && mondayItemId) {
+        setRelationColumn(
+          BOARD_IDS.TIME_ENTRIES,
+          mondayItemId,
+          MONDAY_COLUMNS.TIME_ENTRIES.LOCATIONS_REL,
+          data.location.id,
+        ).catch((err) => console.error("[clock-out] Location relation failed:", err));
+      }
+
+      if (data.expenses?.length) {
+        const workOrderId = captured.workOrder?.id ?? null;
+        const technicianId = auth?.technician?.id ?? null;
+        data.expenses.forEach((expense) => {
+          createExpense({
+            type: expense.type,
+            amount: expense.amount,
+            description: expense.description,
+            timeEntryMondayId: mondayItemId ?? null,
+            workOrderId,
+            technicianId,
+          }).catch((err) => console.error("[clock-out] Expense creation failed:", err));
+        });
+      }
     } catch (err) {
       console.error("[clock-out] API error:", err);
       if (clockInIsToday) {
@@ -769,16 +813,16 @@ export default function TimeTrackingPage() {
   const activityFeed = [
     ...(clockedIn && activeEntry
       ? [
-          {
-            time: new Date(activeEntry.clockInTime).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            label: activeLabel,
-            type: activeEntry.entryType,
-            active: true,
-          },
-        ]
+        {
+          time: new Date(activeEntry.clockInTime).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          label: activeLabel,
+          type: activeEntry.entryType,
+          active: true,
+        },
+      ]
       : []),
     ...todayEntries.flatMap((e) => [
       {
@@ -814,12 +858,14 @@ export default function TimeTrackingPage() {
     entriesLoading,
   };
 
+  const handleHeaderClockIn = useCallback(() => setClockInOpen(true), []);
+
   useBoardHeader({
     title: "Time Tracker",
     count: todayDate,
     countLabel: "",
     buttonLabel: "Clock In",
-    onButtonClick: () => setClockInOpen(true),
+    onButtonClick: handleHeaderClockIn,
   });
 
   return (
@@ -875,28 +921,28 @@ export default function TimeTrackingPage() {
           rows={
             entriesLoading
               ? [
-                      { id: "__skel_1__" },
-                      { id: "__skel_2__" },
-                      { id: "__skel_3__" },
-                    ]
-                  : [
-                      ...Object.values(activeEntries)
-                        .filter(e => !!e)
-                        .map(e => ({
-                          id: e.backendEntryId ?? `active-${e.entryType}`,
-                          entryType: e.entryType === "NonJob" ? "Non-Job" : e.entryType,
-                          description: e.entryType === "Job" 
-                            ? (e.workOrder?.label ?? "Work Order")
-                            : (e.taskDescription ?? "Task"),
-                          clockIn: new Date(e.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                          clockOut: null,
-                          hours: null,
-                          status: "Open",
-                          _active: true,
-                        })),
-                      ...todayEntries,
-                      ...(todayEntries.length > 0 ? [{ id: "__total__" }] : []),
-                    ]
+                { id: "__skel_1__" },
+                { id: "__skel_2__" },
+                { id: "__skel_3__" },
+              ]
+              : [
+                ...Object.values(activeEntries)
+                  .filter(e => !!e)
+                  .map(e => ({
+                    id: e.backendEntryId ?? `active-${e.entryType}`,
+                    entryType: e.entryType === "NonJob" ? "Non-Job" : e.entryType,
+                    description: e.entryType === "Job"
+                      ? (e.workOrder?.label ?? "Work Order")
+                      : (e.taskDescription ?? "Task"),
+                    clockIn: new Date(e.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                    clockOut: null,
+                    hours: null,
+                    status: "Open",
+                    _active: true,
+                  })),
+                ...todayEntries,
+                ...(todayEntries.length > 0 ? [{ id: "__total__" }] : []),
+              ]
           }
           renderRow={(row) => {
             if (String(row.id).startsWith("__skel_")) {

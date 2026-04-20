@@ -20,5 +20,5 @@ export const VALIDATION_STATUSES = {
     "addl trip needed time only",
     "Complete",
   ],
-  PARTS_ORDERED: ["Not Required", "Pending", "Ordered", "Received", "Installed"],
+  PARTS_ORDERED: ["Ordered", "Received", "N/A"],
 };

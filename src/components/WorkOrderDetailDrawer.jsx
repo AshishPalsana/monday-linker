@@ -51,6 +51,7 @@ import {
   BILLING_STAGE_OPTIONS,
   BILLING_STAGE_HEX,
   COST_TYPE_HEX,
+  PARTS_HEX,
 } from "../constants/index";
 import { updateWorkOrder, fetchWorkOrders } from "../store/workOrderSlice";
 import { fetchMasterCosts } from "../store/masterCostsSlice";
@@ -83,13 +84,6 @@ const EQ_COL = MONDAY_COLUMNS.EQUIPMENT;
 const WO_EXECUTION_OPTIONS = VALIDATION_STATUSES.EXECUTION;
 const PARTS_ORDERED_OPTIONS = VALIDATION_STATUSES.PARTS_ORDERED;
 
-const PARTS_HEX = {
-  "Not Required": "#6b7280",
-  Pending: "#f59e0b",
-  Ordered: "#4f8ef7",
-  Received: "#22c55e",
-  Installed: "#a855f7",
-};
 
 // ── Shared UI components ──────────────────────────────────────────────────────
 
@@ -560,7 +554,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
           <Section>Photos / Documents</Section>
           <Box sx={{ mb: 2.5 }}>
             <PropertyRow icon={PhotoCameraOutlinedIcon} label="Files">
-               <FileCell item={workOrder} columnId={WO_COL.PHOTOS_DOCUMENTS} />
+              <FileCell item={workOrder} columnId={WO_COL.PHOTOS_DOCUMENTS} />
             </PropertyRow>
           </Box>
 
@@ -597,17 +591,17 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                 })}
                 onNavigate={(item) => navigate(`/equipment/${item.id}`)}
                 columns={[
-                  { label: "Name", width: "160px", key: "name" },
-                  { label: "Serial #", width: "120px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.SERIAL_NUMBER) },
-                  { label: "Manufacturer", width: "130px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.MANUFACTURER) },
-                  { label: "Model #", width: "120px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.MODEL_NUMBER) },
-                  { label: "Status", width: "100px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, EQ_COL.STATUS) },
+                  { label: "EQUIPMENT NAME", width: "180px", key: "name" },
+                  { label: "SERIAL #", width: "140px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.SERIAL_NUMBER) },
+                  { label: "MANUFACTURER", width: "150px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.MANUFACTURER) },
+                  { label: "MODEL #", width: "120px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.MODEL_NUMBER) },
+                  { label: "STATUS", width: "110px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, EQ_COL.STATUS) },
                 ]}
               />
               {equipment === "—" && <Typography sx={{ fontSize: "0.875rem", color: "#c1bfbc", mt: 1 }}>— no equipment</Typography>}
             </PropertyRow>
             <PropertyRow icon={LinkOutlinedIcon} label="Mirror Tracking">
-               <Typography sx={{ fontSize: "0.875rem", color: form.mirror ? "#37352f" : "#c1bfbc", fontFamily: "monospace" }}>
+              <Typography sx={{ fontSize: "0.875rem", color: form.mirror ? "#37352f" : "#c1bfbc", fontFamily: "monospace" }}>
                 {form.mirror || "—"}
               </Typography>
             </PropertyRow>

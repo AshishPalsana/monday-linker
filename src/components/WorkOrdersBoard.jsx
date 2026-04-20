@@ -139,15 +139,16 @@ export default function WorkOrdersBoard() {
 
   const WO_COLUMNS = [
     { label: "WO-ID", width: 100 },
-    { label: "Work order", width: 240 },
-    { label: "Customer", width: 200 },
-    { label: "Location", width: 200 },
-    { label: "Progress Status", width: 340 },
-    { label: "Technician", width: 160 },
-    { label: "Multi-Day", width: 110 },
-    { label: "Billing Stage", width: 200 },
-    { label: "Service History", width: 250 },
-    { label: "Work Performed", width: 250 },
+    { label: "WORK ORDER", width: 240 },
+    { label: "CUSTOMER", width: 200 },
+    { label: "LOCATION", width: 200 },
+    { label: "DESCRIPTION OF WORK", width: 250 },
+    { label: "PROGRESS STATUS", width: 340 },
+    { label: "TECHNICIAN", width: 160 },
+    { label: "MULTI-DAY", width: 110 },
+    { label: "BILLING STAGE", width: 200 },
+    { label: "SERVICE HISTORY", width: 250 },
+    { label: "WORK PERFORMED", width: 250 },
     { label: "Photos / Docs", width: 140 },
     { label: "Invoice Items", width: 180 },
     { label: "Parts Ordered", width: 150 },
@@ -209,6 +210,9 @@ export default function WorkOrdersBoard() {
             setPendingNewLocation({ name, workOrderId: item.id })
           }
         />
+      </TableCell>
+      <TableCell sx={DATA_CELL_SX}>
+        {getColumnDisplayValue(item, WO_COL.DESCRIPTION) || "—"}
       </TableCell>
       <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible" }}>
         {(() => {

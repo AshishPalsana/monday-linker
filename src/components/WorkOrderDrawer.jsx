@@ -27,7 +27,7 @@ import CalendarViewWeekOutlinedIcon from "@mui/icons-material/CalendarViewWeekOu
 import { createWorkOrder } from "../store/workOrderSlice";
 import { createCustomer } from "../store/customersSlice";
 import { createLocation } from "../store/locationsSlice";
-import { STATUS_OPTIONS, STATUS_HEX, VALIDATION_STATUSES } from "../constants/index";
+import { STATUS_OPTIONS, STATUS_HEX, VALIDATION_STATUSES, PARTS_HEX } from "../constants/index";
 import CustomerDrawer from "./CustomerDrawer";
 import LocationDrawer from "./LocationDrawer";
 import RelationCell from "./RelationCell";
@@ -35,13 +35,6 @@ import RelationCell from "./RelationCell";
 const EXECUTION_STATUS_OPTIONS = VALIDATION_STATUSES.EXECUTION;
 const PARTS_ORDERED_OPTIONS = VALIDATION_STATUSES.PARTS_ORDERED;
 
-const PARTS_HEX = {
-  "Not Required": "#6b7280",
-  Pending: "#f59e0b",
-  Ordered: "#4f8ef7",
-  Received: "#22c55e",
-  Installed: "#a855f7",
-};
 
 const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
   <Box
