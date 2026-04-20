@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { mondayClient } from "../services/monday/client";
 import {
   createLocation as svcCreateLocation,
   updateLocation as svcUpdateLocation,
@@ -19,14 +18,9 @@ export const fetchLocations = createAsyncThunk(
   "locations/fetchLocations",
   async (_, { rejectWithValue }) => {
     try {
-      const resp = await mondayClient.query({
-        query: FETCH_BOARD_DATA,
-        variables: { boardId: [BOARD_IDS.LOCATIONS] },
-        fetchPolicy: "network-only",
-      });
-      if (resp.errors) throw new Error(resp.errors[0].message);
-      if (!resp.data?.boards?.[0]) throw new Error("Locations board not found.");
-      return deepClone(resp.data.boards[0]);
+      // Use service which handles token and unwrapping .data
+      const board = await svcFetchLocations();
+      return board;
     } catch (e) {
       console.error("[fetchLocations] Error:", e);
       return rejectWithValue(e.message);
