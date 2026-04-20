@@ -35,3 +35,9 @@ export const timeEntriesApi = {
 export const workOrderApi = {
   prepareInvoice: (id, token) => request('POST', `/api/billing/work-orders/${id}/prepare-invoice`, {}, token),
 };
+
+export const locationsApi = {
+  getAll: (token)         => request('GET',   '/api/locations',     undefined, token),
+  create: (token, data)    => request('POST',  '/api/locations',     data, token),
+  update: (token, id, data) => request('PATCH', `/api/locations/${id}`, data, token),
+};

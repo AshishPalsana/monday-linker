@@ -1,62 +1,39 @@
-import { CREATE_ITEM, UPDATE_ITEM_COLUMNS } from "./mutations";
-import { executeMutation, updateItemName } from "./baseService";
-import { BOARD_IDS, GROUP_IDS, MONDAY_COLUMNS } from "../../constants/monday";
-import { isValidMondayId } from "../../utils/mondayUtils";
-
-const COL = MONDAY_COLUMNS.LOCATIONS;
+import { locationsApi } from "../api";
 
 export async function createLocation(form) {
-  const cv = {};
-  if (form.streetAddress) cv[COL.STREET_ADDRESS] = form.streetAddress;
-  if (form.city) cv[COL.CITY] = form.city;
-  if (form.zip) cv[COL.ZIP] = form.zip;
-  if (form.locationStatus) cv[COL.STATUS] = { label: form.locationStatus };
-  if (form.notes) cv[COL.NOTES] = { text: form.notes };
+  const token = localStorage.getItem("token");
+  const resp = await locationsApi.create(token, form);
+  
+  if (!resp.success) {
+    throw new Error(resp.error || "Failed to create location.");
+  }
 
-  const data = await executeMutation(
-    CREATE_ITEM,
-    {
-      boardId: BOARD_IDS.LOCATIONS,
-      groupId: GROUP_IDS.LOCATIONS_ACTIVE,
-      name: form.name,
-      cv: JSON.stringify(cv),
-    },
-    "createLocation",
-  );
-
-  return data.create_item;
+  // Return formatted item for the local store
+  return {
+    id: resp.data.id,
+    name: resp.data.name,
+    column_values: [] // Will be populated by the next fetchLocations() call
+  };
 }
 
 export async function updateLocation(itemId, form) {
-  if (!isValidMondayId(itemId)) {
-    throw new Error(`Cannot update location: invalid id "${itemId}".`);
+  const token = localStorage.getItem("token");
+  const resp = await locationsApi.update(token, itemId, form);
+  
+  if (!resp.success) {
+    throw new Error(resp.error || "Failed to update location.");
   }
 
-  const cv = {};
-  if (form.streetAddress !== undefined) cv[COL.STREET_ADDRESS] = form.streetAddress;
-  if (form.city !== undefined) cv[COL.CITY] = form.city;
-  if (form.zip !== undefined) cv[COL.ZIP] = form.zip;
-  if (form.notes !== undefined) cv[COL.NOTES] = { text: form.notes };
-  if (form.state !== undefined) {
-    cv[COL.STATE] = form.state ? { labels: [form.state] } : { ids: [] };
-  }
-  if (form.locationStatus !== undefined) {
-    cv[COL.STATUS] = { label: form.locationStatus || "" };
+  return resp.data;
+}
+
+export async function fetchLocations() {
+  const token = localStorage.getItem("token");
+  const resp = await locationsApi.getAll(token);
+  
+  if (!resp.success) {
+    throw new Error(resp.error || "Failed to fetch locations.");
   }
 
-  if (Object.keys(cv).length > 0) {
-    await executeMutation(
-      UPDATE_ITEM_COLUMNS,
-      {
-        boardId: BOARD_IDS.LOCATIONS,
-        itemId: String(itemId),
-        cv: JSON.stringify(cv),
-      },
-      "updateLocation",
-    );
-  }
-
-  if (form.name) {
-    await updateItemName(BOARD_IDS.LOCATIONS, itemId, form.name);
-  }
+  return resp.data;
 }

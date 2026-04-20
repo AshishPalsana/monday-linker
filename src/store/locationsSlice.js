@@ -3,6 +3,7 @@ import { mondayClient } from "../services/monday/client";
 import {
   createLocation as svcCreateLocation,
   updateLocation as svcUpdateLocation,
+  fetchLocations as svcFetchLocations,
   setWorkOrderRelation,
   setRelationColumn,
   FETCH_BOARD_DATA,
