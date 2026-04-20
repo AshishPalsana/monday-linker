@@ -18,7 +18,7 @@ import {
 import NoteAltOutlinedIcon from "@mui/icons-material/NoteAltOutlined";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchLocations } from "../store/locationsSlice";
 import ExpenseDrawer from "./ExpenseDrawer";
@@ -32,9 +32,12 @@ const EXPENSE_TYPES = [
 
 export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, loading = false }) {
   const dispatch = useDispatch();
-  const rawLocations = useSelector((s) => s.locations.board?.items_page?.items ?? []);
+  const rawLocations = useSelector((s) => s.locations.board?.items_page?.items);
   const locationsLoading = useSelector((s) => s.locations.loading);
-  const locations = rawLocations.map((item) => ({ id: item.id, label: item.name }));
+
+  const locations = useMemo(() => {
+    return (rawLocations || []).map((item) => ({ id: item.id, label: item.name }));
+  }, [rawLocations]);
 
   useEffect(() => {
     if (open) dispatch(fetchLocations());

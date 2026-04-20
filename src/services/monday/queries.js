@@ -64,6 +64,11 @@ export const FETCH_BOARD_DATA = gql`
             ... on DropdownValue {
               text
             }
+            ... on PeopleValue {
+              persons_and_teams {
+                id
+              }
+            }
           }
           created_at
           updated_at

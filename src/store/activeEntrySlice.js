@@ -5,9 +5,9 @@ const STORAGE_KEY = 'ml_active_entries_v2';
 function readStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : { Job: null, NonJob: null };
+    return raw ? JSON.parse(raw) : { Job: null, NonJob: null, DailyShift: null };
   } catch {
-    return { Job: null, NonJob: null };
+    return { Job: null, NonJob: null, DailyShift: null };
   }
 }
 

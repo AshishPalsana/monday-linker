@@ -30,7 +30,7 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import WorkOutlineIcon from "@mui/icons-material/WorkOutline";
 import HandymanOutlinedIcon from "@mui/icons-material/HandymanOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchWorkOrders } from "../store/workOrderSlice";
 import { fetchLocations } from "../store/locationsSlice";
@@ -176,6 +176,7 @@ function ActiveEntryTimer({ start, color }) {
 
 function useLiveClock() {
   const [now, setNow] = useState(new Date());
+
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
@@ -189,8 +190,11 @@ function useLiveClock() {
 
 function TimingPanel({
   activeEntries,
+  activeShift,
+  activeTask,
   liveClock,
-  elapsed,
+  shiftElapsed,
+  taskElapsed,
   todayEntries,
   activityFeed,
   onClockIn,
@@ -201,7 +205,8 @@ function TimingPanel({
   entriesLoading,
 }) {
   const [panelOpen, setPanelOpen] = useState(false);
-  const clockedIn = Object.values(activeEntries).some(e => !!e);
+  const isShiftActive = !!activeShift;
+  const isTaskActive = !!activeTask;
 
   return (
     <Box
@@ -240,12 +245,12 @@ function TimingPanel({
             height: collapsible ? 36 : 64,
             fontSize: collapsible ? "0.85rem" : "1.3rem",
             fontWeight: 800,
-            bgcolor: clockedIn ? "#22c55e" : "#e8f0fe",
-            color: clockedIn ? "#fff" : "#1a6ef7",
+            bgcolor: isShiftActive ? "#22c55e" : "#e8f0fe",
+            color: isShiftActive ? "#fff" : "#1a6ef7",
             mx: collapsible ? 0 : "auto",
             mb: collapsible ? 0 : 1.25,
             transition: "background-color 0.4s ease",
-            boxShadow: clockedIn ? "0 0 0 4px rgba(34,197,94,0.2)" : "none",
+            boxShadow: isShiftActive ? "0 0 0 4px rgba(34,197,94,0.2)" : "none",
             flexShrink: 0,
           }}
         >
@@ -261,9 +266,9 @@ function TimingPanel({
           </Typography>
           <Typography
             variant="caption"
-            sx={{ color: "text.disabled", fontSize: "0.75rem" }}
+            sx={{ color: isShiftActive ? "#22c55e" : "text.disabled", fontSize: "0.75rem", fontWeight: 700 }}
           >
-            Technician
+            {isShiftActive ? "CLOCKED IN" : "OFF DUTY"}
           </Typography>
         </Box>
 
@@ -282,7 +287,69 @@ function TimingPanel({
 
       <Collapse in={collapsible ? panelOpen : true} timeout="auto">
         <Box sx={{ px: { xs: 2, sm: 2.5 }, pt: 2, pb: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+          
+          {/* Section: Daily Shift */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+            <Box
+              sx={{ width: 3, height: 16, bgcolor: "#8b5cf6", borderRadius: 2 }}
+            />
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 700, fontSize: "0.8rem", color: "#333" }}
+            >
+              Daily Attendance
+            </Typography>
+          </Box>
+
+          <Box
+             onClick={isShiftActive ? () => onClockOut(activeShift) : () => onClockIn("DailyShift")}
+             sx={{
+                mb: 3,
+                p: 2,
+                borderRadius: 2,
+                bgcolor: isShiftActive ? "rgba(139,92,246,0.06)" : "#fafafa",
+                border: "1px solid",
+                borderColor: isShiftActive ? "rgba(139,92,246,0.2)" : "#eee",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                "&:hover": { bgcolor: isShiftActive ? "rgba(139,92,246,0.1)" : "#f5f5f5" }
+             }}
+          >
+             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: isShiftActive ? "#8b5cf6" : "#aaa", textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {isShiftActive ? "Shift Session" : "Ready to Start"}
+                </Typography>
+                {isShiftActive && (
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#8b5cf6', fontVariantNumeric: 'tabular-nums' }}>
+                        {shiftElapsed}
+                    </Typography>
+                )}
+             </Box>
+             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {isShiftActive ? (
+                    <>
+                        <LoginOutlinedIcon sx={{ fontSize: 18, color: '#8b5cf6' }} />
+                        <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#333' }}>
+                            On Duty
+                        </Typography>
+                        <Box sx={{ flex: 1 }} />
+                        <LogoutOutlinedIcon sx={{ fontSize: 16, color: '#aaa' }} />
+                    </>
+                ) : (
+                    <>
+                        <TimerOutlinedIcon sx={{ fontSize: 18, color: '#bbb' }} />
+                        <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#aaa' }}>
+                            Start Your Day
+                        </Typography>
+                        <Box sx={{ flex: 1 }} />
+                        <LoginOutlinedIcon sx={{ fontSize: 16, color: '#1a6ef7' }} />
+                    </>
+                )}
+             </Box>
+          </Box>
+
+          {/* Section: Task Tracking */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5, opacity: isShiftActive ? 1 : 0.5 }}>
             <Box
               sx={{ width: 3, height: 16, bgcolor: "#1a6ef7", borderRadius: 2 }}
             />
@@ -290,135 +357,44 @@ function TimingPanel({
               variant="subtitle2"
               sx={{ fontWeight: 700, fontSize: "0.8rem", color: "#333" }}
             >
-              My Timing
+              Task Tracking
             </Typography>
           </Box>
 
-          <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                flex: 1,
-                textAlign: "center",
-                py: 1.5,
-                px: 1,
-                border: "1px solid",
-                borderColor: clockedIn ? "rgba(34,197,94,0.4)" : "#e4e4e4",
-                borderRadius: 1,
-                bgcolor: clockedIn ? "rgba(34,197,94,0.04)" : "#fafafa",
-              }}
-            >
-              <Typography
-                variant="caption"
+          {!isShiftActive ? (
+              <Paper elevation={0} sx={{ p: 2, textAlign: 'center', bgcolor: '#fdfdfd', border: '1px dashed #ddd', mb: 2 }}>
+                  <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
+                      Clock in for the day to enable task tracking
+                  </Typography>
+              </Paper>
+          ) : isTaskActive ? (
+             <Box
                 sx={{
-                  color: clockedIn ? "#15803d" : "text.disabled",
-                  fontWeight: 600,
-                  fontSize: "0.65rem",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  display: "block",
-                  mb: 0.5,
-                }}
-              >
-                {clockedIn ? "Session" : "Time"}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: "1rem",
-                  fontWeight: 800,
-                  letterSpacing: "-0.5px",
-                  fontVariantNumeric: "tabular-nums",
-                  color: clockedIn ? "#15803d" : "#888",
-                }}
-              >
-                {clockedIn ? elapsed : liveClock}
-              </Typography>
-            </Paper>
-
-            <Paper
-              elevation={0}
-              sx={{
-                flex: 1,
-                textAlign: "center",
-                py: 1.5,
-                px: 1,
-                border: "1px solid #e4e4e4",
-                borderRadius: 1,
-                bgcolor: "#fafafa",
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "text.disabled",
-                  fontWeight: 600,
-                  fontSize: "0.65rem",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  display: "block",
-                  mb: 0.5,
-                }}
-              >
-                Today
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: "1rem",
-                  fontWeight: 800,
-                  letterSpacing: "-0.5px",
-                  color: "#555",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {entriesLoading ? (
-                  <Skeleton
-                    variant="text"
-                    width={40}
-                    height={20}
-                    sx={{ mx: "auto", borderRadius: 1 }}
-                  />
-                ) : (
-                  <>{totalHours(todayEntries)}h</>
-                )}
-              </Typography>
-            </Paper>
-          </Box>
-          {Object.entries(activeEntries).map(([type, entry]) => {
-            if (!entry) return null;
-            const label = entry.entryType === "Job"
-              ? (entry.workOrder?.label ?? "Work Order")
-              : (entry.taskDescription ?? entry.entryType);
-            const typeColor = ENTRY_TYPE_HEX[entry.entryType === "NonJob" ? "Non-Job" : entry.entryType];
-
-            return (
-              <Box
-                key={type}
-                sx={{
-                  mb: 1,
+                  mb: 2,
                   px: 1.5,
                   py: 1.25,
-                  bgcolor: `${typeColor}08`,
-                  border: `1px solid ${typeColor}22`,
+                  bgcolor: `${ENTRY_TYPE_HEX[activeTask.entryType === 'NonJob' ? 'Non-Job' : activeTask.entryType]}08`,
+                  border: `1px solid ${ENTRY_TYPE_HEX[activeTask.entryType === 'NonJob' ? 'Non-Job' : activeTask.entryType]}22`,
                   borderRadius: 1,
                   display: "flex",
                   flexDirection: "column",
                   gap: 0.5,
                   cursor: "pointer",
-                  "&:hover": { bgcolor: `${typeColor}12` }
+                  "&:hover": { bgcolor: `${ENTRY_TYPE_HEX[activeTask.entryType === 'NonJob' ? 'Non-Job' : activeTask.entryType]}12` }
                 }}
-                onClick={() => onClockOut(entry)}
+                onClick={() => onClockOut(activeTask)}
               >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                  {entry.entryType === "Job" ? (
-                    <WorkOutlineIcon sx={{ fontSize: 13, color: typeColor }} />
+                  {activeTask.entryType === "Job" ? (
+                    <WorkOutlineIcon sx={{ fontSize: 13, color: ENTRY_TYPE_HEX.Job }} />
                   ) : (
-                    <HandymanOutlinedIcon sx={{ fontSize: 13, color: typeColor }} />
+                    <HandymanOutlinedIcon sx={{ fontSize: 13, color: ENTRY_TYPE_HEX["Non-Job"] }} />
                   )}
-                  <Typography variant="caption" sx={{ fontSize: "0.65rem", fontWeight: 700, color: typeColor, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {entry.entryType === "NonJob" ? "Non-Job" : entry.entryType}
+                  <Typography variant="caption" sx={{ fontSize: "0.65rem", fontWeight: 700, color: ENTRY_TYPE_HEX[activeTask.entryType === 'NonJob' ? 'Non-Job' : activeTask.entryType], textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    {activeTask.entryType === "NonJob" ? "Non-Job" : "Active Job"}
                   </Typography>
                   <Box sx={{ flex: 1 }} />
-                  <ActiveEntryTimer start={entry.clockInTime} color={typeColor} />
+                  <ActiveEntryTimer start={activeTask.clockInTime} color={ENTRY_TYPE_HEX[activeTask.entryType === 'NonJob' ? 'Non-Job' : activeTask.entryType]} />
                 </Box>
                 <Typography
                   variant="caption"
@@ -431,23 +407,44 @@ function TimingPanel({
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {label}
+                  {activeTask.entryType === "Job" 
+                    ? (activeTask.workOrder?.label ?? "Work Order")
+                    : (activeTask.taskDescription ?? "Non-Job Task")}
                 </Typography>
                 <Typography variant="caption" sx={{ fontSize: "0.62rem", color: "text.disabled" }}>
-                  Tap to clock out
+                  Tap to complete task
                 </Typography>
               </Box>
-            );
-          })}
+          ) : (
+            <AppButton
+                fullWidth
+                variant="outlined"
+                startIcon={<HandymanOutlinedIcon sx={{ fontSize: 16 }} />}
+                onClick={() => onClockIn()}
+                sx={{ mb: 2 }}
+            >
+                Start New Task
+            </AppButton>
+          )}
 
-          <AppButton
-            fullWidth
-            startIcon={<LoginOutlinedIcon sx={{ fontSize: 16 }} />}
-            onClick={onClockIn}
-            sx={{ mt: Object.values(activeEntries).some(e => !!e) ? 1 : 0 }}
-          >
-            New Session
-          </AppButton>
+          <Box sx={{ display: 'flex', gap: 1, mb: 1, opacity: isShiftActive ? 1 : 0.8 }}>
+             <Paper elevation={0} sx={{ flex: 1, p: 1.5, textAlign: 'center', border: '1px solid #eee', bgcolor: '#fafafa' }}>
+                <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase' }}>
+                    Current Time
+                </Typography>
+                <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#555' }}>
+                    {liveClock}
+                </Typography>
+             </Paper>
+             <Paper elevation={0} sx={{ flex: 1, p: 1.5, textAlign: 'center', border: '1px solid #eee', bgcolor: '#fafafa' }}>
+                <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 700, fontSize: '0.6rem', textTransform: 'uppercase' }}>
+                    Hrs Today
+                </Typography>
+                <Typography sx={{ fontSize: '0.9rem', fontWeight: 800, color: '#555' }}>
+                    {entriesLoading ? "..." : `${totalHours(todayEntries)}h`}
+                </Typography>
+             </Paper>
+          </Box>
         </Box>
 
         <Divider />
@@ -578,8 +575,13 @@ export default function TimeTrackingPage() {
   const token = auth?.token ?? null;
 
   const { activeEntries, setActiveEntry, clearActiveEntry } = useActiveEntry();
-  const activeEntry = activeEntries.Job || activeEntries.Travel || activeEntries.NonJob;
-  const clockedIn = Object.values(activeEntries).some(e => !!e);
+  const activeShift = activeEntries.DailyShift;
+  const activeTask = activeEntries.Job || activeEntries.NonJob;
+
+  const isShiftActive = !!activeShift;
+  const isTaskActive = !!activeTask;
+  const clockedIn = isShiftActive;
+
   const socket = useSocket();
   const requestedSocketRef = useRef(null);
 
@@ -593,10 +595,10 @@ export default function TimeTrackingPage() {
   const [statusColors, setStatusColors] = useState({});
 
   const dispatch = useDispatch();
-  const rawWorkOrders = useSelector(
-    (s) => s.workOrders.board?.items_page?.items ?? EMPTY_ITEMS,
-  );
-  const woLoading = useSelector((s) => s.workOrders.loading);
+
+
+
+
 
   useEffect(() => {
     if (!token) return;
@@ -703,29 +705,53 @@ export default function TimeTrackingPage() {
   const userInitials =
     userName !== "…"
       ? userName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2)
       : "?";
 
-  const workOrders = rawWorkOrders
-    .filter((item) => !item.group || item.group.id === GROUP_IDS.WORK_ORDERS_ACTIVE)
-    .map((item) => {
-      const woIdCol = item.column_values?.find((cv) => cv.id === "text_mm1s82bz");
-      const woId = woIdCol?.text || "";
-      return { id: item.id, label: woId ? `${woId} · ${item.name}` : item.name };
-    });
+  const { data: woData, loading: woLoading } = useSelector((s) => s.workOrders);
 
-  const elapsed = useElapsedTimer(clockedIn ? activeEntry?.clockInTime : null);
+  const rawWorkOrders = woData?.items_page?.items ?? EMPTY_ITEMS;
+
+  const workOrders = useMemo(() => {
+    const currentUserId = String(auth?.technician?.id || "");
+    const isAdmin = !!auth?.technician?.isAdmin;
+
+    return (rawWorkOrders || [])
+      .filter((item) => {
+        const isInActiveGroup = !item.group || item.group.id === GROUP_IDS.WORK_ORDERS_ACTIVE;
+        if (!isInActiveGroup) return false;
+
+        if (isAdmin) return true;
+        
+        const techColId = MONDAY_COLUMNS.WORK_ORDERS.TECHNICIAN;
+        const techVal = item.column_values?.find((cv) => cv.id === techColId);
+        
+        const assignedIds = techVal?.persons_and_teams?.map(p => String(p.id)) || [];
+        return assignedIds.includes(currentUserId);
+      })
+      .map((item) => {
+        return { id: item.id, label: item.name };
+      });
+  }, [rawWorkOrders, auth?.technician]);
+
+  // Calculate elapsed timers for both levels
+  const shiftElapsed = useElapsedTimer(activeShift?.clockInTime);
+  const taskElapsed = useElapsedTimer(activeTask?.clockInTime);
   const liveClock = useLiveClock();
 
   async function handleClockIn(data) {
     const typeKey = data.entryType === "Non-Job" ? "NonJob" : data.entryType;
     const optimistic = { ...data, backendEntryId: null };
 
-    // If starting a new Job, auto-clear previous Job optimistic state
+    // If starting a new task while one is active, clear the old one optimistically
+    if ((typeKey === "Job" || typeKey === "NonJob") && activeTask) {
+        clearActiveEntry(activeTask.entryType === "Non-Job" ? "NonJob" : activeTask.entryType);
+    }
+
     setActiveEntry(typeKey, optimistic);
     setClockInOpen(false);
 
@@ -739,10 +765,8 @@ export default function TimeTrackingPage() {
       });
       setActiveEntry(typeKey, { ...optimistic, backendEntryId: result.data.id });
 
-      // For Non-Job: create in Random Stuff immediately, then clean up any
-      // duplicate the backend/automation puts in Active Work Orders.
       if (typeKey === "NonJob" && data.taskDescription) {
-        ensureNonJobInRandomStuff(data.taskDescription); // intentionally not awaited
+        ensureNonJobInRandomStuff(data.taskDescription); 
       }
     } catch (err) {
       if (err.status === 409 && err.data?.activeEntryId) {
@@ -765,6 +789,8 @@ export default function TimeTrackingPage() {
     setClockOutLoading(true);
 
     const typeKey = activeToOut.entryType === "Non-Job" ? "NonJob" : activeToOut.entryType;
+    const isEndingShift = typeKey === "DailyShift";
+
     const inTime = new Date(activeToOut.clockInTime).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -782,7 +808,9 @@ export default function TimeTrackingPage() {
       description:
         activeToOut.entryType === "Job"
           ? (activeToOut.workOrder?.label ?? "Work Order")
-          : (activeToOut.taskDescription ?? "Task"),
+          : activeToOut.entryType === "DailyShift" 
+            ? "Overall Day Shift"
+            : (activeToOut.taskDescription ?? "Task"),
       clockIn: inTime,
       clockOut: nowTime,
       hours: diffHours > 0 ? diffHours : 0.01,
@@ -792,73 +820,31 @@ export default function TimeTrackingPage() {
     let captured = activeToOut;
     const clockInIsToday = isToday(captured.clockInTime);
 
-    if (!captured.backendEntryId) {
-      try {
-        const { data: todayData } = await timeEntriesApi.getToday(token);
-        const openEntry = (todayData ?? []).find((e) => !e.clockOut);
-        if (openEntry?.id) {
-          captured = { ...captured, backendEntryId: openEntry.id };
-          setActiveEntry(typeKey, captured);
-        } else {
-          setApiError("Clock-out failed: no active session found on server.");
-          setClockOutOpen(false);
-          setClockOutLoading(false);
-          return;
-        }
-      } catch {
-        setApiError("Clock-out failed: could not reach server. Try again.");
-        setClockOutOpen(false);
-        setClockOutLoading(false);
-        return;
-      }
-    }
-
     if (clockInIsToday) {
       setTodayEntries((prev) => [optimisticEntry, ...prev]);
     }
-    clearActiveEntry(typeKey);
+
+    // Requirement: If ending Shift, clear ALL active entries
+    if (isEndingShift) {
+        clearActiveEntry("DailyShift");
+        clearActiveEntry("Job");
+        clearActiveEntry("NonJob");
+    } else {
+        clearActiveEntry(typeKey);
+    }
+
     setClockOutOpen(false);
     setClockOutLoading(false);
     setActiveToOut(null);
 
     try {
-      const clockOutResult = await timeEntriesApi.clockOut(token, captured.backendEntryId, {
+      await timeEntriesApi.clockOut(token, captured.backendEntryId, {
         narrative: data.narrative,
         jobLocation: data.location?.label ?? data.location ?? "",
         jobLocationId: data.location?.id ?? null,
         expenses: data.expenses,
-        markComplete: data.markComplete ?? false,
+        markComplete: data.markComplete || false,
       });
-
-      const mondayItemId = clockOutResult?.data?.mondayItemId;
-
-      if (data.location?.id && mondayItemId) {
-        setRelationColumn(
-          BOARD_IDS.TIME_ENTRIES,
-          mondayItemId,
-          MONDAY_COLUMNS.TIME_ENTRIES.LOCATIONS_REL,
-          data.location.id,
-        ).catch((err) => console.error("[clock-out] Location relation failed:", err));
-      }
-
-      if (data.expenses?.length) {
-        const workOrderId = captured.workOrder?.id ?? null;
-        const technicianId = auth?.technician?.id ?? null;
-        if (!mondayItemId) {
-          setApiError("Expense creation failed: Could not link to time entry. Please try again.");
-        } else {
-          data.expenses.forEach((expense) => {
-            createExpense({
-              type: expense.type,
-              amount: expense.amount,
-              description: expense.description,
-              timeEntryMondayId: mondayItemId,
-              workOrderId,
-              technicianId,
-            }).catch((err) => console.error("[clock-out] Expense creation failed:", err));
-          });
-        }
-      }
     } catch (err) {
       console.error("[clock-out] API error:", err);
       if (clockInIsToday) {
@@ -874,27 +860,24 @@ export default function TimeTrackingPage() {
     month: "long",
     day: "numeric",
   });
-  const activeLabel =
-    clockedIn && activeEntry
-      ? activeEntry.entryType === "Job"
-        ? (activeEntry.workOrder?.label ?? "Work Order")
-        : (activeEntry.taskDescription ?? "Task")
-      : null;
+
+  const getEntryLabel = (entry) => {
+    if (!entry) return null;
+    if (entry.entryType === "Job") return entry.workOrder?.label ?? "Work Order";
+    if (entry.entryType === "DailyShift") return "Overall Day Shift";
+    return entry.taskDescription ?? "Task";
+  };
 
   const activityFeed = [
-    ...(clockedIn && activeEntry
-      ? [
-        {
-          time: new Date(activeEntry.clockInTime).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          label: activeLabel,
-          type: activeEntry.entryType,
-          active: true,
-        },
-      ]
-      : []),
+    ...Object.entries(activeEntries)
+        .filter(([_, entry]) => !!entry)
+        .map(([key, entry]) => ({
+            time: new Date(entry.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            label: getEntryLabel(entry),
+            type: entry.entryType,
+            active: true,
+            clockInTime: entry.clockInTime
+        })),
     ...todayEntries.flatMap((e) => [
       {
         time: e.clockOut,
@@ -915,11 +898,16 @@ export default function TimeTrackingPage() {
 
   const timingPanelProps = {
     activeEntries,
+    activeShift,
+    activeTask,
     liveClock,
-    elapsed,
+    shiftElapsed,
+    taskElapsed,
     todayEntries,
     activityFeed,
-    onClockIn: () => setClockInOpen(true),
+    onClockIn: (type) => {
+        setClockInOpen(true);
+    },
     onClockOut: (entry) => {
       setActiveToOut(entry);
       setClockOutOpen(true);
@@ -935,7 +923,7 @@ export default function TimeTrackingPage() {
     title: "Time Tracker",
     count: todayDate,
     countLabel: "",
-    buttonLabel: "Clock In",
+    buttonLabel: isShiftActive ? (isTaskActive ? "Switch Task" : "Start Task") : "Clock In for Day",
     onButtonClick: handleHeaderClockIn,
   });
 
@@ -982,7 +970,7 @@ export default function TimeTrackingPage() {
           maxHeight={isMobile ? 320 : 500}
           emptyMessage="No entries yet today - clock in to start tracking"
           columns={[
-            { label: "Type", width: "90px" },
+            { label: "Type", width: "100px" },
             { label: "Description", width: "auto" },
             { label: "Clock In", width: "100px" },
             { label: "Clock Out", width: "100px" },
@@ -999,12 +987,13 @@ export default function TimeTrackingPage() {
               : [
                 ...Object.values(activeEntries)
                   .filter(e => !!e)
+                  .sort((a,b) => (a.entryType === 'DailyShift' ? -1 : 1))
                   .map(e => ({
                     id: e.backendEntryId ?? `active-${e.entryType}`,
-                    entryType: e.entryType === "NonJob" ? "Non-Job" : e.entryType,
+                    entryType: e.entryType === "NonJob" ? "Non-Job" : e.entryType === "DailyShift" ? "Daily Shift" : e.entryType,
                     description: e.entryType === "Job"
                       ? (e.workOrder?.label ?? "Work Order")
-                      : (e.taskDescription ?? "Task"),
+                      : e.entryType === "DailyShift" ? "Daily Attendance" : (e.taskDescription ?? "Task"),
                     clockIn: new Date(e.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
                     clockOut: null,
                     hours: null,
@@ -1019,14 +1008,9 @@ export default function TimeTrackingPage() {
             if (String(row.id).startsWith("__skel_")) {
               return (
                 <TableRow key={row.id}>
-                  {[90, 260, 60, 60, 48, 72].map((w, i) => (
+                  {[100, 260, 100, 100, 48, 100].map((w, i) => (
                     <TableCell key={i} sx={DATA_CELL_SX}>
-                      <Skeleton
-                        variant="rounded"
-                        width={w}
-                        height={14}
-                        sx={{ borderRadius: 1 }}
-                      />
+                      <Skeleton variant="text" width={w} />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -1034,42 +1018,45 @@ export default function TimeTrackingPage() {
             }
             if (row.id === "__total__") {
               return (
-                <TableRow key="total" sx={{ bgcolor: "#f4f8ff" }}>
-                  <TableCell
-                    colSpan={4}
-                    sx={{ ...DATA_CELL_SX, fontWeight: 600, color: "#555" }}
-                  >
-                    Total
+                <TableRow key="total" sx={{ bgcolor: "rgba(0,0,0,0.02)" }}>
+                  <TableCell colSpan={4} sx={{ ...DATA_CELL_SX, fontWeight: 800, textAlign: "right" }}>
+                    Daily Total
                   </TableCell>
-                  <TableCell
-                    sx={{
-                      ...DATA_CELL_SX,
-                      fontWeight: 700,
-                      color: "#1a6ef7",
-                    }}
-                  >
-                    {totalHours(todayEntries)}
+                  <TableCell sx={{ ...DATA_CELL_SX, fontWeight: 800, color: "#1a6ef7" }}>
+                    {totalHours(todayEntries)}h
                   </TableCell>
                   <TableCell sx={DATA_CELL_SX} />
                 </TableRow>
               );
             }
+
+            const typeColor = ENTRY_TYPE_HEX[row.entryType] ?? "#888";
             return (
-              <TableRow
-                key={row.id}
-                hover
-                sx={row._active ? { bgcolor: "rgba(34,197,94,0.04)" } : {}}
-              >
+              <TableRow key={row.id} hover>
                 <TableCell sx={DATA_CELL_SX}>
-                  <StatusChip status={row.entryType} colorMap={statusColors} />
+                  <Chip
+                    label={row.entryType}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: "0.65rem",
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      bgcolor: `${typeColor}15`,
+                      color: typeColor,
+                      border: `1px solid ${typeColor}30`,
+                    }}
+                  />
                 </TableCell>
                 <TableCell sx={DATA_CELL_SX}>
                   <span
-                    title={row.description}
                     style={{
+                      fontWeight: 600,
+                      color: "#333",
+                      display: "block",
+                      maxWidth: 240,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
-                      display: "block",
                       whiteSpace: "nowrap",
                     }}
                   >
@@ -1127,6 +1114,7 @@ export default function TimeTrackingPage() {
         onConfirm={handleClockIn}
         workOrders={workOrders}
         workOrdersLoading={woLoading}
+        isShiftActive={isShiftActive}
       />
       <ClockOutModal
         open={clockOutOpen}

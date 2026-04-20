@@ -10,176 +10,201 @@ import {
   TextField,
   Box,
   Typography,
-  CircularProgress,
+  InputAdornment,
 } from "@mui/material";
 import WorkOutlineIcon from "@mui/icons-material/WorkOutline";
 import HandymanOutlinedIcon from "@mui/icons-material/HandymanOutlined";
-import { useState } from "react";
+import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
+import SearchIcon from "@mui/icons-material/Search";
+import { useState, useEffect } from "react";
+import AppButton from "./AppButton";
 
-export default function ClockInModal({ open, onClose, onConfirm, workOrders = [], workOrdersLoading = false }) {
-  const [entryType, setEntryType] = useState("Job");
+export default function ClockInModal({ open, onClose, onConfirm, workOrders = [], workOrdersLoading = false, isShiftActive }) {
+  const [entryType, setEntryType] = useState("DailyShift");
   const [selectedWO, setSelectedWO] = useState(null);
+  const [taskCategory, setTaskCategory] = useState("Billable");
   const [taskDescription, setTaskDescription] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setEntryType(isShiftActive ? "Job" : "DailyShift");
+      setSubmitted(false);
+      setSelectedWO(null);
+      setTaskDescription("");
+    }
+  }, [open, isShiftActive]);
 
   const isValid =
     entryType === "Job"
       ? selectedWO !== null
-      : taskDescription.trim().length > 0;
+      : entryType === "NonJob"
+        ? taskDescription.trim().length > 0
+        : true;
 
   function handleConfirm() {
     setSubmitted(true);
     if (!isValid) return;
+
     onConfirm({
       entryType,
       workOrder: entryType === "Job" ? selectedWO : null,
-      taskDescription: entryType === "Non-Job" ? taskDescription : "",
+      taskCategory: entryType === "NonJob" ? taskCategory : null,
+      taskDescription: entryType === "NonJob" ? taskDescription : "Daily Attendance",
       clockInTime: new Date().toISOString(),
     });
-    // reset
-    setEntryType("Job");
-    setSelectedWO(null);
-    setTaskDescription("");
-    setSubmitted(false);
-  }
-
-  function handleClose() {
-    setEntryType("Job");
-    setSelectedWO(null);
-    setTaskDescription("");
-    setSubmitted(false);
-    onClose();
   }
 
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
+      onClose={onClose}
       maxWidth="xs"
       fullWidth
       PaperProps={{ sx: { borderRadius: "12px" } }}
     >
-      <DialogTitle sx={{ fontWeight: 700, pb: 0.5 }}>Clock In</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 800, color: "#333", pb: 0.5 }}>
+        {!isShiftActive ? "Start Your Day" : "Start New Task"}
+      </DialogTitle>
+
       <DialogContent sx={{ pt: "12px !important" }}>
-        <Typography variant="caption" sx={{ color: "text.disabled", display: "block", mb: 1.5 }}>
-          Select entry type
-        </Typography>
-
-        <ToggleButtonGroup
-          value={entryType}
-          exclusive
-          onChange={(_, val) => { if (val) { setEntryType(val); setSubmitted(false); } }}
-          fullWidth
-          size="small"
-          sx={{ mb: 2.5 }}
-        >
-          <ToggleButton
-            value="Job"
-            sx={{
-              textTransform: "none",
-              fontWeight: 600,
-              fontSize: 13,
-              gap: 0.75,
-              "&.Mui-selected": {
-                bgcolor: "rgba(79,142,247,0.14)",
-                color: "#1a6ef7",
-                borderColor: "rgba(79,142,247,0.4)",
-              },
-            }}
-          >
-            <WorkOutlineIcon sx={{ fontSize: 16 }} /> Job
-          </ToggleButton>
-          <ToggleButton
-            value="Non-Job"
-            sx={{
-              textTransform: "none",
-              fontWeight: 600,
-              fontSize: 13,
-              gap: 0.75,
-              "&.Mui-selected": {
-                bgcolor: "rgba(168,85,247,0.12)",
-                color: "#a855f7",
-                borderColor: "rgba(168,85,247,0.35)",
-              },
-            }}
-          >
-            <HandymanOutlinedIcon sx={{ fontSize: 16 }} /> Non-Job
-          </ToggleButton>
-        </ToggleButtonGroup>
-
-        {entryType === "Job" ? (
-          <>
-            <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", display: "block", mb: 0.75 }}>
-              Work Order
-            </Typography>
-            <Autocomplete
-              options={workOrders}
-              loading={workOrdersLoading}
-              disableClearable={selectedWO !== null}
-              value={selectedWO}
-              onChange={(_, val) => setSelectedWO(val)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="Search work orders…"
-                  size="small"
-                  error={submitted && selectedWO === null}
-                  helperText={submitted && selectedWO === null ? "A work order is required to clock in." : " "}
-                  FormHelperTextProps={{ sx: { color: "#ef4444", mx: 0 } }}
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {workOrdersLoading ? <CircularProgress size={16} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
+        <Box sx={{ mt: 1 }}>
+          {isShiftActive ? (
+            <>
+              <Typography variant="body2" sx={{ mb: 2, color: "text.secondary", fontWeight: 500 }}>
+                Choose the type of task you are starting:
+              </Typography>
+              <ToggleButtonGroup
+                value={entryType}
+                exclusive
+                onChange={(_, val) => val && setEntryType(val)}
+                fullWidth
+                size="small"
+                sx={{ mb: 2.5 }}
+              >
+                <ToggleButton
+                  value="Job"
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 600,
+                    gap: 1,
+                    "&.Mui-selected": {
+                      bgcolor: "rgba(26,110,247,0.08) !important",
+                      color: "#1a6ef7 !important",
+                      borderColor: "#1a6ef7 !important",
+                    },
                   }}
-                />
-              )}
-            />
-          </>
-        ) : (
-          <>
-            <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", display: "block", mb: 0.75 }}>
-              Task Description <span style={{ color: "#ef4444" }}>*</span>
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Describe the task (required)…"
-              value={taskDescription}
-              onChange={(e) => setTaskDescription(e.target.value)}
-              inputProps={{ maxLength: 200 }}
-              error={submitted && taskDescription.trim().length === 0}
-              helperText={
-                submitted && taskDescription.trim().length === 0
-                  ? "A description is required to clock in."
-                  : " "
-              }
-              FormHelperTextProps={{ sx: { color: "#ef4444", mx: 0 } }}
-            />
-          </>
-        )}
+                >
+                  <WorkOutlineIcon sx={{ fontSize: 16 }} /> Job Level
+                </ToggleButton>
+                <ToggleButton
+                  value="NonJob"
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 600,
+                    gap: 1,
+                    "&.Mui-selected": {
+                      bgcolor: "rgba(245,158,11,0.08) !important",
+                      color: "#f59e0b !important",
+                      borderColor: "#f59e0b !important",
+                    },
+                  }}
+                >
+                  <HandymanOutlinedIcon sx={{ fontSize: 16 }} /> Non-Job
+                </ToggleButton>
+              </ToggleButtonGroup>
 
-        <Box sx={{ mt: 2, p: 1.5, bgcolor: "#f5f5f5", borderRadius: 2 }}>
-          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.75rem" }}>
-            Clock-in time will be recorded as{" "}
-            <strong>{new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
-          </Typography>
+              {entryType === "Job" && (
+                <Box sx={{ animation: "fadeIn 0.3s ease" }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: "#666", mb: 0.5, display: "block" }}>
+                    Select Work Order
+                  </Typography>
+                  <Autocomplete
+                    options={workOrders}
+                    getOptionLabel={(opt) => opt.label}
+                    loading={workOrdersLoading}
+                    value={selectedWO}
+                    onChange={(_, val) => setSelectedWO(val)}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="Search assigned work orders..."
+                        error={submitted && !selectedWO}
+                        helperText={submitted && !selectedWO ? "Please select a work order" : ""}
+                        InputProps={{
+                          ...params.InputProps,
+                          sx: { borderRadius: 1.5, bgcolor: "#fcfcfc" },
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon sx={{ color: "#aaa", fontSize: 20 }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
+                    sx={{ mb: 2 }}
+                  />
+                </Box>
+              )}
+
+              {entryType === "NonJob" && (
+                <Box sx={{ animation: "fadeIn 0.3s ease" }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: "#666", mb: 0.5, display: "block" }}>
+                    Task Description
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    placeholder="What are you working on?"
+                    value={taskDescription}
+                    onChange={(e) => setTaskDescription(e.target.value)}
+                    error={submitted && !taskDescription.trim()}
+                    helperText={submitted && !taskDescription.trim() ? "Description is required" : ""}
+                    sx={{ mb: 2 }}
+                    InputProps={{ sx: { borderRadius: 1.5, bgcolor: "#fcfcfc" } }}
+                  />
+                </Box>
+              )}
+            </>
+          ) : (
+            <Box sx={{ textAlign: "center", py: 2 }}>
+              <Box
+                sx={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: "50%",
+                  bgcolor: "rgba(139,92,246,0.1)",
+                  color: "#8b5cf6",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mx: "auto",
+                  mb: 2,
+                }}
+              >
+                <LoginOutlinedIcon sx={{ fontSize: 30 }} />
+              </Box>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: "#333", mb: 1 }}>
+                Ready to Clock In?
+              </Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary", px: 2 }}>
+                This will start your **Daily Shift** session. You will be able to track specific jobs and tasks once you are clocked in.
+              </Typography>
+            </Box>
+          )}
         </Box>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button onClick={handleClose} sx={{ textTransform: "none", color: "text.secondary" }}>
+
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button onClick={onClose} sx={{ color: "text.secondary", fontWeight: 600 }}>
           Cancel
         </Button>
-        <Button
-          variant="contained"
+        <AppButton
           onClick={handleConfirm}
-          sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
+          disabled={submitted && !isValid}
+          sx={{ px: 4 }}
         >
-          Clock In
-        </Button>
+          Confirm
+        </AppButton>
       </DialogActions>
     </Dialog>
   );

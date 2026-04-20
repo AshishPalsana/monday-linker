@@ -79,5 +79,6 @@ export const COST_TYPE_HEX = {
 export const ENTRY_TYPE_HEX = {
   Job: "#1a6ef7",
   Travel: "#a855f7",
+  DailyShift: "#8b5cf6",
   "Non-Job": "#f59e0b",
 };
