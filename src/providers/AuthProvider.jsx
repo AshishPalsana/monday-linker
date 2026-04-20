@@ -11,35 +11,44 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     async function initAuth() {
+      console.log("[AuthProvider] Initializing Monday identity...");
       try {
-        // Try to get context from the Monday platform first
+        // 1. Get platform context
         const contextRes = await monday.get("context");
-        const contextUserId = contextRes?.data?.user?.id;
+        const contextUser = contextRes?.data?.user;
+        console.log("[AuthProvider] Platform context received:", contextRes?.data);
 
-        // Fetch full user details from "me" query via the platform's API
-        // This is the most reliable way to get the current user's name/admin status
-        const query = `query { me { id name is_admin } }`;
-        const apiRes = await monday.api(query);
+        let finalUserId = contextUser?.id ? String(contextUser.id) : null;
+        let finalUserName = "Platform User";
+        let finalIsAdmin = false;
 
-        if (apiRes.data && apiRes.data.me) {
-          const { id, name, is_admin } = apiRes.data.me;
+        // 2. Fetch full user details from "me" query (requires me:read scope)
+        try {
+          const query = `query { me { id name is_admin } }`;
+          const apiRes = await monday.api(query);
+          console.log("[AuthProvider] 'Me' query result:", apiRes);
+
+          if (apiRes.data && apiRes.data.me) {
+            finalUserId = String(apiRes.data.me.id);
+            finalUserName = apiRes.data.me.name;
+            finalIsAdmin = !!apiRes.data.me.is_admin;
+          }
+        } catch (meErr) {
+          console.warn("[AuthProvider] Could not fetch profile details (check scopes in Developer Center):", meErr);
+        }
+
+        if (finalUserId) {
+          console.log(`[AuthProvider] Identifying as: ${finalUserName} (${finalUserId})`);
           dispatch(login({
-            mondayUserId: String(id),
-            name: name,
-            isAdmin: !!is_admin
-          }));
-        } else if (contextUserId) {
-          // Fallback if "me" query fails but we have context ID
-          dispatch(login({
-            mondayUserId: String(contextUserId),
-            name: import.meta.env.VITE_MONDAY_USER_NAME || "User",
-            isAdmin: false
+            mondayUserId: finalUserId,
+            name: finalUserName,
+            isAdmin: finalIsAdmin
           }));
         } else {
-          throw new Error("No Monday context found");
+          throw new Error("No Monday user context available");
         }
       } catch (err) {
-        console.warn("[AuthProvider] Using dev fallback identity:", err);
+        console.error("[AuthProvider] Authentication failed, falling back to dev identity:", err);
         // Local development fallback
         dispatch(login({
           mondayUserId: import.meta.env.VITE_MONDAY_USER_ID || '100074837',
