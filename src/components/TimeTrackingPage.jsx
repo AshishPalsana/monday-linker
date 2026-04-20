@@ -590,19 +590,38 @@ export default function TimeTrackingPage() {
   const rawWorkOrders = woData?.items_page?.items ?? EMPTY_ITEMS;
 
   const workOrders = useMemo(() => {
-    const currentUserId = String(auth?.technician?.id || "");
+    // Current user identification (prioritize Monday User ID)
+    const currentUserId = String(
+      auth?.mondayUserId || 
+      auth?.technician?.mondayId || 
+      auth?.technician?.id || 
+      ""
+    );
     const isAdmin = !!auth?.technician?.isAdmin;
-    return (rawWorkOrders || [])
+
+    const filtered = (rawWorkOrders || [])
       .filter((item) => {
         const isInActiveGroup = !item.group || item.group.id === GROUP_IDS.WORK_ORDERS_ACTIVE;
         if (!isInActiveGroup) return false;
         if (isAdmin) return true;
+
         const techVal = item.column_values?.find((cv) => cv.id === MONDAY_COLUMNS.WORK_ORDERS.TECHNICIAN);
+        // Extracts all IDs from the Monday People column
         const assignedIds = techVal?.persons_and_teams?.map((p) => String(p.id)) || [];
-        return assignedIds.includes(currentUserId);
+        
+        const isAssigned = assignedIds.includes(currentUserId);
+        
+        // Log mismatch for debugging if needed
+        if (!isAssigned && assignedIds.length > 0) {
+          console.log(`[work-order-filter] User ID mismatch for item "${item.name}". Assigned: ${assignedIds.join(",")}, Current Logged-in: ${currentUserId}`);
+        }
+        
+        return isAssigned;
       })
       .map((item) => ({ id: item.id, label: item.name }));
-  }, [rawWorkOrders, auth?.technician]);
+
+    return filtered;
+  }, [rawWorkOrders, auth]);
 
   const shiftElapsed = useElapsedTimer(activeShift?.clockInTime);
   const taskElapsed = useElapsedTimer(activeTask?.clockInTime);
