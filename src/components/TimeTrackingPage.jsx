@@ -581,6 +581,13 @@ export default function TimeTrackingPage() {
     socket.emit("today:request");
   }, [socket]);
 
+  // Refetch work orders whenever the Clock-In modal is opened to ensure data is fresh
+  useEffect(() => {
+    if (clockInOpen && token) {
+      dispatch(fetchWorkOrders());
+    }
+  }, [clockInOpen, token, dispatch]);
+
   const userName = auth?.technician?.name ?? "…";
   const userInitials = userName !== "…"
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -590,13 +597,14 @@ export default function TimeTrackingPage() {
   const rawWorkOrders = woData?.items_page?.items ?? EMPTY_ITEMS;
 
   const workOrders = useMemo(() => {
-    // Current user identification (prioritize Monday User ID)
-    const currentUserId = String(
-      auth?.mondayUserId || 
-      auth?.technician?.mondayId || 
-      auth?.technician?.id || 
-      ""
-    );
+    // Collect all possible IDs for the current user
+    const allowedIds = [
+      String(auth?.mondayUserId || ""),
+      String(auth?.technician?.mondayId || ""),
+      String(auth?.technician?.id || ""),
+      String(auth?.technician?.mondayUserId || ""),
+    ].filter((id) => id && id !== "undefined" && id !== "null");
+
     const isAdmin = !!auth?.technician?.isAdmin;
 
     const filtered = (rawWorkOrders || [])
@@ -606,14 +614,13 @@ export default function TimeTrackingPage() {
         if (isAdmin) return true;
 
         const techVal = item.column_values?.find((cv) => cv.id === MONDAY_COLUMNS.WORK_ORDERS.TECHNICIAN);
-        // Extracts all IDs from the Monday People column
         const assignedIds = techVal?.persons_and_teams?.map((p) => String(p.id)) || [];
         
-        const isAssigned = assignedIds.includes(currentUserId);
+        // Match if any of the technician's IDs match any of the assigned IDs on the board
+        const isAssigned = assignedIds.some(aid => allowedIds.includes(aid));
         
-        // Log mismatch for debugging if needed
         if (!isAssigned && assignedIds.length > 0) {
-          console.log(`[work-order-filter] User ID mismatch for item "${item.name}". Assigned: ${assignedIds.join(",")}, Current Logged-in: ${currentUserId}`);
+          console.log(`[work-order-filter] No match for "${item.name}". Assigned: [${assignedIds.join(",")}], Your IDs: [${allowedIds.join(",")}]`);
         }
         
         return isAssigned;
