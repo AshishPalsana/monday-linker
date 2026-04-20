@@ -120,14 +120,13 @@ export function LinkedTable({ icon: Icon, label, iconColor, items, columns, onNa
         </Typography>
       </Box>
       
-      <Box sx={{ 
-        border: '1px solid #e8e6e1', 
-        borderRadius: '6px', 
+      <Box sx={{
+        border: '1px solid #e8e6e1',
+        borderRadius: '6px',
         bgcolor: '#fff',
-        overflow: 'hidden'
+        overflowX: 'auto',
       }}>
-        <Box sx={{ overflowX: 'auto' }}>
-          <Box sx={{ minWidth: '420px' }}>
+        <Box sx={{ minWidth: 'max-content' }}>
             <Box sx={{ 
               display: 'grid', 
               gridTemplateColumns: columns.map(c => c.width || '1fr').join(' '),
@@ -183,7 +182,6 @@ export function LinkedTable({ icon: Icon, label, iconColor, items, columns, onNa
             </Stack>
           </Box>
         </Box>
-      </Box>
     </Box>
   );
 }

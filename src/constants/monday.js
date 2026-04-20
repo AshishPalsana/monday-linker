@@ -15,6 +15,8 @@ export const GROUP_IDS = {
   EQUIPMENT_ACTIVE: "topics",
   TIME_ENTRIES_OPEN: "topics",
   EXPENSES_PENDING: "topics",
+  WORK_ORDERS_ACTIVE: "topics",
+  WORK_ORDERS_RANDOM_STUFF: "group_mm1brwjm",
 };
 
 export const MONDAY_COLUMNS = {
