@@ -3,6 +3,7 @@ import { mondayClient } from "../services/monday/client";
 import { FETCH_BOARD_DATA } from "../services/monday/queries";
 import { BOARD_IDS } from "../constants/monday";
 import { parseBoardStatusColors } from "../utils/mondayUtils";
+import { createMasterCostItem, updateMasterCostItem } from "../services/monday/masterCostService";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -57,10 +58,9 @@ export const createMasterCost = createAsyncThunk(
   "masterCosts/create",
   async ({ payload, token }, { dispatch, rejectWithValue }) => {
     try {
-      const res = await apiFetch("POST", "/api/master-costs", payload, token);
-      // Refresh after create so totals are recalculated
+      const item = await createMasterCostItem(payload);
       dispatch(fetchMasterCosts({ workOrderId: payload.workOrderId, token }));
-      return res.data;
+      return item;
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -71,7 +71,7 @@ export const updateMasterCost = createAsyncThunk(
   "masterCosts/update",
   async ({ mondayItemId, payload, token }, { dispatch, rejectWithValue }) => {
     try {
-      await apiFetch("PATCH", `/api/master-costs/${mondayItemId}`, payload, token);
+      await updateMasterCostItem(mondayItemId, payload);
       dispatch(fetchMasterCosts({ token }));
       return { mondayItemId };
     } catch (err) {
@@ -97,11 +97,13 @@ export const deleteMasterCost = createAsyncThunk(
 const masterCostsSlice = createSlice({
   name: "masterCosts",
   initialState: {
-    items:    [],
-    loading:  false,
-    creating: false,
-    saving:   false,
-    error:    null,
+    items:        [],
+    groups:       [],
+    itemGroupMap: {},
+    loading:      false,
+    creating:     false,
+    saving:       false,
+    error:        null,
     statusColors: {},
   },
   reducers: {},
@@ -111,9 +113,23 @@ const masterCostsSlice = createSlice({
       .addCase(fetchMasterCosts.pending,   (s) => { s.loading = true;  s.error = null; })
       .addCase(fetchMasterCosts.fulfilled, (s, { payload }) => { s.loading = false; s.items = payload ?? []; })
       .addCase(fetchMasterCosts.rejected,  (s, { payload }) => { s.loading = false; s.error = payload; })
-      // metadata
+      // metadata — extract groups, status colors, and item→group mapping
       .addCase(fetchMasterCostsMetadata.fulfilled, (s, { payload }) => {
         s.statusColors = parseBoardStatusColors(payload);
+        s.groups = payload?.groups ?? [];
+        // build a map of itemId → groupId so the board can group REST items by Monday group
+        const colorByGroupId = Object.fromEntries((payload?.groups ?? []).map(g => [g.id, g.color]));
+        const map = {};
+        for (const item of payload?.items_page?.items ?? []) {
+          if (item.group?.id) {
+            map[item.id] = {
+              id:    item.group.id,
+              title: item.group.title,
+              color: colorByGroupId[item.group.id] ?? "#6b7280",
+            };
+          }
+        }
+        s.itemGroupMap = map;
       })
       // create
       .addCase(createMasterCost.pending,   (s) => { s.creating = true; })

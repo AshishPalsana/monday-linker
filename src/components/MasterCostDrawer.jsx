@@ -78,6 +78,7 @@ const InlineField = ({
   multiline,
   rows,
   type = "text",
+  min,
 }) => (
   <TextField
     fullWidth
@@ -89,6 +90,7 @@ const InlineField = ({
     rows={rows}
     type={type}
     variant="standard"
+    inputProps={{ min }}
     sx={{
       "& .MuiInput-root": {
         fontSize: "0.875rem",
@@ -120,6 +122,22 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
     date: new Date().toISOString().split("T")[0],
     workOrderId: defaultWorkOrderId || "",
   });
+  const [attempted, setAttempted] = useState(false);
+
+  const REQUIRED = [
+    { key: "workOrderId", label: "Work Order" },
+    { key: "description", label: "Description" },
+    { key: "quantity", label: "Quantity" },
+    { key: "rate", label: "Rate" },
+  ];
+  const missing = REQUIRED.filter((f) => {
+    const v = form[f.key];
+    if (f.key === "quantity") return !v || parseFloat(v) <= 0;
+    if (f.key === "rate") return v === "" || v === null || parseFloat(v) < 0;
+    return !String(v ?? "").trim();
+  });
+  const isValid = missing.length === 0;
+  const err = (k) => attempted && missing.some((f) => f.key === k);
 
   useEffect(() => {
     if (costItem && !isNew) {
@@ -137,9 +155,15 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
     }
   }, [costItem, isNew, defaultWorkOrderId]);
 
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const set = (k, v) => {
+    if ((k === "quantity" || k === "rate") && v !== "" && parseFloat(v) < 0) return;
+    setForm(p => ({ ...p, [k]: v }));
+  };
 
   const handleSave = async () => {
+    setAttempted(true);
+    if (!isValid) return;
+
     const payload = {
       ...form,
       quantity: parseFloat(form.quantity),
@@ -149,10 +173,10 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
     if (isNew) {
       await dispatch(createMasterCost({ payload, token: auth?.token })).unwrap();
     } else {
-      await dispatch(updateMasterCost({ 
-        mondayItemId: costItem.id, 
-        payload, 
-        token: auth?.token 
+      await dispatch(updateMasterCost({
+        mondayItemId: costItem.id,
+        payload,
+        token: auth?.token
       })).unwrap();
     }
     onClose();
@@ -195,15 +219,26 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
       <Divider sx={{ borderColor: "#e8e6e1" }} />
 
       <Box sx={{ flex: 1, overflowY: "auto", px: 2.5, py: 2.5 }}>
+        {attempted && !isValid && (
+          <Box sx={{ mb: 2.5, px: 1.5, py: 1, bgcolor: "#fff3f3", borderRadius: "4px", border: "1px solid #fecaca" }}>
+            <Typography sx={{ fontSize: "0.775rem", color: "#eb5757" }}>
+              Missing: <strong>{missing.map((f) => f.label).join(", ")}</strong>
+            </Typography>
+          </Box>
+        )}
+
         <Stack spacing={2}>
-          <PropertyRow icon={AssignmentOutlinedIcon} label="Work Order" required>
+          <PropertyRow icon={AssignmentOutlinedIcon} label="Work Order" required error={err("workOrderId")}>
             <Select
               value={form.workOrderId}
               onChange={(e) => set("workOrderId", e.target.value)}
               variant="standard"
               fullWidth
               disabled={!!defaultWorkOrderId}
-              sx={{ fontSize: "0.875rem" }}
+              sx={{
+                fontSize: "0.875rem",
+                "& .MuiInput-root:before": { borderBottomColor: err("workOrderId") ? "#eb5757" : undefined },
+              }}
             >
               <MenuItem value="">Select Work Order...</MenuItem>
               {workOrders.map(wo => (
@@ -222,8 +257,8 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
             >
               {COST_TYPE_OPTIONS.map(opt => (
                 <MenuItem key={opt} value={opt}>
-                  <Box sx={{ 
-                    px: 1, py: 0.2, borderRadius: "3px", 
+                  <Box sx={{
+                    px: 1, py: 0.2, borderRadius: "3px",
                     bgcolor: `${COST_TYPE_HEX[opt]}15`, color: COST_TYPE_HEX[opt],
                     fontSize: "0.75rem", fontWeight: 600
                   }}>
@@ -234,27 +269,32 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
             </Select>
           </PropertyRow>
 
-          <PropertyRow icon={DescriptionOutlinedIcon} label="Description" required>
+          <PropertyRow icon={DescriptionOutlinedIcon} label="Description" required error={err("description")}>
             <InlineField
               value={form.description}
               onChange={(e) => set("description", e.target.value)}
               placeholder="e.g. 1/2 HP Motor replacement"
+              error={err("description")}
             />
           </PropertyRow>
 
-          <PropertyRow icon={NumbersOutlinedIcon} label="Quantity" required>
+          <PropertyRow icon={NumbersOutlinedIcon} label="Quantity" required error={err("quantity")}>
             <InlineField
               type="number"
+              min={1}
               value={form.quantity}
               onChange={(e) => set("quantity", e.target.value)}
+              error={err("quantity")}
             />
           </PropertyRow>
 
-          <PropertyRow icon={AttachMoneyOutlinedIcon} label="Rate" required>
+          <PropertyRow icon={AttachMoneyOutlinedIcon} label="Rate" required error={err("rate")}>
             <InlineField
               type="number"
+              min={0}
               value={form.rate}
               onChange={(e) => set("rate", e.target.value)}
+              error={err("rate")}
             />
           </PropertyRow>
 
@@ -274,17 +314,52 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
         </Stack>
       </Box>
 
-      <Box sx={{ px: 3, py: 2, borderTop: "1px solid #e8e6e1", display: "flex", justifyContent: "flex-end", gap: 1 }}>
-        <Button onClick={onClose} sx={{ textTransform: "none", color: "#787774" }}>
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          borderTop: "1px solid #edece9",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 1,
+          flexShrink: 0,
+        }}
+      >
+        <Button
+          onClick={onClose}
+          sx={{
+            px: 2,
+            textTransform: "none",
+            fontWeight: 500,
+            fontSize: "0.85rem",
+            color: "#37352f",
+            bgcolor: "transparent",
+            border: "1px solid #e5e7eb",
+            borderRadius: "6px",
+            "&:hover": { bgcolor: "#f1f1ef" },
+          }}
+        >
           Cancel
         </Button>
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={creating || saving || !form.workOrderId || !form.description}
-          sx={{ textTransform: "none", bgcolor: "#2f6feb" }}
+          disabled={creating || saving}
+          sx={{
+            px: 2.5,
+            textTransform: "none",
+            fontWeight: 600,
+            fontSize: "0.85rem",
+            bgcolor: "#2383e2",
+            borderRadius: "6px",
+            boxShadow: "none",
+            "&:hover": { bgcolor: "#1a6fba", boxShadow: "none" },
+            "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
+          }}
         >
-          {creating || saving ? <CircularProgress size={20} color="inherit" /> : (isNew ? "Add Item" : "Save Changes")}
+          {creating || saving ? <CircularProgress size={16} sx={{ color: "#fff", mr: 1 }} /> : null}
+          {isNew ? "Add Item" : "Save Changes"}
         </Button>
       </Box>
     </Drawer>

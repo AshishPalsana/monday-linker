@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TableCell, TableRow,
-  Avatar, Tooltip, CircularProgress,
+  Tooltip, CircularProgress,
 } from '@mui/material';
 import { useBoardHeader, useBoardHeaderContext } from '../contexts/BoardHeaderContext';
 import {
@@ -104,10 +104,7 @@ export default function EquipmentBoard() {
     return (
       <TableRow key={item.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/equipment/${item.id}`)}>
         <TableCell sx={{ ...DATA_CELL_SX, py: '5px' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
-            <Avatar sx={{ width: 26, height: 26, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0, bgcolor: 'rgba(34,197,94,0.15)', color: '#16a34a' }}>
-              {item.name?.slice(0, 2).toUpperCase() || '??'}
-            </Avatar>
+          <Box sx={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
             <Tooltip title={item.name} placement="top" enterDelay={600} arrow>
               <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {item.name}

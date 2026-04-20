@@ -23,6 +23,7 @@ export default function AppRouter() {
       <CssBaseline />
       <SnackbarProvider
         maxSnack={3}
+        autoHideDuration={2000}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <NotificationManager />

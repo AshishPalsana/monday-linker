@@ -14,7 +14,7 @@ import {
 import { useBoardHeader, useBoardHeaderContext } from "../contexts/BoardHeaderContext";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import { MONDAY_COLUMNS, COST_TYPE_HEX } from "../constants/index";
+import { MONDAY_COLUMNS } from "../constants/index";
 import { BoardGroup, BoardTable, DATA_CELL_SX } from "./BoardTable";
 import MasterCostDrawer from "./MasterCostDrawer";
 import StatusChip from "./StatusChip";
@@ -26,7 +26,7 @@ const WO_COL = MONDAY_COLUMNS.WORK_ORDERS;
 export default function MasterCostsBoard() {
   const dispatch = useDispatch();
   const { auth } = useAuth();
-  const { items, loading, error, statusColors } = useSelector((s) => s.masterCosts);
+  const { items, groups, itemGroupMap, loading, error, statusColors } = useSelector((s) => s.masterCosts);
   const { board: woBoard } = useSelector((s) => s.workOrders);
   const { search } = useBoardHeaderContext();
   
@@ -72,10 +72,10 @@ export default function MasterCostsBoard() {
     onButtonClick: handleAddCost,
   });
 
-  const itemsByType = filteredItems.reduce((acc, item) => {
-    const type = getColValue(item, MC_COL.TYPE) || "Other";
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(item);
+  const itemsByGroup = filteredItems.reduce((acc, item) => {
+    const groupId = itemGroupMap[item.id]?.id ?? "__ungrouped__";
+    if (!acc[groupId]) acc[groupId] = [];
+    acc[groupId].push(item);
     return acc;
   }, {});
 
@@ -94,7 +94,6 @@ export default function MasterCostsBoard() {
   const renderRow = (item) => {
     const type = getColValue(item, MC_COL.TYPE);
     const woId = getColValue(item, MC_COL.WORK_ORDERS_REL);
-    
     return (
       <TableRow key={item.id} hover>
         <TableCell sx={DATA_CELL_SX}>{getColValue(item, MC_COL.DATE) || "—"}</TableCell>
@@ -152,21 +151,23 @@ export default function MasterCostsBoard() {
     );
   }
 
-  const types = ["Labor", "Parts", "Expense"];
+  const boardGroups = groups.length > 0
+    ? groups
+    : [{ id: "__ungrouped__", title: "Cost Items", color: "#6b7280" }];
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <Box sx={{ flex: 1, overflow: "auto", px: 3, py: 2 }}>
-        {types.map(type => {
-          const rows = itemsByType[type] || [];
+        {boardGroups.map(group => {
+          const rows = itemsByGroup[group.id] || [];
           if (rows.length === 0 && search) return null;
           return (
-            <BoardGroup key={type} label={type} color={COST_TYPE_HEX[type]} count={rows.length}>
+            <BoardGroup key={group.id} label={group.title} color={group.color || "#6b7280"} count={rows.length}>
               <BoardTable
                 columns={COLUMNS}
                 rows={rows}
                 renderRow={renderRow}
-                emptyMessage={`No ${type} costs recorded`}
+                emptyMessage={`No items in ${group.title}`}
                 minWidth={1300}
               />
             </BoardGroup>
