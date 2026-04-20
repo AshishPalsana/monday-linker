@@ -16,13 +16,13 @@ const FETCH_ASSETS_URLS = gql`
 `;
 
 /**
- * Renders a visual preview for Monday.com FileValue columns.
+ * Renders a Visual preview for Monday.com FileValue columns.
  * Supports thumbnails for images and Icons for other file types.
  */
 export default function FileCell({ item, columnId, maxShown = 2 }) {
   const [fileUrls, setFileUrls] = useState({});
   const col = item?.column_values?.find((cv) => cv.id === columnId);
-  
+
   // Parse files from col.value JSON
   let files = [];
   try {
@@ -69,7 +69,7 @@ export default function FileCell({ item, columnId, maxShown = 2 }) {
       {visibleFiles.map((file) => {
         const type = getFileIcon(file.name);
         const publicUrl = fileUrls[file.assetId] || file.public_url || "";
-        
+
         return (
           <Tooltip key={file.assetId || file.id} title={file.name} arrow placement="top">
             <Box
@@ -114,7 +114,7 @@ export default function FileCell({ item, columnId, maxShown = 2 }) {
           </Tooltip>
         );
       })}
-      
+
       {remainingCount > 0 && (
         <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, fontSize: "0.7rem" }}>
           +{remainingCount}
