@@ -472,60 +472,51 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
         sx={{
           px: 3,
           py: 2,
-          borderTop: "1px solid #e8e6e1",
+          borderTop: "1px solid #edece9",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
+          gap: 1,
+          flexShrink: 0,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-          <Box
-            sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#4bb87f" }}
-          />
-          <Typography sx={{ fontSize: "0.71rem", color: "#b0ada8" }}>
-            Monday CRM · Synced
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", gap: 1 }}>
-          <Button
-            onClick={onClose}
-            disabled={isBusy}
-            sx={{
-              px: 2,
-              height: 32,
-              borderRadius: "4px",
-              fontSize: "0.82rem",
-              fontWeight: 500,
-              color: "#787774",
-              textTransform: "none",
-              "&:hover": { bgcolor: "#f1f1ef" },
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            disableElevation
-            disabled={isBusy}
-            startIcon={
-              isBusy ? <CircularProgress size={14} color="inherit" /> : null
-            }
-            sx={{
-              px: 2.5,
-              height: 32,
-              borderRadius: "4px",
-              fontSize: "0.82rem",
-              fontWeight: 600,
-              textTransform: "none",
-              bgcolor: "#2f6feb",
-              "&:hover": { bgcolor: "#1a56d6" },
-              "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
-            }}
-          >
-            {isNew ? "Create" : "Save changes"}
-          </Button>
-        </Box>
+        <Button
+          onClick={onClose}
+          disabled={isBusy}
+          sx={{
+            px: 2,
+            textTransform: "none",
+            fontWeight: 500,
+            fontSize: "0.85rem",
+            color: "#37352f",
+            bgcolor: "transparent",
+            border: "1px solid #e5e7eb",
+            borderRadius: "6px",
+            "&:hover": { bgcolor: "#f1f1ef" },
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          variant="contained"
+          disableElevation
+          disabled={isBusy}
+          sx={{
+            px: 2.5,
+            textTransform: "none",
+            fontWeight: 600,
+            fontSize: "0.85rem",
+            bgcolor: "#2383e2",
+            borderRadius: "6px",
+            boxShadow: "none",
+            "&:hover": { bgcolor: "#1a6fba", boxShadow: "none" },
+            "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
+          }}
+        >
+          {isBusy ? <CircularProgress size={16} sx={{ color: "#fff", mr: 1 }} /> : null}
+          {isNew ? "Create" : "Save changes"}
+        </Button>
       </Box>
 
       {pendingNewLocation && (

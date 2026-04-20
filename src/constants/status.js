@@ -1,5 +1,5 @@
 export const SCHEDULING_STATUS_OPTIONS = [
-  "Incomplete (needs details)",
+  "Incomplete",
   "Unscheduled",
   "Scheduled",
   "Pre-scheduled",
@@ -11,8 +11,8 @@ export const PROGRESS_STATUS_OPTIONS = [
   "In Progress",
   "Additional Trip Needed (parts ordered)",
   "Additional Trip Needed (need parts)",
-  "addl trip needed time only",
-  "Complete",
+  "Additional Trip Needed (Time Only)",
+  "Completed",
 ];
 
 export const STATUS_OPTIONS = [
@@ -21,7 +21,7 @@ export const STATUS_OPTIONS = [
 ];
 
 export const STATUS_COLORS = {
-  "Incomplete (needs details)": "error",
+  Incomplete: "error",
   Unscheduled: "warning",
   Scheduled: "primary",
   "Pre-scheduled": "secondary",
@@ -30,27 +30,27 @@ export const STATUS_COLORS = {
   "In Progress": "secondary",
   "Additional Trip Needed (parts ordered)": "warning",
   "Additional Trip Needed (need parts)": "error",
-  "addl trip needed time only": "secondary",
-  Complete: "success",
+  "Additional Trip Needed (Time Only)": "secondary",
+  Completed: "success",
 };
 
 export const STATUS_HEX = {
-  "Incomplete (needs details)": "#ef4444",
-  Unscheduled: "#f59e0b",
-  Scheduled: "#4f8ef7",
-  "Pre-scheduled": "#a855f7",
-  "Return Trip Unscheduled": "#f97316",
-  "Return Trip Scheduled": "#06b6d4",
-  "In Progress": "#a855f7",
-  "Additional Trip Needed (parts ordered)": "#f59e0b",
-  "Additional Trip Needed (need parts)": "#ef4444",
-  "addl trip needed time only": "#a855f7",
-  Complete: "#22c55e",
+  Incomplete: "#7f5347",
+  Unscheduled: "#ffcb00",
+  Scheduled: "#ff6d3b",
+  "Pre-scheduled": "#007eb5",
+  "Return Trip Unscheduled": "#00c875",
+  "Return Trip Scheduled": "#ff007f",
+  "In Progress": "#fdab3d",
+  "Additional Trip Needed (parts ordered)": "#007eb5",
+  "Additional Trip Needed (need parts)": "#9d50dd",
+  "Additional Trip Needed (Time Only)": "#037f4c",
+  Completed: "#df2f4a",
 };
 
 export const PARTS_HEX = {
-  Yes: "#22c55e",
-  "Waiting on Parts": "#f59e0b",
+  "Waiting on Parts": "#fdab3d",
+  Yes: "#00c875",
   No: "#df2f4a",
 };
 

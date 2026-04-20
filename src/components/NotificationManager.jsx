@@ -17,7 +17,7 @@ const NotificationManager = () => {
       enqueueSnackbar(message, {
         variant: variant || "default",
         key,
-        autoHideDuration: 4000,
+        autoHideDuration: 2000,
         ...options,
       });
       // Remove from Redux immediately so it's not re-processed on next render

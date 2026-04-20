@@ -6,7 +6,6 @@ import {
   Typography,
   TableCell,
   TableRow,
-  Avatar,
   Tooltip,
   CircularProgress,
 } from '@mui/material';
@@ -104,10 +103,7 @@ export default function CustomersBoard() {
     return (
       <TableRow key={c.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/customers/${c.id}`)}>
         <TableCell sx={{ ...DATA_CELL_SX, py: '5px' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
-            <Avatar sx={{ width: 26, height: 26, fontSize: '0.6rem', fontWeight: 700, flexShrink: 0, bgcolor: 'rgba(79,142,247,0.2)', color: 'primary.light' }}>
-              {c.name?.slice(0, 2).toUpperCase() || '??'}
-            </Avatar>
+          <Box sx={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
             <Tooltip title={c.name} placement="top" enterDelay={600} arrow>
               <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8rem', color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {c.name}

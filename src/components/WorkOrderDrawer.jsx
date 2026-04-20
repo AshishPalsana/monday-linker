@@ -27,7 +27,7 @@ import CalendarViewWeekOutlinedIcon from "@mui/icons-material/CalendarViewWeekOu
 import { createWorkOrder } from "../store/workOrderSlice";
 import { createCustomer } from "../store/customersSlice";
 import { createLocation } from "../store/locationsSlice";
-import { STATUS_OPTIONS, STATUS_HEX, VALIDATION_STATUSES, PARTS_HEX } from "../constants/index";
+import { SCHEDULING_STATUS_OPTIONS, STATUS_HEX, VALIDATION_STATUSES, PARTS_HEX } from "../constants/index";
 import CustomerDrawer from "./CustomerDrawer";
 import LocationDrawer from "./LocationDrawer";
 import RelationCell from "./RelationCell";
@@ -188,42 +188,26 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
         sx={{
           p: 2,
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           justifyContent: "space-between",
           borderBottom: "1px solid #edece9",
         }}
       >
-        <Stack direction="row" spacing={1} alignItems="center">
-          <IconButton size="small" onClick={onClose} sx={{ color: "#9b9a97" }}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
-          <Typography
-            sx={{ fontWeight: 600, fontSize: "0.9rem", color: "#37352f" }}
-          >
+        <Box>
+          <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "#37352f", lineHeight: 1.3 }}>
             New Work Order
           </Typography>
-        </Stack>
-
-        <Button
-          variant="contained"
+          <Typography sx={{ fontSize: "0.78rem", color: "#9b9a97", mt: 0.3 }}>
+            Create a new work order
+          </Typography>
+        </Box>
+        <IconButton
           size="small"
-          onClick={handleSave}
-          disabled={creating}
-          sx={{
-            bgcolor: "#2383e2",
-            textTransform: "none",
-            fontWeight: 600,
-            fontSize: "0.85rem",
-            px: 2,
-            "&:hover": { bgcolor: "#1a6fba" },
-            boxShadow: "none",
-          }}
+          onClick={onClose}
+          sx={{ borderRadius: "5px", color: "#9b9a97", "&:hover": { bgcolor: "#f1f1ef", color: "#37352f" } }}
         >
-          {creating ? (
-            <CircularProgress size={16} sx={{ color: "#fff", mr: 1 }} />
-          ) : null}
-          Create
-        </Button>
+          <CloseIcon sx={{ fontSize: 17 }} />
+        </IconButton>
       </Box>
 
       <Box sx={{ flex: 1, overflowY: "auto", p: 4 }}>
@@ -292,7 +276,7 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
               useFlexGap
               sx={{ mt: "2px" }}
             >
-              {STATUS_OPTIONS.map((opt) => (
+              {SCHEDULING_STATUS_OPTIONS.map((opt) => (
                 <Chip
                   key={opt}
                   label={opt}
@@ -503,6 +487,57 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
             </Stack>
           </PropertyRow>
         </Stack>
+      </Box>
+
+      {/* Footer */}
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          borderTop: "1px solid #edece9",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 1,
+          flexShrink: 0,
+        }}
+      >
+        <Button
+          onClick={onClose}
+          disabled={creating}
+          sx={{
+            px: 2,
+            textTransform: "none",
+            fontWeight: 500,
+            fontSize: "0.85rem",
+            color: "#37352f",
+            bgcolor: "transparent",
+            border: "1px solid #e5e7eb",
+            borderRadius: "6px",
+            "&:hover": { bgcolor: "#f1f1ef" },
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={creating}
+          sx={{
+            px: 2.5,
+            textTransform: "none",
+            fontWeight: 600,
+            fontSize: "0.85rem",
+            bgcolor: "#2383e2",
+            borderRadius: "6px",
+            boxShadow: "none",
+            "&:hover": { bgcolor: "#1a6fba", boxShadow: "none" },
+            "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
+          }}
+        >
+          {creating ? <CircularProgress size={16} sx={{ color: "#fff", mr: 1 }} /> : null}
+          Create
+        </Button>
       </Box>
 
       <CustomerDrawer

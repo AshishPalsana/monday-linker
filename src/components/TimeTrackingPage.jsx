@@ -1221,7 +1221,7 @@ export default function TimeTrackingPage() {
 
       <Snackbar
         open={!!apiError}
-        autoHideDuration={7000}
+        autoHideDuration={2000}
         onClose={() => setApiError(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
