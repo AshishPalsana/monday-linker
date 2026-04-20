@@ -586,7 +586,7 @@ export default function TimeTrackingPage() {
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "?";
 
-  const { data: woData, loading: woLoading } = useSelector((s) => s.workOrders);
+  const { board: woData, loading: woLoading } = useSelector((s) => s.workOrders);
   const rawWorkOrders = woData?.items_page?.items ?? EMPTY_ITEMS;
 
   const workOrders = useMemo(() => {
