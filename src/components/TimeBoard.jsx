@@ -15,7 +15,7 @@ import {
   FormControl,
   CircularProgress,
 } from "@mui/material";
-import { useBoardHeader } from "../contexts/BoardHeaderContext";
+import { useBoardHeader, useBoardHeaderContext } from "../contexts/BoardHeaderContext";
 import { parseBoardStatusColors } from "../utils/mondayUtils";
 import { BOARD_IDS } from "../constants/monday";
 import { FETCH_BOARD_DATA } from "../services/monday/queries";
@@ -104,6 +104,9 @@ const HEAD_CELL_SX = {
   bgcolor: "#f9fafb",
   borderBottom: "1px solid #ebebeb",
   whiteSpace: "nowrap",
+  position: "sticky",
+  top: 0,
+  zIndex: 1,
 };
 
 const BODY_CELL_SX = {
@@ -114,8 +117,66 @@ const BODY_CELL_SX = {
   color: "#374151",
 };
 
-function StatusChipSmall({ status, colorMap }) {
-  return <StatusChip status={status} colorMap={colorMap} />;
+function StatusBadgeChip({ status }) {
+  const color = STATUS_COLOR[status] ?? STATUS_COLOR[
+    Object.keys(STATUS_COLOR).find(k => k.toLowerCase() === status?.toLowerCase())
+  ] ?? "#6b7280";
+  return (
+    <Box
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        px: 1.25,
+        height: 24,
+        borderRadius: "4px",
+        bgcolor: color + "22",
+        border: `1.5px solid ${color}`,
+      }}
+    >
+      <Typography
+        sx={{
+          fontSize: "0.7rem",
+          fontWeight: 700,
+          color: color,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          lineHeight: 1,
+        }}
+      >
+        {status}
+      </Typography>
+    </Box>
+  );
+}
+
+function EntryTypeChip({ type }) {
+  const color = ENTRY_TYPE_COLOR[type] ?? "#6b7280";
+  return (
+    <Box
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        px: 1.25,
+        height: 24,
+        borderRadius: "4px",
+        bgcolor: color + "22",
+        border: `1.5px solid ${color}`,
+      }}
+    >
+      <Typography
+        sx={{
+          fontSize: "0.7rem",
+          fontWeight: 700,
+          color: color,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          lineHeight: 1,
+        }}
+      >
+        {type}
+      </Typography>
+    </Box>
+  );
 }
 
 function GroupSection({ group, groupBy, statusColors, defaultOpen = true }) {
@@ -183,138 +244,140 @@ function GroupSection({ group, groupBy, statusColors, defaultOpen = true }) {
             border: "1px solid #e5e7eb",
             borderTop: "none",
             borderRadius: "0 0 10px 10px",
-            overflow: "hidden",
+            overflow: "visible",
           }}
         >
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={HEAD_CELL_SX}>Date</TableCell>
-                {groupBy === "workorder" && (
-                  <TableCell sx={HEAD_CELL_SX}>Technician</TableCell>
-                )}
-                <TableCell sx={HEAD_CELL_SX}>WO / Task</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>Type</TableCell>
-                <TableCell sx={{ ...HEAD_CELL_SX, textAlign: "center" }}>
-                  Clock In
-                </TableCell>
-                <TableCell sx={{ ...HEAD_CELL_SX, textAlign: "center" }}>
-                  Clock Out
-                </TableCell>
-                <TableCell sx={{ ...HEAD_CELL_SX, textAlign: "right" }}>
-                  Hrs
-                </TableCell>
-                <TableCell sx={HEAD_CELL_SX}>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {group.entries
-                .slice()
-                .sort((a, b) => a.date - b.date)
-                .map((entry, idx) => (
-                  <TableRow
-                    key={entry.id ?? idx}
+          <Box sx={{ maxHeight: 400, overflow: "auto" }}>
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={HEAD_CELL_SX}>Date</TableCell>
+                  {groupBy === "workorder" && (
+                    <TableCell sx={HEAD_CELL_SX}>Technician</TableCell>
+                  )}
+                  <TableCell sx={HEAD_CELL_SX}>WO / Task</TableCell>
+                  <TableCell sx={HEAD_CELL_SX}>Type</TableCell>
+                  <TableCell sx={{ ...HEAD_CELL_SX, textAlign: "center" }}>
+                    Clock In
+                  </TableCell>
+                  <TableCell sx={{ ...HEAD_CELL_SX, textAlign: "center" }}>
+                    Clock Out
+                  </TableCell>
+                  <TableCell sx={{ ...HEAD_CELL_SX, textAlign: "right" }}>
+                    Hrs
+                  </TableCell>
+                  <TableCell sx={HEAD_CELL_SX}>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {group.entries
+                  .slice()
+                  .sort((a, b) => a.date - b.date)
+                  .map((entry, idx) => (
+                    <TableRow
+                      key={entry.id ?? idx}
+                      sx={{
+                        "&:last-of-type td": { borderBottom: "none" },
+                        "&:hover": { bgcolor: "#fafafa" },
+                      }}
+                    >
+                      <TableCell
+                        sx={{
+                          ...BODY_CELL_SX,
+                          color: "#6b7280",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {fmtShortDate(entry.date)}
+                      </TableCell>
+                      {groupBy === "workorder" && (
+                        <TableCell sx={{ ...BODY_CELL_SX, fontWeight: 500 }}>
+                          {entry.techName}
+                        </TableCell>
+                      )}
+                      <TableCell sx={{ ...BODY_CELL_SX, fontWeight: 500 }}>
+                        {entry.description}
+                      </TableCell>
+                      <TableCell sx={BODY_CELL_SX}>
+                        <EntryTypeChip type={entry.entryType} />
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          ...BODY_CELL_SX,
+                          textAlign: "center",
+                          color: "#6b7280",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {entry.clockIn}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          ...BODY_CELL_SX,
+                          textAlign: "center",
+                          color: "#6b7280",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {entry.clockOut}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          ...BODY_CELL_SX,
+                          textAlign: "right",
+                          fontWeight: 600,
+                          fontVariantNumeric: "tabular-nums",
+                          color: "#374151",
+                        }}
+                      >
+                        {entry.hours.toFixed(1)}
+                      </TableCell>
+                      <TableCell sx={BODY_CELL_SX}>
+                        <StatusBadgeChip status={entry.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                {/* Totals footer row */}
+                <TableRow sx={{ bgcolor: "#f9fafb", position: "sticky", bottom: 0, zIndex: 2 }}>
+                  <TableCell
+                    colSpan={groupBy === "workorder" ? 6 : 5}
                     sx={{
-                      "&:last-of-type td": { borderBottom: "none" },
-                      "&:hover": { bgcolor: "#fafafa" },
+                      ...BODY_CELL_SX,
+                      fontWeight: 600,
+                      color: "#6b7280",
+                      borderTop: "1px solid #e5e7eb",
+                      borderBottom: "none",
+                      py: 0.75,
                     }}
                   >
-                    <TableCell
-                      sx={{
-                        ...BODY_CELL_SX,
-                        color: "#6b7280",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {fmtShortDate(entry.date)}
-                    </TableCell>
-                    {groupBy === "workorder" && (
-                      <TableCell sx={{ ...BODY_CELL_SX, fontWeight: 500 }}>
-                        {entry.techName}
-                      </TableCell>
-                    )}
-                    <TableCell sx={{ ...BODY_CELL_SX, fontWeight: 500 }}>
-                      {entry.description}
-                    </TableCell>
-                    <TableCell sx={BODY_CELL_SX}>
-                      <StatusChip status={entry.entryType} colorMap={statusColors} />
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        ...BODY_CELL_SX,
-                        textAlign: "center",
-                        color: "#6b7280",
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {entry.clockIn}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        ...BODY_CELL_SX,
-                        textAlign: "center",
-                        color: "#6b7280",
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {entry.clockOut}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        ...BODY_CELL_SX,
-                        textAlign: "right",
-                        fontWeight: 600,
-                        fontVariantNumeric: "tabular-nums",
-                        color: "#374151",
-                      }}
-                    >
-                      {entry.hours.toFixed(1)}
-                    </TableCell>
-                    <TableCell sx={BODY_CELL_SX}>
-                      <StatusChipSmall status={entry.status} colorMap={statusColors} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              {/* Totals footer row */}
-              <TableRow sx={{ bgcolor: "#f9fafb" }}>
-                <TableCell
-                  colSpan={groupBy === "workorder" ? 6 : 5}
-                  sx={{
-                    ...BODY_CELL_SX,
-                    fontWeight: 600,
-                    color: "#6b7280",
-                    borderTop: "1px solid #e5e7eb",
-                    borderBottom: "none",
-                    py: 0.75,
-                  }}
-                >
-                  Week Total
-                </TableCell>
-                <TableCell
-                  sx={{
-                    ...BODY_CELL_SX,
-                    textAlign: "right",
-                    fontWeight: 700,
-                    color: "#1a6ef7",
-                    borderTop: "1px solid #e5e7eb",
-                    borderBottom: "none",
-                    py: 0.75,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {weekTotal.toFixed(1)}
-                </TableCell>
-                <TableCell
-                  sx={{
-                    ...BODY_CELL_SX,
-                    borderTop: "1px solid #e5e7eb",
-                    borderBottom: "none",
-                    py: 0.75,
-                  }}
-                />
-              </TableRow>
-            </TableBody>
-          </Table>
+                    Week Total
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...BODY_CELL_SX,
+                      textAlign: "right",
+                      fontWeight: 700,
+                      color: "#1a6ef7",
+                      borderTop: "1px solid #e5e7eb",
+                      borderBottom: "none",
+                      py: 0.75,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {weekTotal.toFixed(1)}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      ...BODY_CELL_SX,
+                      borderTop: "1px solid #e5e7eb",
+                      borderBottom: "none",
+                      py: 0.75,
+                    }}
+                  />
+                </TableRow>
+              </TableBody>
+            </Table>
+          </Box>
         </Paper>
       </Collapse>
     </Box>
@@ -331,6 +394,7 @@ export default function TimeBoard() {
 
   const { auth } = useAuth();
   const socket = useSocket();
+  const { search } = useBoardHeaderContext();
 
   function normalise(e) {
     return {
@@ -346,9 +410,9 @@ export default function TimeBoard() {
       }),
       clockOut: e.clockOut
         ? new Date(e.clockOut).toLocaleTimeString([], {
-            hour: "numeric",
-            minute: "2-digit",
-          })
+          hour: "numeric",
+          minute: "2-digit",
+        })
         : "Active",
       hours: parseFloat(e.hoursWorked ?? 0) || 0,
       status: e.status,
@@ -401,14 +465,14 @@ export default function TimeBoard() {
         prev.map((e) =>
           e.id === payload.entryId
             ? {
-                ...e,
-                clockOut: new Date(payload.clockOut).toLocaleTimeString([], {
-                  hour: "numeric",
-                  minute: "2-digit",
-                }),
-                hours: parseFloat(payload.hoursWorked ?? e.hours) || 0,
-                status: payload.status ?? "Complete",
-              }
+              ...e,
+              clockOut: new Date(payload.clockOut).toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              }),
+              hours: parseFloat(payload.hoursWorked ?? e.hours) || 0,
+              status: payload.status ?? "Complete",
+            }
             : e,
         ),
       );
@@ -448,7 +512,18 @@ export default function TimeBoard() {
 
   const weekEnd = addDays(weekStart, 5);
   const weekLabel = fmtRangeLabel(weekStart, weekEnd);
-  const visible = filterByWeek(entries, weekStart);
+  const weekEntries = filterByWeek(entries, weekStart);
+  const visible = search
+    ? weekEntries.filter((e) => {
+      const q = search.toLowerCase();
+      return (
+        e.techName?.toLowerCase().includes(q) ||
+        e.description?.toLowerCase().includes(q) ||
+        e.entryType?.toLowerCase().includes(q) ||
+        e.status?.toLowerCase().includes(q)
+      );
+    })
+    : weekEntries;
   const groups =
     groupBy === "technician"
       ? groupByTechnician(visible)

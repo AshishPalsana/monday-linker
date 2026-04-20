@@ -15,7 +15,7 @@ import {
   Collapse,
   IconButton,
 } from "@mui/material";
-import { useBoardHeader } from "../contexts/BoardHeaderContext";
+import { useBoardHeader, useBoardHeaderContext } from "../contexts/BoardHeaderContext";
 import { parseBoardStatusColors } from "../utils/mondayUtils";
 import { BOARD_IDS, MONDAY_COLUMNS, GROUP_IDS } from "../constants/monday";
 import { ENTRY_TYPE_HEX } from "../constants/status";
@@ -129,8 +129,77 @@ function isToday(dateIso) {
 
 const EMPTY_ITEMS = [];
 
-function StatusChipSmall({ status, colorMap }) {
-  return <StatusChip status={status} colorMap={colorMap} />;
+const STATUS_BADGE_COLOR = {
+  Open: "#f59e0b",
+  Complete: "#22c55e",
+  Approved: "#3b82f6",
+};
+
+function EntryTypeChip({ type }) {
+  const color = ENTRY_TYPE_HEX[type] ?? "#6b7280";
+  return (
+    <Box
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        px: 1.25,
+        height: 24,
+        borderRadius: "4px",
+        bgcolor: color + "22",
+        border: `1.5px solid ${color}`,
+      }}
+    >
+      <Typography
+        sx={{
+          fontSize: "0.7rem",
+          fontWeight: 700,
+          color,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          lineHeight: 1,
+        }}
+      >
+        {type}
+      </Typography>
+    </Box>
+  );
+}
+
+function StatusBadgeChip({ status }) {
+  const color =
+    STATUS_BADGE_COLOR[status] ??
+    STATUS_BADGE_COLOR[
+      Object.keys(STATUS_BADGE_COLOR).find(
+        (k) => k.toLowerCase() === status?.toLowerCase()
+      )
+    ] ??
+    "#6b7280";
+  return (
+    <Box
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        px: 1.25,
+        height: 24,
+        borderRadius: "4px",
+        bgcolor: color + "22",
+        border: `1.5px solid ${color}`,
+      }}
+    >
+      <Typography
+        sx={{
+          fontSize: "0.7rem",
+          fontWeight: 700,
+          color,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          lineHeight: 1,
+        }}
+      >
+        {status}
+      </Typography>
+    </Box>
+  );
 }
 
 function totalHours(entries) {
@@ -576,6 +645,7 @@ export default function TimeTrackingPage() {
 
   const { auth } = useAuth();
   const token = auth?.token ?? null;
+  const { search } = useBoardHeaderContext();
 
   const { activeEntries, setActiveEntry, clearActiveEntry } = useActiveEntry();
   const activeEntry = activeEntries.Job || activeEntries.Travel || activeEntries.NonJob;
@@ -973,7 +1043,10 @@ export default function TimeTrackingPage() {
             {"Today's Log"}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.disabled" }}>
-            {totalHours(todayEntries)} hrs total
+            {totalHours(search ? todayEntries.filter(e => {
+              const q = search.toLowerCase();
+              return e.entryType?.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q) || e.status?.toLowerCase().includes(q);
+            }) : todayEntries)} hrs total
           </Typography>
         </Box>
 
@@ -982,39 +1055,45 @@ export default function TimeTrackingPage() {
           maxHeight={isMobile ? 320 : 500}
           emptyMessage="No entries yet today - clock in to start tracking"
           columns={[
-            { label: "Type", width: "90px" },
+            { label: "Type", width: "130px" },
             { label: "Description", width: "auto" },
             { label: "Clock In", width: "100px" },
             { label: "Clock Out", width: "100px" },
             { label: "Hrs", width: "60px" },
             { label: "Status", width: "100px" },
           ]}
-          rows={
-            entriesLoading
-              ? [
-                { id: "__skel_1__" },
-                { id: "__skel_2__" },
-                { id: "__skel_3__" },
-              ]
-              : [
-                ...Object.values(activeEntries)
-                  .filter(e => !!e)
-                  .map(e => ({
-                    id: e.backendEntryId ?? `active-${e.entryType}`,
-                    entryType: e.entryType === "NonJob" ? "Non-Job" : e.entryType,
-                    description: e.entryType === "Job"
-                      ? (e.workOrder?.label ?? "Work Order")
-                      : (e.taskDescription ?? "Task"),
-                    clockIn: new Date(e.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                    clockOut: null,
-                    hours: null,
-                    status: "Open",
-                    _active: true,
-                  })),
-                ...todayEntries,
-                ...(todayEntries.length > 0 ? [{ id: "__total__" }] : []),
-              ]
-          }
+          rows={(() => {
+            if (entriesLoading) return [{ id: "__skel_1__" }, { id: "__skel_2__" }, { id: "__skel_3__" }];
+            const activeRows = Object.values(activeEntries)
+              .filter(e => !!e)
+              .map(e => ({
+                id: e.backendEntryId ?? `active-${e.entryType}`,
+                entryType: e.entryType === "NonJob" ? "Non-Job" : e.entryType,
+                description: e.entryType === "Job"
+                  ? (e.workOrder?.label ?? "Work Order")
+                  : (e.taskDescription ?? "Task"),
+                clockIn: new Date(e.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                clockOut: null,
+                hours: null,
+                status: "Open",
+                _active: true,
+              }));
+            const filtered = search
+              ? todayEntries.filter((e) => {
+                  const q = search.toLowerCase();
+                  return (
+                    e.entryType?.toLowerCase().includes(q) ||
+                    e.description?.toLowerCase().includes(q) ||
+                    e.status?.toLowerCase().includes(q)
+                  );
+                })
+              : todayEntries;
+            return [
+              ...activeRows,
+              ...filtered,
+              ...(filtered.length > 0 ? [{ id: "__total__" }] : []),
+            ];
+          })()}
           renderRow={(row) => {
             if (String(row.id).startsWith("__skel_")) {
               return (
@@ -1034,7 +1113,7 @@ export default function TimeTrackingPage() {
             }
             if (row.id === "__total__") {
               return (
-                <TableRow key="total" sx={{ bgcolor: "#f4f8ff" }}>
+                <TableRow key="total" sx={{ bgcolor: "#f4f8ff", position: "sticky", bottom: 0, zIndex: 2 }}>
                   <TableCell
                     colSpan={4}
                     sx={{ ...DATA_CELL_SX, fontWeight: 600, color: "#555" }}
@@ -1061,7 +1140,7 @@ export default function TimeTrackingPage() {
                 sx={row._active ? { bgcolor: "rgba(34,197,94,0.04)" } : {}}
               >
                 <TableCell sx={DATA_CELL_SX}>
-                  <StatusChip status={row.entryType} colorMap={statusColors} />
+                  <EntryTypeChip type={row.entryType} />
                 </TableCell>
                 <TableCell sx={DATA_CELL_SX}>
                   <span
@@ -1111,7 +1190,7 @@ export default function TimeTrackingPage() {
                   {row._active ? DASH : (parseFloat(row.hours) || 0).toFixed(2)}
                 </TableCell>
                 <TableCell sx={DATA_CELL_SX}>
-                  <StatusChipSmall status={row.status} colorMap={statusColors} />
+                  <StatusBadgeChip status={row.status} />
                 </TableCell>
               </TableRow>
             );

@@ -100,7 +100,7 @@ export function BoardTable({
       elevation={0}
       sx={{
         borderRadius: '6px',
-        overflow: 'hidden',
+        overflow: 'visible',
         border: '1px solid',
         borderColor: 'divider',
       }}
