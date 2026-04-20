@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { login } from '../store/authSlice';
 import mondaySdk from "monday-sdk-js";
+import { mondayClient } from "../services/monday/client";
+import { gql } from "@apollo/client";
 
 const monday = mondaySdk();
 
@@ -22,19 +24,33 @@ export function AuthProvider({ children }) {
         let finalUserName = "Platform User";
         let finalIsAdmin = false;
 
-        // 2. Fetch full user details from "me" query (requires me:read scope)
+        // 2. Fetch full user details. 
+        // We use the Apollo mondayClient (which has the service token) 
+        // because the platform-level SDK might have restricted permissions.
         try {
-          const query = `query { me { id name is_admin } }`;
-          const apiRes = await monday.api(query);
-          console.log("[AuthProvider] 'Me' query result:", apiRes);
+          const userQuery = gql`
+            query GetUser($ids: [ID!]) {
+              users(ids: $ids) {
+                id
+                name
+                is_admin
+              }
+            }
+          `;
+          const apiRes = await mondayClient.query({
+            query: userQuery,
+            variables: { ids: [finalUserId] }
+          });
+          console.log("[AuthProvider] User lookup result:", apiRes);
 
-          if (apiRes.data && apiRes.data.me) {
-            finalUserId = String(apiRes.data.me.id);
-            finalUserName = apiRes.data.me.name;
-            finalIsAdmin = !!apiRes.data.me.is_admin;
+          if (apiRes.data && apiRes.data.users?.[0]) {
+            const user = apiRes.data.users[0];
+            finalUserId = String(user.id);
+            finalUserName = user.name;
+            finalIsAdmin = !!user.is_admin;
           }
         } catch (meErr) {
-          console.warn("[AuthProvider] Could not fetch profile details (check scopes in Developer Center):", meErr);
+          console.warn("[AuthProvider] Could not fetch profile details via Apollo:", meErr);
         }
 
         if (finalUserId) {
