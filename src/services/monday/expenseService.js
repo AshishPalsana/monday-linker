@@ -7,25 +7,14 @@ import { mondayClient } from "./client";
 const COL = MONDAY_COLUMNS.EXPENSES;
 
 export async function fetchExpenses(status) {
-  const groupId =
-    status === "Approved"
-      ? "group_mm215rfc"
-      : status === "Rejected"
-        ? "group_mm217p3s"
-        : "topics";
+  const groupId = status === "Approved" ? "group_mm215rfc" : status === "Rejected" ? "group_mm217p3s" : "topics";
 
   const { data, errors } = await mondayClient.query({
     query: FETCH_EXPENSES,
     variables: {
       boardId: BOARD_IDS.EXPENSES,
       groupId,
-      colIds: [
-        COL.TECHNICIAN,
-        COL.DESCRIPTION,
-        COL.EXPENSE_TYPE,
-        COL.WORK_ORDER_REL,
-        COL.AMOUNT,
-      ],
+      colIds: [COL.TECHNICIAN, COL.DESCRIPTION, COL.EXPENSE_TYPE, COL.WORK_ORDER_REL, COL.AMOUNT],
     },
   });
 
@@ -41,7 +30,7 @@ export async function createExpense({ type, amount, description, timeEntryMonday
   if (description) cv[COL.DESCRIPTION] = description;
   if (timeEntryMondayId) cv[COL.TIME_ENTRY_REL] = { item_ids: [Number(timeEntryMondayId)] };
   if (workOrderId) cv[COL.WORK_ORDER_REL] = { item_ids: [Number(workOrderId)] };
-  if (technicianId) cv[COL.TECHNICIAN] = { personsAndTeams: [{ id: Number(technicianId), kind: "person" }] };
+  // if (technicianId) cv[COL.TECHNICIAN] = { personsAndTeams: [{ id: String(technicianId), kind: "person" }] };
 
   const data = await executeMutation(
     CREATE_ITEM,
@@ -51,7 +40,7 @@ export async function createExpense({ type, amount, description, timeEntryMonday
       name: type ?? "Expense",
       cv: JSON.stringify(cv),
     },
-    "createExpense",
+    "createExpense"
   );
 
   return data.create_item;

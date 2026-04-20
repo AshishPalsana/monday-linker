@@ -73,6 +73,22 @@ export const UPDATE_ITEM_NAME = gql`
   }
 `;
 
+export const MOVE_ITEM_TO_GROUP = gql`
+  mutation MoveItemToGroup($itemId: ID!, $groupId: String!) {
+    move_item_to_group(item_id: $itemId, group_id: $groupId) {
+      id
+    }
+  }
+`;
+
+export const DELETE_ITEM = gql`
+  mutation DeleteItem($itemId: ID!) {
+    delete_item(item_id: $itemId) {
+      id
+    }
+  }
+`;
+
 export const SET_RELATION_COLUMN = gql`
   mutation SetRelation(
     $boardId: ID!

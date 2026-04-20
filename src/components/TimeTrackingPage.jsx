@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { useBoardHeader } from "../contexts/BoardHeaderContext";
 import { parseBoardStatusColors } from "../utils/mondayUtils";
-import { BOARD_IDS, MONDAY_COLUMNS } from "../constants/monday";
+import { BOARD_IDS, MONDAY_COLUMNS, GROUP_IDS } from "../constants/monday";
 import { ENTRY_TYPE_HEX } from "../constants/status";
 import { BoardTable, DATA_CELL_SX, DASH } from "./BoardTable";
 import { mondayClient } from "../services/monday/client";
@@ -42,6 +42,60 @@ import { useSocket } from "../hooks/useSocket";
 import { timeEntriesApi } from "../services/api";
 import { setRelationColumn } from "../services/monday/baseService";
 import { createExpense } from "../services/monday/expenseService";
+import { MOVE_ITEM_TO_GROUP, DELETE_ITEM } from "../services/monday/mutations";
+import { createWorkOrder as createMondayWorkOrder } from "../services/monday/workOrderService";
+import { gql } from "@apollo/client";
+
+const SEARCH_WO_ITEMS = gql`
+  query SearchWOItems($boardId: [ID!]) {
+    boards(ids: $boardId) {
+      items_page(limit: 100) {
+        items { id name group { id } }
+      }
+    }
+  }
+`;
+
+// 1. Immediately creates the item in Random Stuff.
+// 2. After 4 seconds, deletes any duplicate the backend/automation
+//    placed in Active Work Orders so only one item remains.
+async function ensureNonJobInRandomStuff(taskDescription) {
+  try {
+    await createMondayWorkOrder({
+      name: taskDescription,
+      groupId: GROUP_IDS.WORK_ORDERS_RANDOM_STUFF,
+    });
+  } catch (err) {
+    console.error("[non-job] create in Random Stuff failed:", err);
+  }
+
+  // Wait for backend / Monday automations to finish creating their copy
+  await new Promise((r) => setTimeout(r, 4000));
+
+  try {
+    const { data } = await mondayClient.query({
+      query: SEARCH_WO_ITEMS,
+      variables: { boardId: [BOARD_IDS.WORK_ORDERS] },
+      fetchPolicy: "network-only",
+    });
+    const items = data?.boards?.[0]?.items_page?.items ?? [];
+    const duplicates = items.filter(
+      (item) =>
+        item.group.id === GROUP_IDS.WORK_ORDERS_ACTIVE &&
+        item.name === taskDescription
+    );
+    await Promise.all(
+      duplicates.map((item) =>
+        mondayClient.mutate({
+          mutation: DELETE_ITEM,
+          variables: { itemId: item.id },
+        })
+      )
+    );
+  } catch (err) {
+    console.error("[non-job] cleanup Active Work Orders duplicate failed:", err);
+  }
+}
 
 function formatEntry(entry) {
   return {
@@ -533,6 +587,7 @@ export default function TimeTrackingPage() {
   const [entriesLoading, setEntriesLoading] = useState(true);
   const [clockInOpen, setClockInOpen] = useState(false);
   const [clockOutOpen, setClockOutOpen] = useState(false);
+  const [clockOutLoading, setClockOutLoading] = useState(false);
   const [activeToOut, setActiveToOut] = useState(null); // Which entry are we clocking out?
   const [apiError, setApiError] = useState(null);
   const [statusColors, setStatusColors] = useState({});
@@ -655,11 +710,13 @@ export default function TimeTrackingPage() {
         .slice(0, 2)
       : "?";
 
-  const workOrders = rawWorkOrders.map((item) => {
-    const woIdCol = item.column_values?.find((cv) => cv.id === "text_mm1s82bz");
-    const woId = woIdCol?.text || "";
-    return { id: item.id, label: woId ? `${woId} · ${item.name}` : item.name };
-  });
+  const workOrders = rawWorkOrders
+    .filter((item) => !item.group || item.group.id === GROUP_IDS.WORK_ORDERS_ACTIVE)
+    .map((item) => {
+      const woIdCol = item.column_values?.find((cv) => cv.id === "text_mm1s82bz");
+      const woId = woIdCol?.text || "";
+      return { id: item.id, label: woId ? `${woId} · ${item.name}` : item.name };
+    });
 
   const elapsed = useElapsedTimer(clockedIn ? activeEntry?.clockInTime : null);
   const liveClock = useLiveClock();
@@ -681,6 +738,12 @@ export default function TimeTrackingPage() {
         ...(data.taskDescription && { taskDescription: data.taskDescription }),
       });
       setActiveEntry(typeKey, { ...optimistic, backendEntryId: result.data.id });
+
+      // For Non-Job: create in Random Stuff immediately, then clean up any
+      // duplicate the backend/automation puts in Active Work Orders.
+      if (typeKey === "NonJob" && data.taskDescription) {
+        ensureNonJobInRandomStuff(data.taskDescription); // intentionally not awaited
+      }
     } catch (err) {
       if (err.status === 409 && err.data?.activeEntryId) {
         setActiveEntry(typeKey, {
@@ -699,6 +762,7 @@ export default function TimeTrackingPage() {
 
   async function handleClockOut(data) {
     if (!activeToOut) return;
+    setClockOutLoading(true);
 
     const typeKey = activeToOut.entryType === "Non-Job" ? "NonJob" : activeToOut.entryType;
     const inTime = new Date(activeToOut.clockInTime).toLocaleTimeString([], {
@@ -738,11 +802,13 @@ export default function TimeTrackingPage() {
         } else {
           setApiError("Clock-out failed: no active session found on server.");
           setClockOutOpen(false);
+          setClockOutLoading(false);
           return;
         }
       } catch {
         setApiError("Clock-out failed: could not reach server. Try again.");
         setClockOutOpen(false);
+        setClockOutLoading(false);
         return;
       }
     }
@@ -752,6 +818,7 @@ export default function TimeTrackingPage() {
     }
     clearActiveEntry(typeKey);
     setClockOutOpen(false);
+    setClockOutLoading(false);
     setActiveToOut(null);
 
     try {
@@ -777,16 +844,20 @@ export default function TimeTrackingPage() {
       if (data.expenses?.length) {
         const workOrderId = captured.workOrder?.id ?? null;
         const technicianId = auth?.technician?.id ?? null;
-        data.expenses.forEach((expense) => {
-          createExpense({
-            type: expense.type,
-            amount: expense.amount,
-            description: expense.description,
-            timeEntryMondayId: mondayItemId ?? null,
-            workOrderId,
-            technicianId,
-          }).catch((err) => console.error("[clock-out] Expense creation failed:", err));
-        });
+        if (!mondayItemId) {
+          setApiError("Expense creation failed: Could not link to time entry. Please try again.");
+        } else {
+          data.expenses.forEach((expense) => {
+            createExpense({
+              type: expense.type,
+              amount: expense.amount,
+              description: expense.description,
+              timeEntryMondayId: mondayItemId,
+              workOrderId,
+              technicianId,
+            }).catch((err) => console.error("[clock-out] Expense creation failed:", err));
+          });
+        }
       }
     } catch (err) {
       console.error("[clock-out] API error:", err);
@@ -1060,11 +1131,13 @@ export default function TimeTrackingPage() {
       <ClockOutModal
         open={clockOutOpen}
         onClose={() => {
+          if (clockOutLoading) return;
           setClockOutOpen(false);
           setActiveToOut(null);
         }}
         onConfirm={handleClockOut}
         activeEntry={activeToOut}
+        loading={clockOutLoading}
       />
 
       <Snackbar

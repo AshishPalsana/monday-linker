@@ -20,6 +20,7 @@ export default function ClockInModal({ open, onClose, onConfirm, workOrders = []
   const [entryType, setEntryType] = useState("Job");
   const [selectedWO, setSelectedWO] = useState(null);
   const [taskDescription, setTaskDescription] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   const isValid =
     entryType === "Job"
@@ -27,6 +28,8 @@ export default function ClockInModal({ open, onClose, onConfirm, workOrders = []
       : taskDescription.trim().length > 0;
 
   function handleConfirm() {
+    setSubmitted(true);
+    if (!isValid) return;
     onConfirm({
       entryType,
       workOrder: entryType === "Job" ? selectedWO : null,
@@ -37,12 +40,14 @@ export default function ClockInModal({ open, onClose, onConfirm, workOrders = []
     setEntryType("Job");
     setSelectedWO(null);
     setTaskDescription("");
+    setSubmitted(false);
   }
 
   function handleClose() {
     setEntryType("Job");
     setSelectedWO(null);
     setTaskDescription("");
+    setSubmitted(false);
     onClose();
   }
 
@@ -63,7 +68,7 @@ export default function ClockInModal({ open, onClose, onConfirm, workOrders = []
         <ToggleButtonGroup
           value={entryType}
           exclusive
-          onChange={(_, val) => val && setEntryType(val)}
+          onChange={(_, val) => { if (val) { setEntryType(val); setSubmitted(false); } }}
           fullWidth
           size="small"
           sx={{ mb: 2.5 }}
@@ -118,6 +123,9 @@ export default function ClockInModal({ open, onClose, onConfirm, workOrders = []
                   {...params}
                   placeholder="Search work orders…"
                   size="small"
+                  error={submitted && selectedWO === null}
+                  helperText={submitted && selectedWO === null ? "A work order is required to clock in." : " "}
+                  FormHelperTextProps={{ sx: { color: "#ef4444", mx: 0 } }}
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
@@ -143,8 +151,9 @@ export default function ClockInModal({ open, onClose, onConfirm, workOrders = []
               value={taskDescription}
               onChange={(e) => setTaskDescription(e.target.value)}
               inputProps={{ maxLength: 200 }}
+              error={submitted && taskDescription.trim().length === 0}
               helperText={
-                taskDescription.trim().length === 0
+                submitted && taskDescription.trim().length === 0
                   ? "A description is required to clock in."
                   : " "
               }
@@ -166,7 +175,6 @@ export default function ClockInModal({ open, onClose, onConfirm, workOrders = []
         </Button>
         <Button
           variant="contained"
-          disabled={!isValid}
           onClick={handleConfirm}
           sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
         >

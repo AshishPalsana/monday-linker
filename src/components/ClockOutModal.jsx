@@ -13,6 +13,7 @@ import {
   IconButton,
   Autocomplete,
   CircularProgress,
+  LinearProgress,
 } from "@mui/material";
 import NoteAltOutlinedIcon from "@mui/icons-material/NoteAltOutlined";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
@@ -29,7 +30,7 @@ const EXPENSE_TYPES = [
   { key: "supplies", label: "Supplies" },
 ];
 
-export default function ClockOutModal({ open, onClose, onConfirm, activeEntry }) {
+export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, loading = false }) {
   const dispatch = useDispatch();
   const rawLocations = useSelector((s) => s.locations.board?.items_page?.items ?? []);
   const locationsLoading = useSelector((s) => s.locations.loading);
@@ -90,11 +91,14 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry })
   }
 
   function handleConfirm() {
-    const expenses = checkedExpenses.map((e) => ({
-      type: e.label,
-      amount: expenseData[e.key]?.amount ?? 0,
-      description: expenseData[e.key]?.description ?? "",
-    }));
+    const expenses = checkedExpenses.map((e) => {
+      const { amount, description } = expenseData[e.key] || {};
+      return {
+        type: e.label, // This must match the dropdown value in Monday
+        amount: amount ?? 0,
+        description: description ?? "",
+      };
+    });
     onConfirm({
       narrative,
       location,
@@ -135,6 +139,11 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry })
         fullWidth
         PaperProps={{ sx: { borderRadius: "12px" } }}
       >
+        {loading && (
+          <LinearProgress
+            sx={{ position: "absolute", top: 0, left: 0, right: 0, borderRadius: "12px 12px 0 0" }}
+          />
+        )}
         <DialogTitle sx={{ fontWeight: 700, pb: 0.5 }}>Clock Out</DialogTitle>
         <DialogContent sx={{ pt: "12px !important" }}>
 
@@ -229,49 +238,46 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry })
             </Typography>
           </Box>
 
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
             {EXPENSE_TYPES.map((e) => {
               const filled = !!expenseData[e.key];
               const checked = !!expenseChecks[e.key];
               return (
-                <Box key={e.key} sx={{ display: "flex", alignItems: "center" }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={checked}
-                        onChange={() => handleExpenseClick(e.key)}
-                        sx={
-                          filled
-                            ? { color: "#22c55e", "&.Mui-checked": { color: "#22c55e" } }
-                            : {}
-                        }
-                      />
+                <Box key={e.key} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  <Checkbox
+                    size="small"
+                    checked={checked}
+                    onChange={() => handleExpenseClick(e.key)}
+                    sx={
+                      filled
+                        ? { color: "#22c55e", "&.Mui-checked": { color: "#22c55e" }, p: 0.5 }
+                        : { p: 0.5 }
                     }
-                    label={
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontSize: 13,
-                          color: filled ? "#22c55e" : "text.primary",
-                          fontWeight: filled ? 600 : 400,
-                        }}
-                      >
-                        {e.label}
-                        {filled && (
-                          <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 4 }}>
-                            · ${expenseData[e.key].amount.toFixed(2)}
-                          </span>
-                        )}
-                      </Typography>
-                    }
-                    sx={{ mr: 0 }}
                   />
+                  <Typography
+                    variant="body2"
+                    onClick={() => handleExpenseClick(e.key)}
+                    sx={{
+                      fontSize: 13,
+                      color: filled ? "#22c55e" : "text.primary",
+                      fontWeight: filled ? 600 : 400,
+                      cursor: "pointer",
+                      userSelect: "none",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {e.label}
+                    {filled && (
+                      <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 4 }}>
+                        · ${expenseData[e.key].amount.toFixed(2)}
+                      </span>
+                    )}
+                  </Typography>
                   {filled && (
                     <IconButton
                       size="small"
                       onClick={() => handleEditExpense(e.key)}
-                      sx={{ p: 0.25, ml: -0.5 }}
+                      sx={{ p: 0.25 }}
                     >
                       <EditOutlinedIcon sx={{ fontSize: 13, color: "#22c55e" }} />
                     </IconButton>
@@ -329,11 +335,15 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry })
           <Button
             variant="contained"
             color="error"
-            disabled={!isValid}
+            disabled={!isValid || loading}
             onClick={handleConfirm}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2 }}
+            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2, minWidth: 110 }}
           >
-            Clock Out
+            {loading ? (
+              <CircularProgress size={18} sx={{ color: "rgba(255,255,255,0.8)" }} />
+            ) : (
+              "Clock Out"
+            )}
           </Button>
         </DialogActions>
       </Dialog>

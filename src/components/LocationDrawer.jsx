@@ -262,7 +262,7 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: 500,
+          width: 680,
           bgcolor: "#fff",
           display: "flex",
           flexDirection: "column",
@@ -423,15 +423,19 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
                 items={linkedWorkOrders}
                 onNavigate={(item) => navigate(`/workorders/${item.id}`)}
                 columns={[
-                  { label: "WO-ID", width: "100px", getValue: (item) => getColumnDisplayValue(item, WO_COL.WORKORDER_ID) },
-                  { label: "WORK ORDER", width: "180px", key: "name" },
-                  { label: "DESCRIPTION OF WORK", width: "200px", getValue: (item) => getColumnDisplayValue(item, WO_COL.DESCRIPTION) },
-                  { label: "PROGRESS STATUS", width: "150px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.EXECUTION_STATUS) },
-                  { label: "TECHNICIAN", width: "140px", getValue: (item) => getColumnDisplayValue(item, WO_COL.TECHNICIAN) },
-                  { label: "MULTI-DAY", width: "100px", getValue: (item) => getColumnDisplayValue(item, WO_COL.MULTI_DAY) },
-                  { label: "BILLING STAGE", width: "140px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.BILLING_STAGE) },
-                  { label: "SERVICE HISTORY", width: "220px", getValue: (item) => getColumnDisplayValue(item, WO_COL.SERVICE_HISTORY) },
-                  { label: "WORK PERFORMED", width: "220px", getValue: (item) => getColumnDisplayValue(item, WO_COL.WORK_PERFORMED) },
+                  { label: "WO-ID",              width: "100px", getValue: (item) => getColumnDisplayValue(item, WO_COL.WORKORDER_ID) },
+                  { label: "WORK ORDER",         width: "180px", key: "name" },
+                  { label: "CUSTOMER",           width: "160px", getValue: (item) => getColumnDisplayValue(item, WO_COL.CUSTOMER) },
+                  { label: "SCHEDULING STATUS",  width: "160px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.STATUS) },
+                  { label: "SCHEDULED DATE",     width: "130px", getValue: (item) => getColumnDisplayValue(item, WO_COL.SCHEDULED_DATE) },
+                  { label: "PROGRESS STATUS",    width: "160px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.EXECUTION_STATUS) },
+                  { label: "DESCRIPTION OF WORK",width: "220px", getValue: (item) => getColumnDisplayValue(item, WO_COL.DESCRIPTION) },
+                  { label: "TECHNICIAN",         width: "140px", getValue: (item) => getColumnDisplayValue(item, WO_COL.TECHNICIAN) },
+                  { label: "MULTI-DAY",          width: "100px", getValue: (item) => getColumnDisplayValue(item, WO_COL.MULTI_DAY) },
+                  { label: "PARTS ORDERED",      width: "130px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.PARTS_ORDERED) },
+                  { label: "BILLING STAGE",      width: "140px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, WO_COL.BILLING_STAGE) },
+                  { label: "SERVICE HISTORY",    width: "220px", getValue: (item) => getColumnDisplayValue(item, WO_COL.SERVICE_HISTORY) },
+                  { label: "WORK PERFORMED",     width: "220px", getValue: (item) => getColumnDisplayValue(item, WO_COL.WORK_PERFORMED) },
                 ]}
               />
 
@@ -442,10 +446,18 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
                 items={linkedCustomers}
                 onNavigate={(item) => navigate(`/customers/${item.id}`)}
                 columns={[
-                  { label: "CUSTOMER NAME", width: "180px", key: "name" },
-                  { label: "EMAIL", width: "200px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.EMAIL) },
-                  { label: "PHONE", width: "140px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.PHONE) },
-                  { label: "STATUS", width: "110px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, CUST_COL.STATUS) },
+                  { label: "CUSTOMER NAME",   width: "180px", key: "name" },
+                  { label: "EMAIL",           width: "200px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.EMAIL) },
+                  { label: "PHONE",           width: "140px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.PHONE) },
+                  { label: "ACCOUNT NUMBER",  width: "140px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.ACCOUNT_NUMBER) },
+                  { label: "STATUS",          width: "110px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, CUST_COL.STATUS) },
+                  { label: "BILLING ADDRESS", width: "220px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.BILLING_ADDRESS) },
+                  { label: "BILLING TERMS",    width: "140px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.BILLING_TERMS) },
+                  { label: "NOTES",            width: "200px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.NOTES) },
+                  { label: "XERO SYNC STATUS", width: "150px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, CUST_COL.XERO_SYNC_STATUS) },
+                  { label: "XERO CONTACT ID",  width: "150px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.XERO_CONTACT_ID) },
+                  { label: "MASTER COSTS",      width: "160px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.MASTER_COSTS) },
+                  { label: "WORK ORDERS",       width: "180px", getValue: (item) => getColumnDisplayValue(item, CUST_COL.WORK_ORDERS_REL) },
                 ]}
               />
 
@@ -457,9 +469,14 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
                 onNavigate={(item) => navigate(`/equipment/${item.id}`)}
                 columns={[
                   { label: "EQUIPMENT NAME", width: "180px", key: "name" },
-                  { label: "SERIAL #", width: "140px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.SERIAL_NUMBER) },
-                  { label: "MANUFACTURER", width: "150px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.MANUFACTURER) },
-                  { label: "STATUS", width: "110px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, EQ_COL.STATUS) },
+                  { label: "MANUFACTURER",   width: "150px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.MANUFACTURER) },
+                  { label: "MODEL NUMBER",   width: "140px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.MODEL_NUMBER) },
+                  { label: "SERIAL #",       width: "140px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.SERIAL_NUMBER) },
+                  { label: "INSTALL DATE",   width: "130px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.INSTALL_DATE) },
+                  { label: "STATUS",         width: "130px", isStatus: true, getValue: (item) => getColumnDisplayValue(item, EQ_COL.STATUS) },
+                  { label: "NOTES",          width: "200px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.NOTES) },
+                  { label: "CUSTOMERS",      width: "160px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.CUSTOMERS_REL) },
+                  { label: "WORK ORDERS",    width: "180px", getValue: (item) => getColumnDisplayValue(item, EQ_COL.WORK_ORDERS_REL) },
                 ]}
               />
             </Stack>
