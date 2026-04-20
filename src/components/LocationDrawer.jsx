@@ -84,6 +84,7 @@ const InlineField = ({
   error,
   multiline,
   rows,
+  inputProps,
 }) => (
   <TextField
     fullWidth
@@ -93,6 +94,7 @@ const InlineField = ({
     placeholder={placeholder}
     multiline={multiline}
     rows={rows}
+    inputProps={inputProps}
     variant="standard"
     sx={{
       "& .MuiInput-root": {
@@ -372,8 +374,9 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
           <PropertyRow icon={MarkunreadMailboxOutlinedIcon} label="ZIP">
             <InlineField
               value={form.zip}
-              onChange={(e) => set("zip", e.target.value)}
+              onChange={(e) => set("zip", e.target.value.replace(/\D/g, ""))}
               placeholder="00000"
+              inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
             />
           </PropertyRow>
         </Box>
