@@ -835,7 +835,7 @@ export default function TimeTrackingPage() {
             maxHeight={isMobile ? 320 : "calc(100vh - 260px)"}
             emptyMessage="No entries yet today — clock in to start tracking"
             columns={[
-              { label: "Type", width: "110px" },
+              { label: "Type", width: "120px" },
               { label: "Description", width: "auto" },
               { label: "Clock In", width: "90px" },
               { label: "Clock Out", width: "90px" },
