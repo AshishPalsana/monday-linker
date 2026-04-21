@@ -730,7 +730,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                   Open in Xero ↗
                 </Button>
               </Box>
-            ) : !form.customerId ? (
+            ) : !(form.customerId || form.customerName) ? (
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <Box
