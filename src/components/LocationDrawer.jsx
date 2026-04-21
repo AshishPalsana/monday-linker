@@ -130,7 +130,7 @@ const Section = ({ children }) => (
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
+export default function LocationDrawer({ location, onClose, onSaveNew, open, zIndex }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { creating: apiCreating, saving: apiSaving } = useSelector(
@@ -269,6 +269,10 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
       anchor="right"
       open={open}
       onClose={onClose}
+      {...(zIndex != null && {
+        sx: { zIndex },
+        ModalProps: { keepMounted: false },
+      })}
       PaperProps={{
         sx: {
           width: 600,

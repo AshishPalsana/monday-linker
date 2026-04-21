@@ -153,7 +153,8 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
         onClose={handleClose}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "12px" } }}
+        disableEnforceFocus
+        PaperProps={{ sx: { borderRadius: "12px", zIndex: 1300 } }}
       >
         {loading && (
           <LinearProgress
@@ -444,6 +445,7 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
 
       <LocationDrawer
         open={!!pendingNewLocation}
+        zIndex={1400}
         location={
           pendingNewLocation
             ? { id: "__new__", name: pendingNewLocation.name, column_values: [] }

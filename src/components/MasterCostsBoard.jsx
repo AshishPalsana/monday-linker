@@ -8,12 +8,8 @@ import {
   TableCell,
   TableRow,
   CircularProgress,
-  IconButton,
-  Tooltip,
 } from "@mui/material";
 import { useBoardHeader, useBoardHeaderContext } from "../contexts/BoardHeaderContext";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { MONDAY_COLUMNS } from "../constants/index";
 import { BoardGroup, BoardTable, DATA_CELL_SX } from "./BoardTable";
 import MasterCostDrawer from "./MasterCostDrawer";
@@ -88,7 +84,6 @@ export default function MasterCostsBoard() {
     { label: "Rate", width: 100 },
     { label: "Total Cost", width: 120 },
     { label: "Status", width: 120 },
-    { label: "Actions", width: 100 },
   ];
 
   const renderRow = (item) => {
@@ -116,28 +111,6 @@ export default function MasterCostsBoard() {
             status={getColValue(item, MC_COL.INVOICE_STATUS) || "Unbilled"} 
             colorMap={statusColors} 
           />
-        </TableCell>
-        <TableCell sx={DATA_CELL_SX}>
-          <Box sx={{ display: "flex", gap: 0.5 }}>
-            <Tooltip title="Edit">
-              <IconButton size="small" onClick={() => { setSelectedItem(item); setDrawerOpen(true); }}>
-                <EditOutlinedIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete">
-              <IconButton 
-                size="small" 
-                color="error" 
-                onClick={() => {
-                  if (window.confirm("Delete this cost item?")) {
-                    dispatch(deleteMasterCost({ mondayItemId: item.id, token: auth?.token }));
-                  }
-                }}
-              >
-                <DeleteOutlineIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
-          </Box>
         </TableCell>
       </TableRow>
     );
