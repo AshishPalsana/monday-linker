@@ -703,8 +703,16 @@ export default function TimeTrackingPage() {
     } catch (err) {
       console.error("[clock-out] API error:", err);
       if (clockInIsToday) setTodayEntries((prev) => prev.filter((e) => e.id !== optimisticEntry.id));
-      setActiveEntry(typeKey, captured);
-      setApiError(`Clock-out failed: ${err.message || "server error"}.`);
+      
+      // If the record was deleted from the database (404), don't restore it locally
+      if (err.status === 404) {
+        console.warn(`[clock-out] Record ${captured.backendEntryId} not found in database. Cleaning up local session…`);
+        clearActiveEntry(typeKey);
+        setApiError("Database record missing. Local session has been cleaned up.");
+      } else {
+        setActiveEntry(typeKey, captured);
+        setApiError(`Clock-out failed: ${err.message || "server error"}.`);
+      }
     }
   }
 

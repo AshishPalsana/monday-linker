@@ -9,9 +9,9 @@
  */
 export const validateEmail = (email) => {
   if (!email) return false;
-  // Basic regex for user@domain.tld
+  // Trim spaces and use basic regex for user@domain.tld
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return regex.test(email);
+  return regex.test(email.trim());
 };
 
 /**

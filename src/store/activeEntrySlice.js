@@ -28,6 +28,7 @@ const activeEntrySlice = createSlice({
         // Clear all if no type provided
         state.Job = null;
         state.NonJob = null;
+        state.DailyShift = null;
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     },

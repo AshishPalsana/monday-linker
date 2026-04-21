@@ -314,6 +314,13 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
     notes: getCol(CUST_COL.NOTES),
   });
 
+  // Sync name from props for new records (e.g. from WorkOrder modal)
+  useEffect(() => {
+    if (isNew && customer?.name) {
+      setForm(prev => ({ ...prev, name: customer.name }));
+    }
+  }, [customer?.name, isNew]);
+
   // Fetch structured address from backend if this is an existing customer
   useEffect(() => {
     if (open && customer?.id && customer.id !== "__new__" && isValidMondayId(customer.id)) {
@@ -367,11 +374,18 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
   const handleSave = async () => {
     setAttempted(true);
     if (!isValid) return;
+
+    // Clean data before saving (trim strings)
+    const cleanedForm = Object.keys(form).reduce((acc, key) => {
+      acc[key] = typeof form[key] === "string" ? form[key].trim() : form[key];
+      return acc;
+    }, {});
+
     if (isNew) {
       if (onSaveNew) {
         setIsSaving(true);
         try {
-          await onSaveNew(form);
+          await onSaveNew(cleanedForm);
         } finally {
           setIsSaving(false);
         }
@@ -380,7 +394,7 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
       setIsSaving(true);
       try {
         await dispatch(
-          updateCustomer({ customerId: customer.id, form }),
+          updateCustomer({ customerId: customer.id, form: cleanedForm }),
         ).unwrap();
         onClose();
       } finally {
@@ -451,7 +465,7 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: 500,
+          width: 600,
           bgcolor: "#fff",
           display: "flex",
           flexDirection: "column",
@@ -544,7 +558,7 @@ export default function CustomerDrawer({ customer, onClose, onSaveNew, open }) {
           >
             <InlineField
               value={form.email}
-              onChange={(e) => set("email", e.target.value)}
+              onChange={(e) => set("email", e.target.value.trim())}
               placeholder="billing@company.com"
               error={err("email") || formatErr("email")}
             />
