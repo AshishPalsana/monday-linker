@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Drawer,
@@ -170,6 +170,13 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
     notes: getCol(LOC_COL.NOTES),
   });
 
+  // Sync name from props for new records (e.g. from WorkOrder modal)
+  useEffect(() => {
+    if (isNew && location?.name) {
+      setForm(prev => ({ ...prev, name: location.name }));
+    }
+  }, [location?.name, isNew]);
+
   const [attempted, setAttempted] = useState(false);
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -264,7 +271,7 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open }) {
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: 680,
+          width: 600,
           bgcolor: "#fff",
           display: "flex",
           flexDirection: "column",

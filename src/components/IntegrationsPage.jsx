@@ -32,7 +32,7 @@ export default function IntegrationsPage() {
     try {
       setLoading(true);
       const response = await axios.get(`${API_URL}/api/xero/status`);
-      
+
       setXeroStatus({
         connected: response.data.connected,
         tenantName: response.data.tenantName,
@@ -164,16 +164,6 @@ export default function IntegrationsPage() {
             </Box>
           </CardContent>
         </Card>
-
-        {/* Placeholder for future integrations */}
-        <Box sx={{ border: '2px dashed', borderColor: 'divider', borderRadius: '12px', p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.6 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.disabled' }}>
-            More Integrations Coming Soon
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-            We're working on connecting to QuickBooks, ServiceM8, and more.
-          </Typography>
-        </Box>
       </Stack>
     </Box>
   );

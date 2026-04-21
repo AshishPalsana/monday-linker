@@ -729,6 +729,54 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                   Open in Xero ↗
                 </Button>
               </Box>
+            ) : !form.customerId ? (
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor: "#f59e0b",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <Box>
+                    <Typography
+                      sx={{ fontSize: "0.78rem", fontWeight: 600, color: "#92400e" }}
+                    >
+                      Customer Link Required
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: "0.7rem",
+                        color: "#9b9a97",
+                        mt: 0.2,
+                      }}
+                    >
+                      Link a customer in Overview to enable Xero sync.
+                    </Typography>
+                  </Box>
+                </Box>
+                <Button
+                  size="small"
+                  disabled
+                  sx={{
+                    fontSize: "0.72rem",
+                    textTransform: "none",
+                    color: "#9b9a97",
+                    fontWeight: 600,
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: "4px",
+                    border: "1px solid #e5e7eb",
+                    flexShrink: 0,
+                  }}
+                  title="A customer must be linked to this Work Order before it can be synced to Xero."
+                >
+                  Retry sync
+                </Button>
+              </Box>
             ) : xeroSync?.error ? (
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
