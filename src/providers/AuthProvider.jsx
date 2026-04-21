@@ -64,13 +64,13 @@ export function AuthProvider({ children }) {
           throw new Error("No Monday user context available");
         }
       } catch (err) {
-        console.error("[AuthProvider] Authentication failed, falling back to dev identity:", err);
+        console.error("[AuthProvider] Authentication failed:", err);
         // Local development fallback
-        dispatch(login({
-          mondayUserId: import.meta.env.VITE_MONDAY_USER_ID || '100074837',
-          name:         import.meta.env.VITE_MONDAY_USER_NAME || 'Tanvi Sachar',
-          isAdmin:      import.meta.env.VITE_MONDAY_USER_IS_ADMIN === 'true',
-        }));
+        // dispatch(login({
+        //   mondayUserId: import.meta.env.VITE_MONDAY_USER_ID || '100074837',
+        //   name:         import.meta.env.VITE_MONDAY_USER_NAME || 'Tanvi Sachar',
+        //   isAdmin:      import.meta.env.VITE_MONDAY_USER_IS_ADMIN === 'true',
+        // }));
       } finally {
         setInitialized(true);
       }
