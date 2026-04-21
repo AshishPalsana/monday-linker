@@ -152,7 +152,7 @@ function SidebarContent({ collapsed, onToggle }) {
   const visibleTimeNav  = isAdmin
     ? NAV_TIME.filter((n) => n.id !== 'time-tracker')
     : [];
-  const visibleSettings = NAV_SETTINGS;
+  const visibleSettings = isAdmin ? NAV_SETTINGS : [];
 
   return (
     <Box
@@ -263,15 +263,17 @@ function SidebarContent({ collapsed, onToggle }) {
           </>
         )}
 
-        <Divider sx={{ my: 1.25 }} />
-
-        {/* Settings — all users */}
-        <SectionLabel collapsed={collapsed}>Settings</SectionLabel>
-        <List dense disablePadding sx={{ px: collapsed ? 0.5 : 0.75 }}>
-          {visibleSettings.map((item) => (
-            <NavItem key={item.id} {...item} collapsed={collapsed} clockedIn={clockedIn} />
-          ))}
-        </List>
+        {visibleSettings.length > 0 && (
+          <>
+            <Divider sx={{ my: 1.25 }} />
+            <SectionLabel collapsed={collapsed}>Settings</SectionLabel>
+            <List dense disablePadding sx={{ px: collapsed ? 0.5 : 0.75 }}>
+              {visibleSettings.map((item) => (
+                <NavItem key={item.id} {...item} collapsed={collapsed} clockedIn={clockedIn} />
+              ))}
+            </List>
+          </>
+        )}
       </Box>
     </Box>
   );
