@@ -52,30 +52,10 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
   const [drawerType, setDrawerType] = useState(null);
 
   const isJobEntry = activeEntry?.entryType === "Job";
-  const isDailyShift = activeEntry?.entryType === "DailyShift";
-
-  useEffect(() => {
-    if (open && activeEntry?.expenses?.length > 0) {
-      const checks = {};
-      const data = {};
-      activeEntry.expenses.forEach((exp) => {
-        const typeKey = exp.type.charAt(0).toUpperCase() + exp.type.slice(1).toLowerCase();
-        const config = EXPENSE_TYPES.find(ct => ct.label === typeKey);
-        if (config) {
-          checks[config.key] = true;
-          data[config.key] = { amount: exp.amount, description: exp.description };
-        }
-      });
-      setExpenseChecks(checks);
-      setExpenseData(data);
-    }
-  }, [open, activeEntry]);
-
   const checkedExpenses = EXPENSE_TYPES.filter((e) => expenseChecks[e.key]);
   const expensesValid = checkedExpenses.every((e) => !!expenseData[e.key]);
-  const narrativeValid = isDailyShift ? true : narrative.trim().length >= 10;
-  const locationValid = isDailyShift ? true : location !== null;
-  const isValid = narrativeValid && locationValid && expensesValid;
+  const narrativeValid = narrative.trim().length >= 10;
+  const isValid = narrativeValid && location !== null && expensesValid;
 
   function handleExpenseClick(key) {
     if (expenseChecks[key]) {
@@ -195,65 +175,61 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
             </Box>
           )}
 
-          {/* Narrative - Hidden for DailyShift */}
-          {!isDailyShift && (
-            <Box sx={{ mb: 2 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.75 }}>
-                <NoteAltOutlinedIcon sx={{ fontSize: 15, color: "text.disabled" }} />
-                <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                  Work Narrative <span style={{ color: "#ef4444" }}>*</span>
-                </Typography>
-              </Box>
-              <TextField
-                multiline
-                minRows={3}
-                maxRows={6}
-                fullWidth
-                size="small"
-                placeholder="Describe the work performed…"
-                value={narrative}
-                onChange={(e) => setNarrative(e.target.value)}
-                error={narrative.length > 0 && !narrativeValid}
-                helperText={
-                  narrative.length > 0 && !narrativeValid
-                    ? `At least 10 characters required (${narrative.trim().length}/10)`
-                    : " "
-                }
-                FormHelperTextProps={{ sx: { mx: 0 } }}
-              />
-            </Box>
-          )}
-
-          {/* Location - Hidden for DailyShift */}
-          {!isDailyShift && (
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="caption" sx={{ color: "text.disabled", display: "block", mb: 0.5 }}>
-                Location / Site <span style={{ color: "#ef4444" }}>*</span>
+          {/* Narrative */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.75 }}>
+              <NoteAltOutlinedIcon sx={{ fontSize: 15, color: "text.disabled" }} />
+              <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                Work Narrative <span style={{ color: "#ef4444" }}>*</span>
               </Typography>
-              <Autocomplete
-                options={locations}
-                loading={locationsLoading}
-                value={location}
-                onChange={(_, val) => setLocation(val)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Search locations…"
-                    size="small"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {locationsLoading ? <CircularProgress size={16} /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
-              />
             </Box>
-          )}
+            <TextField
+              multiline
+              minRows={3}
+              maxRows={6}
+              fullWidth
+              size="small"
+              placeholder="Describe the work performed…"
+              value={narrative}
+              onChange={(e) => setNarrative(e.target.value)}
+              error={narrative.length > 0 && !narrativeValid}
+              helperText={
+                narrative.length > 0 && !narrativeValid
+                  ? `At least 10 characters required (${narrative.trim().length}/10)`
+                  : " "
+              }
+              FormHelperTextProps={{ sx: { mx: 0 } }}
+            />
+          </Box>
+
+          {/* Location */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ color: "text.disabled", display: "block", mb: 0.5 }}>
+              Location / Site <span style={{ color: "#ef4444" }}>*</span>
+            </Typography>
+            <Autocomplete
+              options={locations}
+              loading={locationsLoading}
+              value={location}
+              onChange={(_, val) => setLocation(val)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Search locations…"
+                  size="small"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {locationsLoading ? <CircularProgress size={16} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
+          </Box>
 
           <Divider sx={{ my: 2 }} />
 
