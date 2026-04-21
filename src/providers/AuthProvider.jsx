@@ -68,8 +68,8 @@ export function AuthProvider({ children }) {
         // Local development fallback
         dispatch(login({
           mondayUserId: import.meta.env.VITE_MONDAY_USER_ID || '100074837',
-          name:         import.meta.env.VITE_MONDAY_USER_NAME || 'Tanvi Sachar',
-          isAdmin:      import.meta.env.VITE_MONDAY_USER_IS_ADMIN === 'true',
+          name: import.meta.env.VITE_MONDAY_USER_NAME || 'Tanvi Sachar',
+          isAdmin: import.meta.env.VITE_MONDAY_USER_IS_ADMIN === 'true',
         }));
       } finally {
         setInitialized(true);

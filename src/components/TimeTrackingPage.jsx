@@ -39,8 +39,10 @@ import { fetchWorkOrders } from "../store/workOrderSlice";
 import { fetchLocations } from "../store/locationsSlice";
 import ClockInModal from "./ClockInModal";
 import ClockOutModal from "./ClockOutModal";
+import QuickExpenseModal from "./QuickExpenseModal";
 import { useAuth } from "../hooks/useAuth";
 import { useActiveEntry } from "../hooks/useActiveEntry";
+import { addActiveExpense } from "../store/activeEntrySlice";
 import { useSocket } from "../hooks/useSocket";
 import { timeEntriesApi } from "../services/api";
 import { DELETE_ITEM } from "../services/monday/mutations";
@@ -112,9 +114,9 @@ const EMPTY_ITEMS = [];
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const TYPE_CHIP_STYLES = {
-  "Daily Shift": { bg: "#ede9fe", color: "#5b21b6", border: "#c4b5fd" },
-  "Job": { bg: "#dbeafe", color: "#1d4ed8", border: "#93c5fd" },
-  "Non-Job": { bg: "#fef9c3", color: "#854d0e", border: "#fde047" },
+  "Daily Shift": { bg: "#f5f3ff", color: "#7c3aed", border: "#ddd6fe" }, // Indigo/Violet for Attendance
+  "Job": { bg: "#eff6ff", color: "#1d4ed8", border: "#dbeafe" },        // Blue for Jobs
+  "Non-Job": { bg: "#fffbeb", color: "#d97706", border: "#fef3c7" },    // Amber for Tasks
   "General": { bg: "#f0fdf4", color: "#166534", border: "#86efac" },
 };
 
@@ -168,7 +170,11 @@ function StatusChip({ status }) {
 }
 
 function totalHours(entries) {
-  return entries.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0).toFixed(2);
+  // Exclude DailyShift from the summary total to avoid double-counting attendance with work
+  return entries
+    .filter(e => e.entryType !== "DailyShift" && e.entryType !== "Daily Shift")
+    .reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0)
+    .toFixed(2);
 }
 
 // ─── Elapsed timer hook ───────────────────────────────────────────────────────
@@ -191,6 +197,14 @@ function useElapsedTimer(startIso) {
   const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0");
   const s = String(elapsed % 60).padStart(2, "0");
   return `${h}:${m}:${s}`;
+}
+
+function formatSeconds(seconds) {
+  const s = Math.max(0, Math.floor(seconds));
+  const h = String(Math.floor(s / 3600)).padStart(2, "0");
+  const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+  const sec = String(s % 60).padStart(2, "0");
+  return `${h}:${m}:${sec}`;
 }
 
 function ActiveEntryTimer({ start, color }) {
@@ -216,22 +230,21 @@ function TimingPanel({
   activeEntries, activeShift, activeTask,
   liveClock, shiftElapsed, taskElapsed,
   todayEntries, activityFeed,
-  onClockIn, onClockOut,
+  onClockIn, onClockOut, onAddExpense,
   collapsible, userName, userInitials, entriesLoading,
+  userRole = "Technician",
+  totalJobDuration = "00:00:00"
 }) {
-  const [panelOpen, setPanelOpen] = useState(false);
   const isShiftActive = !!activeShift;
   const isTaskActive = !!activeTask;
-
-  const taskTypeKey = activeTask?.entryType === "NonJob" ? "Non-Job" : activeTask?.entryType;
-  const taskColor = ENTRY_TYPE_HEX[taskTypeKey] ?? "#6b7280";
+  const activeExpenseCount = activeTask?.expenses?.length || 0;
 
   return (
     <Box
       sx={{
-        width: collapsible ? "100%" : 300,
-        minWidth: collapsible ? "auto" : 300,
-        maxWidth: collapsible ? "100%" : 300,
+        width: collapsible ? "100%" : 320,
+        minWidth: collapsible ? "auto" : 320,
+        maxWidth: collapsible ? "100%" : 320,
         borderLeft: collapsible ? "none" : "1px solid",
         borderTop: collapsible ? "1px solid" : "none",
         borderColor: "divider",
@@ -241,251 +254,192 @@ function TimingPanel({
         overflowY: collapsible ? "visible" : "auto",
         overflowX: "hidden",
         flexShrink: 0,
+        boxShadow: "-4px 0 16px rgba(0,0,0,0.02)"
       }}
     >
       {/* ── Profile header ── */}
       <Box
         sx={{
           px: 2,
-          pt: collapsible ? 1.5 : 2.5,
-          pb: collapsible ? 1.5 : 2,
-          borderBottom: collapsible && !panelOpen ? "none" : "1px solid",
-          borderColor: "divider",
+          pt: 4,
+          pb: 3,
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
-          gap: 1.5,
-          cursor: collapsible ? "pointer" : "default",
-          flexShrink: 0,
+          textAlign: "center",
+          position: "relative",
         }}
-        onClick={collapsible ? () => setPanelOpen((v) => !v) : undefined}
       >
         <Avatar
           sx={{
-            width: 44,
-            height: 44,
-            fontSize: "0.9rem",
+            width: 80,
+            height: 80,
+            fontSize: "1.5rem",
             fontWeight: 800,
-            bgcolor: isShiftActive ? "#22c55e" : "#e8f0fe",
-            color: isShiftActive ? "#fff" : "#1a6ef7",
-            flexShrink: 0,
-            transition: "background-color 0.4s ease",
-            boxShadow: isShiftActive ? "0 0 0 3px rgba(34,197,94,0.2)" : "none",
+            bgcolor: "#7c3aed",
+            color: "#fff",
+            mb: 2,
+            boxShadow: "0 8px 16px rgba(124, 58, 237, 0.25)",
+            border: "4px solid #fff"
           }}
         >
           {userInitials}
         </Avatar>
 
-        <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-          <Typography
-            sx={{ fontWeight: 700, color: "#111", lineHeight: 1.2, fontSize: "0.9rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
-          >
-            {userName}
-          </Typography>
-          <Typography
-            sx={{ color: isShiftActive ? "#22c55e" : "text.disabled", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}
-          >
-            {isShiftActive ? "● Clocked In" : "Off Duty"}
-          </Typography>
-        </Box>
-
-        {collapsible && (
-          <IconButton size="small" sx={{ color: "#aaa", flexShrink: 0, ml: "auto" }}>
-            <ExpandMoreIcon
-              sx={{ fontSize: 18, transform: panelOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }}
-            />
-          </IconButton>
-        )}
+        <Typography sx={{ fontWeight: 800, color: "#111", fontSize: "1.1rem" }}>
+          {userName}
+        </Typography>
+        <Typography sx={{ color: "text.secondary", fontSize: "0.78rem", fontWeight: 500, mt: 0.5 }}>
+          {userRole}
+        </Typography>
       </Box>
 
-      {/* ── Collapsible body ── */}
-      <Collapse in={collapsible ? panelOpen : true} timeout="auto">
-        {/* Daily Attendance */}
-        <Box sx={{ px: 2, pt: 2, pb: 0 }}>
-          <Typography sx={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "#aaa", mb: 1 }}>
-            Daily Attendance
+      {/* ── My Timing Section ── */}
+      <Box sx={{ px: 2, pb: 4 }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5, px: 0.5 }}>
+          <Typography sx={{ fontSize: "0.75rem", fontWeight: 800, color: "#111" }}>
+            My Timing
           </Typography>
-
-          <Box
-            onClick={isShiftActive ? () => onClockOut(activeShift) : () => onClockIn("DailyShift")}
-            sx={{
-              p: 1.5,
-              borderRadius: "6px",
-              bgcolor: isShiftActive ? "rgba(139,92,246,0.06)" : "#fafafa",
-              border: "1px solid",
-              borderColor: isShiftActive ? "rgba(139,92,246,0.25)" : "#ebebeb",
-              cursor: "pointer",
-              transition: "all 0.15s",
-              "&:hover": { bgcolor: isShiftActive ? "rgba(139,92,246,0.1)" : "#f3f3f3" },
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.75 }}>
-              <Typography sx={{ fontSize: "0.65rem", fontWeight: 800, color: isShiftActive ? "#7c3aed" : "#bbb", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                {isShiftActive ? "Shift Session" : "Ready to Start"}
-              </Typography>
-              {isShiftActive && (
-                <Typography sx={{ fontSize: "0.7rem", fontWeight: 800, color: "#7c3aed", fontFamily: "monospace", fontVariantNumeric: "tabular-nums" }}>
-                  {shiftElapsed}
-                </Typography>
-              )}
-            </Box>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {isShiftActive ? (
-                <>
-                  <LoginOutlinedIcon sx={{ fontSize: 16, color: "#7c3aed", flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: "0.88rem", fontWeight: 800, color: "#1a1a1a", flex: 1 }}>On Duty</Typography>
-                  <Tooltip title="Click to end shift">
-                    <LogoutOutlinedIcon sx={{ fontSize: 14, color: "#bbb", flexShrink: 0 }} />
-                  </Tooltip>
-                </>
-              ) : (
-                <>
-                  <TimerOutlinedIcon sx={{ fontSize: 16, color: "#ccc", flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: "0.88rem", fontWeight: 700, color: "#bbb", flex: 1 }}>Start Your Day</Typography>
-                  <LoginOutlinedIcon sx={{ fontSize: 14, color: "#1a6ef7", flexShrink: 0 }} />
-                </>
-              )}
-            </Box>
-          </Box>
-        </Box>
-
-        {/* Task Tracking */}
-        <Box sx={{ px: 2, pt: 2, pb: 0 }}>
-          <Typography sx={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: isShiftActive ? "#aaa" : "#d0d0d0", mb: 1 }}>
-            Task Tracking
-          </Typography>
-
-          {!isShiftActive ? (
-            <Box sx={{ p: 1.5, border: "1px dashed #e0e0e0", borderRadius: "10px", textAlign: "center" }}>
-              <Typography sx={{ fontSize: "0.75rem", color: "#bbb", fontWeight: 600 }}>
-                Clock in for the day first
-              </Typography>
-            </Box>
-          ) : isTaskActive ? (
-            <Box
-              onClick={() => onClockOut(activeTask)}
-              sx={{
-                p: 1.5,
-                borderRadius: "10px",
-                bgcolor: `${taskColor}08`,
-                border: `1px solid ${taskColor}25`,
+          {isTaskActive && (
+            <Box 
+              onClick={onAddExpense}
+              sx={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 0.5, 
                 cursor: "pointer",
-                transition: "all 0.15s",
-                "&:hover": { bgcolor: `${taskColor}14` },
+                color: "#7c3aed",
+                "&:hover": { opacity: 0.8 }
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.5 }}>
-                {activeTask.entryType === "Job"
-                  ? <WorkOutlineIcon sx={{ fontSize: 13, color: taskColor, flexShrink: 0 }} />
-                  : <HandymanOutlinedIcon sx={{ fontSize: 13, color: taskColor, flexShrink: 0 }} />
-                }
-                <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: taskColor, textTransform: "uppercase", letterSpacing: "0.05em", flex: 1 }}>
-                  {activeTask.entryType === "NonJob" ? "Non-Job" : "Active Job"}
-                </Typography>
-                <ActiveEntryTimer start={activeTask.clockInTime} color={taskColor} />
+              <Box sx={{ bgcolor: "#7c3aed15", px: 0.75, py: 0.25, borderRadius: "6px", display: "flex", alignItems: "center", gap: 0.5 }}>
+                 <Typography sx={{ fontSize: "0.68rem", fontWeight: 800 }}>+ ADD EXPENSE</Typography>
+                 {activeExpenseCount > 0 && (
+                   <Box sx={{ bgcolor: "#7c3aed", color: "#fff", minWidth: 16, height: 16, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", fontWeight: 900 }}>
+                     {activeExpenseCount}
+                   </Box>
+                 )}
               </Box>
-              <Typography
-                sx={{ fontSize: "0.78rem", fontWeight: 600, color: "#333", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-              >
-                {activeTask.entryType === "Job"
-                  ? (activeTask.workOrder?.label ?? "Work Order")
-                  : (activeTask.taskDescription ?? "Non-Job Task")}
-              </Typography>
-              <Typography sx={{ fontSize: "0.62rem", color: "text.disabled", mt: 0.25 }}>
-                Tap to complete task
-              </Typography>
             </Box>
-          ) : (
-            <AppButton
-              fullWidth
-              variant="outlined"
-              startIcon={<HandymanOutlinedIcon sx={{ fontSize: 15 }} />}
-              onClick={() => onClockIn()}
-              sx={{ fontSize: "0.8rem", py: 1 }}
-            >
-              Start New Task
-            </AppButton>
           )}
         </Box>
 
-        {/* Quick Stats */}
-        <Box sx={{ px: 2, pt: 2, pb: 0, display: "flex", gap: 1 }}>
-          <Paper elevation={0} sx={{ flex: 1, p: 1.25, border: "1px solid #f0f0f0", bgcolor: "#fafafa", borderRadius: "8px" }}>
-            <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.05em", mb: 0.25 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            borderRadius: "12px",
+            border: "1px solid #f0f0f0",
+            bgcolor: "#fff",
+            display: "flex",
+            alignItems: "center",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.02)"
+          }}
+        >
+          {/* Daily Shift Timer */}
+          <Box sx={{ flex: 1, textAlign: "center" }}>
+            <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: "#666", textTransform: "uppercase", letterSpacing: "0.05em", mb: 0.5 }}>
               Current Time
             </Typography>
-            <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#444", fontFamily: "monospace" }}>
-              {liveClock}
+            <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color: isShiftActive ? "#7c3aed" : "#333", fontFamily: "monospace" }}>
+              {isShiftActive ? shiftElapsed : "00:00:00"}
             </Typography>
-          </Paper>
-          <Paper elevation={0} sx={{ flex: 1, p: 1.25, border: "1px solid #f0f0f0", bgcolor: "#fafafa", borderRadius: "8px" }}>
-            <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: "#bbb", textTransform: "uppercase", letterSpacing: "0.05em", mb: 0.25 }}>
-              Hrs Today
+          </Box>
+
+          <Divider orientation="vertical" flexItem sx={{ mx: 2, borderColor: "#f0f0f0" }} />
+
+          {/* Total Job Hours */}
+          <Box sx={{ flex: 1, textAlign: "center" }}>
+            <Typography sx={{ fontSize: "0.62rem", fontWeight: 700, color: "#666", textTransform: "uppercase", letterSpacing: "0.05em", mb: 0.5 }}>
+              Total Job Hours
             </Typography>
-            <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#444" }}>
-              {entriesLoading ? "…" : `${totalHours(todayEntries)}h`}
+            <Typography sx={{ fontSize: "1.1rem", fontWeight: 800, color: isTaskActive ? "#16a34a" : "#333", fontFamily: "monospace" }}>
+              {totalJobDuration}
             </Typography>
-          </Paper>
-        </Box>
+          </Box>
+        </Paper>
 
-        <Divider sx={{ mt: 2 }} />
-
-        {/* Activity Feed */}
-        <Box sx={{ px: 2, pt: 2, pb: 3 }}>
-          <Typography sx={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "#aaa", mb: 1.5 }}>
-            Attendance Activity
-          </Typography>
-
-          {activityFeed.length === 0 ? (
-            <Typography sx={{ fontSize: "0.78rem", color: "#ccc", fontWeight: 500 }}>No activity yet today</Typography>
-          ) : (
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
-              {activityFeed.map((item, idx) => {
-                const typeColor = ENTRY_TYPE_HEX[item.type] ?? "#888";
-                return (
-                  <Box key={idx} sx={{ display: "flex", gap: 1.25, position: "relative" }}>
-                    {/* Timeline */}
-                    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: "3px", flexShrink: 0 }}>
-                      <Box
-                        sx={{
-                          width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                          bgcolor: item.active ? "#22c55e" : typeColor,
-                          border: "2px solid white",
-                          boxShadow: item.active ? "0 0 0 2px rgba(34,197,94,0.35)" : `0 0 0 2px ${typeColor}33`,
-                        }}
-                      />
-                      {idx < activityFeed.length - 1 && (
-                        <Box sx={{ width: 1.5, flex: 1, minHeight: 18, bgcolor: "#ebebeb", my: 0.25 }} />
-                      )}
-                    </Box>
-                    {/* Content */}
-                    <Box sx={{ pb: 1.5, minWidth: 0, flex: 1 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontWeight: 700, fontSize: "0.75rem", color: "#333", lineHeight: 1.2 }}>
-                          {item.time}
-                        </Typography>
-                        {item.active && (
-                          <Typography component="span" sx={{ fontSize: "0.6rem", fontWeight: 800, color: "#22c55e", letterSpacing: "0.05em" }}>
-                            LIVE
-                          </Typography>
-                        )}
-                      </Box>
-                      <Typography sx={{ color: "text.disabled", fontSize: "0.7rem" }}>
-                        {item.active ? `Clocked in · ${item.type}` : item.event}
-                      </Typography>
-                      <Typography
-                        sx={{ color: typeColor, fontSize: "0.68rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                      >
-                        {item.label}
-                      </Typography>
-                    </Box>
-                  </Box>
-                );
-              })}
-            </Box>
+        {/* Action Buttons */}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
+          {isShiftActive && (
+            <AppButton
+              fullWidth
+              variant="contained"
+              onClick={() => onClockIn()}
+              sx={{
+                borderRadius: "8px",
+                bgcolor: "#1a6ef7",
+                boxShadow: "0 4px 12px rgba(26, 110, 247, 0.25)",
+                textTransform: "uppercase",
+                fontSize: "0.75rem",
+                fontWeight: 800,
+                py: 1.2
+              }}
+            >
+              {isTaskActive ? "Switch Job" : "Start Job"}
+            </AppButton>
           )}
+
+          <AppButton
+            fullWidth
+            variant={isShiftActive ? "outlined" : "contained"}
+            color="error"
+            onClick={isShiftActive ? () => onClockOut(activeShift) : () => onClockIn("DailyShift")}
+            sx={{
+              borderRadius: "8px",
+              borderWidth: "1.5px",
+              "&:hover": { borderWidth: "1.5px" },
+              ...(isShiftActive ? { color: "#ff5252", borderColor: "#ff5252" } : { bgcolor: "#ff5252", color: "#fff" }),
+              textTransform: "uppercase",
+              fontSize: "0.75rem",
+              fontWeight: 800,
+              py: 1.2
+            }}
+          >
+            {isShiftActive ? "End Day" : "Start Day"}
+          </AppButton>
         </Box>
-      </Collapse>
+      </Box>
+
+      <Divider sx={{ mx: 2 }} />
+
+      {/* Attendance Activity */}
+      <Box sx={{ px: 2, pt: 3, pb: 4 }}>
+        <Typography sx={{ fontSize: "0.75rem", fontWeight: 800, color: "#111", mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+          <Box component="span" sx={{ width: 4, height: 4, borderRadius: "50%", bgcolor: "#7c3aed" }} />
+          Attendance activity
+        </Typography>
+
+        {activityFeed.length === 0 ? (
+          <Typography sx={{ fontSize: "0.78rem", color: "#ccc", fontWeight: 500, textAlign: "center", py: 2 }}>
+            No activity yet today
+          </Typography>
+        ) : (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            {activityFeed.map((item, idx) => (
+              <Box
+                key={idx}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
+                  p: 1.25,
+                  borderRadius: "8px",
+                  bgcolor: "rgba(0,0,0,0.015)",
+                }}
+              >
+                <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, color: "#666", width: 65 }}>
+                  {item.time}
+                </Typography>
+                <Typography sx={{ fontSize: "0.7rem", color: "#bbb" }}>→</Typography>
+                <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: "#333", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {item.type === 'DailyShift' ? (item.active ? "Day Start" : "Day Ended") : `${item.label} ${item.active ? 'Started' : 'Completed'}`}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 }
@@ -515,6 +469,7 @@ export default function TimeTrackingPage() {
   const [clockOutLoading, setClockOutLoading] = useState(false);
   const [activeToOut, setActiveToOut] = useState(null);
   const [apiError, setApiError] = useState(null);
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -588,7 +543,8 @@ export default function TimeTrackingPage() {
     }
   }, [clockInOpen, token, dispatch]);
 
-  const userName = auth?.technician?.name ?? "…";
+  const userName = auth?.name ?? auth?.technician?.name ?? "…";
+  const userRole = auth?.role || auth?.technician?.position || "Technician";
   const userInitials = userName !== "…"
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "?";
@@ -615,14 +571,14 @@ export default function TimeTrackingPage() {
 
         const techVal = item.column_values?.find((cv) => cv.id === MONDAY_COLUMNS.WORK_ORDERS.TECHNICIAN);
         const assignedIds = techVal?.persons_and_teams?.map((p) => String(p.id)) || [];
-        
+
         // Match if any of the technician's IDs match any of the assigned IDs on the board
         const isAssigned = assignedIds.some(aid => allowedIds.includes(aid));
-        
+
         if (!isAssigned && assignedIds.length > 0) {
           console.log(`[work-order-filter] No match for "${item.name}". Assigned: [${assignedIds.join(",")}], Your IDs: [${allowedIds.join(",")}]`);
         }
-        
+
         return isAssigned;
       })
       .map((item) => ({ id: item.id, label: item.name }));
@@ -708,6 +664,12 @@ export default function TimeTrackingPage() {
     }
   }
 
+  function handleAddExpense(expense) {
+    if (!activeTask) return;
+    const typeKey = activeTask.entryType === "Non-Job" ? "NonJob" : activeTask.entryType;
+    dispatch(addActiveExpense({ type: typeKey, expense }));
+  }
+
   const todayDate = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   const getEntryLabel = (entry) => {
@@ -717,21 +679,32 @@ export default function TimeTrackingPage() {
     return entry.taskDescription ?? "Task";
   };
 
-  const activityFeed = [
-    ...Object.entries(activeEntries)
-      .filter(([_, entry]) => !!entry)
-      .map(([key, entry]) => ({
-        time: new Date(entry.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        label: getEntryLabel(entry),
-        type: entry.entryType,
-        active: true,
-        clockInTime: entry.clockInTime,
-      })),
-    ...todayEntries.flatMap((e) => [
-      { time: e.clockOut, label: e.description, type: e.entryType, event: "Clock Out", active: false },
-      { time: e.clockIn, label: e.description, type: e.entryType, event: "Clock In", active: false },
-    ]),
-  ];
+  const activityFeed = useMemo(() => {
+    const feed = [
+      ...Object.entries(activeEntries)
+        .filter(([_, entry]) => !!entry)
+        .map(([key, entry]) => ({
+          time: new Date(entry.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          timestamp: new Date(entry.clockInTime).getTime(),
+          label: getEntryLabel(entry),
+          type: entry.entryType,
+          active: true,
+        })),
+      ...todayEntries.flatMap((e) => [
+        {
+          time: e.clockOut,
+          timestamp: e._clockOutTime ? new Date(e._clockOutTime).getTime() : Date.now(),
+          label: e.description, type: e.entryType, active: false
+        },
+        {
+          time: e.clockIn,
+          timestamp: e._clockInTime ? new Date(e._clockInTime).getTime() : Date.now() - 1000,
+          label: e.description, type: e.entryType, active: true
+        },
+      ]),
+    ];
+    return feed.sort((a, b) => b.timestamp - a.timestamp);
+  }, [activeEntries, todayEntries]);
 
   const handleHeaderClockIn = useCallback(() => setClockInOpen(true), []);
 
@@ -765,9 +738,10 @@ export default function TimeTrackingPage() {
         e.entryType === "NonJob" ? "Non-Job"
           : e.entryType === "DailyShift" ? "Daily Shift"
             : e.entryType,
+      _isBackground: e.entryType === "DailyShift",
       description:
         e.entryType === "Job" ? (e.workOrder?.label ?? "Work Order")
-          : e.entryType === "DailyShift" ? "Daily Attendance"
+          : e.entryType === "DailyShift" ? "Overall Attendance"
             : (e.taskDescription ?? "Task"),
       clockIn: new Date(e.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       clockOut: null, hours: null, status: "Open", _active: true,
@@ -781,14 +755,36 @@ export default function TimeTrackingPage() {
       ...(filteredEntries.length > 0 ? [{ id: "__total__" }] : []),
     ];
 
+  // Live tick for Total Job Hours and Shift Timer
+  const [liveTick, setLiveTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setLiveTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const totalJobDuration = useMemo(() => {
+    const completedSeconds = todayEntries
+      .filter((e) => e.entryType === "Job" || e.entryType === "Non-Job" || e.entryType === "NonJob")
+      .reduce((acc, e) => acc + (parseFloat(e.hours) || 0) * 3600, 0);
+    const activeSec = isTaskActive ? Math.floor((Date.now() - new Date(activeTask.clockInTime)) / 1000) : 0;
+    return formatSeconds(completedSeconds + activeSec);
+  }, [todayEntries, activeTask, isTaskActive, liveTick]);
+
   const timingPanelProps = {
-    activeEntries, activeShift, activeTask,
-    liveClock, shiftElapsed, taskElapsed,
+    activeEntries,
+    activeShift,
+    activeTask,
+    liveClock,
+    shiftElapsed,
+    taskElapsed,
+    totalJobDuration,
     todayEntries: filteredEntries,
     activityFeed,
     onClockIn: () => setClockInOpen(true),
     onClockOut: (entry) => { setActiveToOut(entry); setClockOutOpen(true); },
+    onAddExpense: () => setExpenseModalOpen(true),
     userName, userInitials, entriesLoading,
+    userRole,
   };
 
   return (
@@ -856,26 +852,26 @@ export default function TimeTrackingPage() {
         {/* Table */}
         <Paper
           elevation={0}
-          sx={{ border: "1px solid #e8e8e8", borderRadius: "12px", overflow: "hidden", bgcolor: "#fff" }}
+          sx={{ border: "1px solid #e8e8e8", borderRadius: "8px", overflow: "auto", bgcolor: "#fff" }}
         >
           <BoardTable
-            minWidth={440}
+            minWidth={600}
             maxHeight={isMobile ? 320 : "calc(100vh - 260px)"}
             emptyMessage="No entries yet today — clock in to start tracking"
             columns={[
-              { label: "Type", width: "120px" },
+              { label: "Type", width: "130px" },
               { label: "Description", width: "auto" },
-              { label: "Clock In", width: "90px" },
-              { label: "Clock Out", width: "90px" },
-              { label: "Hrs", width: "60px" },
-              { label: "Status", width: "90px" },
+              { label: "Clock In", width: "95px" },
+              { label: "Clock Out", width: "95px" },
+              { label: "Hrs", width: "85px" },
+              { label: "Status", width: "110px" },
             ]}
             rows={tableRows}
             renderRow={(row) => {
               if (String(row.id).startsWith("__skel_")) {
                 return (
                   <TableRow key={row.id}>
-                    {[90, 220, 80, 80, 45, 80].map((w, i) => (
+                    {[80, 200, 80, 80, 65, 80].map((w, i) => (
                       <TableCell key={i} sx={DATA_CELL_SX}>
                         <Skeleton variant="text" width={w} height={18} />
                       </TableCell>
@@ -899,15 +895,35 @@ export default function TimeTrackingPage() {
               }
 
               return (
-                <TableRow key={row.id} hover sx={{ "&:hover": { bgcolor: "#fafafa" } }}>
+                <TableRow
+                  key={row.id}
+                  hover
+                  sx={{
+                    "&:hover": { bgcolor: "#fafafa" },
+                    ...(row._isBackground ? { bgcolor: "#fbfbfe" } : {})
+                  }}
+                >
                   <TableCell sx={DATA_CELL_SX}>
                     <TypeChip type={row.entryType} />
                   </TableCell>
                   <TableCell sx={DATA_CELL_SX}>
                     <Typography
-                      sx={{ fontWeight: 500, color: "#333", fontSize: "0.82rem", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                      sx={{
+                        fontWeight: row._isBackground ? 700 : 500,
+                        color: row._isBackground ? "#7c3aed" : "#333",
+                        fontSize: "0.82rem",
+                        maxWidth: 260,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap"
+                      }}
                     >
                       {row.description}
+                      {row._isBackground && (
+                        <Typography component="span" sx={{ ml: 1, fontSize: "0.65rem", fontWeight: 600, color: "text.disabled", textTransform: "uppercase" }}>
+                          (Background)
+                        </Typography>
+                      )}
                     </Typography>
                   </TableCell>
                   <TableCell sx={{ ...DATA_CELL_SX, color: "#555", fontSize: "0.82rem" }}>
@@ -916,8 +932,22 @@ export default function TimeTrackingPage() {
                   <TableCell sx={DATA_CELL_SX}>
                     {row._active ? (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#22c55e", flexShrink: 0, animation: "pulse 1.5s ease infinite", "@keyframes pulse": { "0%,100%": { opacity: 1 }, "50%": { opacity: 0.4 } } }} />
-                        <Typography sx={{ fontSize: "0.78rem", color: "#16a34a", fontWeight: 600 }}>Active</Typography>
+                        <Box sx={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          bgcolor: row._isBackground ? "#7c3aed" : "#22c55e",
+                          flexShrink: 0,
+                          animation: "pulse 1.5s ease infinite",
+                          "@keyframes pulse": { "0%,100%": { opacity: 1 }, "50%": { opacity: 0.4 } }
+                        }} />
+                        <Typography sx={{
+                          fontSize: "0.78rem",
+                          color: row._isBackground ? "#7c3aed" : "#16a34a",
+                          fontWeight: 600
+                        }}>
+                          {row._isBackground ? "Running" : "Active"}
+                        </Typography>
                       </Box>
                     ) : (
                       <Typography sx={{ fontSize: "0.82rem", color: "#555" }}>{row.clockOut ?? DASH}</Typography>
@@ -954,6 +984,13 @@ export default function TimeTrackingPage() {
         onConfirm={handleClockOut}
         activeEntry={activeToOut}
         loading={clockOutLoading}
+      />
+
+      <QuickExpenseModal
+        open={expenseModalOpen}
+        onClose={() => setExpenseModalOpen(false)}
+        onConfirm={handleAddExpense}
+        jobLabel={activeTask?.entryType === "Job" ? (activeTask.workOrder?.label ?? "Active Job") : activeTask?.taskDescription}
       />
 
       <Snackbar
