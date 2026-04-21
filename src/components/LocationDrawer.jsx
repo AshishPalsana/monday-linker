@@ -326,7 +326,7 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open, zIn
 
       <Divider sx={{ borderColor: "#e8e6e1" }} />
 
-      <Box sx={{ flex: 1, overflowY: "auto", px: 2.5, py: 2.5 }}>
+      <Box sx={{ flex: 1, overflowY: "auto", px: 2.5, py: 2.5, pointerEvents: !canSave ? "none" : undefined }}>
         {attempted && !isValid && (
           <Box
             sx={{

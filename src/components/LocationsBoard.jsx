@@ -140,6 +140,7 @@ export default function LocationsBoard() {
             chipTextColor="#166534"
             chipBorderColor="#bbf7d0"
             onSelectExisting={(id, name) => handleLink(COL.CUSTOMERS_REL, id, name)}
+            readOnly={!isAdmin}
           />
         </TableCell>
         <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible", py: "5px" }} onClick={(e) => e.stopPropagation()}>
@@ -151,6 +152,7 @@ export default function LocationsBoard() {
             chipTextColor="#1e40af"
             chipBorderColor="#c7d7fb"
             onSelectExisting={(id, name) => handleLink(COL.WORK_ORDERS_REL, id, name)}
+            readOnly={!isAdmin}
           />
         </TableCell>
         <TableCell sx={{ ...DATA_CELL_SX, overflow: "visible", py: "5px" }} onClick={(e) => e.stopPropagation()}>
@@ -162,6 +164,7 @@ export default function LocationsBoard() {
             chipTextColor="#c2410c"
             chipBorderColor="#fed7aa"
             onSelectExisting={(id, name) => handleLink(COL.EQUIPMENTS_REL, id, name)}
+            readOnly={!isAdmin}
           />
         </TableCell>
         <TableCell sx={{ ...DATA_CELL_SX, overflow: 'visible' }}>

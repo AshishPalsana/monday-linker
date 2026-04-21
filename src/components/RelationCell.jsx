@@ -11,6 +11,7 @@ export default function RelationCell({
   createLabel,
   onSelectExisting,
   onCreateNew,
+  readOnly = false,
 }) {
   const [editing, setEditing] = useState(false);
   const mouseDownOnOption = useRef(false);
@@ -25,7 +26,7 @@ export default function RelationCell({
           <Chip
             label={value}
             size="small"
-            onClick={() => setEditing(true)}
+            onClick={readOnly ? undefined : () => setEditing(true)}
             sx={{
               maxWidth: 150,
               fontSize: "0.72rem",
@@ -33,21 +34,21 @@ export default function RelationCell({
               bgcolor: chipBgColor,
               color: chipTextColor,
               border: `1px solid ${chipBorderColor}`,
-              cursor: "pointer",
+              cursor: readOnly ? "default" : "pointer",
             }}
           />
         ) : (
           <Box
-            onClick={() => setEditing(true)}
+            onClick={readOnly ? undefined : () => setEditing(true)}
             sx={{
               color: "text.disabled",
               fontSize: "0.75rem",
-              cursor: "pointer",
+              cursor: readOnly ? "default" : "pointer",
               px: 0.5,
-              "&:hover": { color: "primary.main" },
+              ...(!readOnly && { "&:hover": { color: "primary.main" } }),
             }}
           >
-            {placeholder}
+            {readOnly ? "—" : placeholder}
           </Box>
         )}
       </Box>

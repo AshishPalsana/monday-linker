@@ -194,6 +194,7 @@ export default function WorkOrdersBoard() {
           onCreateNew={(name) =>
             setPendingNewCustomer({ name, workOrderId: item.id })
           }
+          readOnly={!isAdmin}
         />
       </TableCell>
       <TableCell
@@ -212,6 +213,7 @@ export default function WorkOrdersBoard() {
           onCreateNew={(name) =>
             setPendingNewLocation({ name, workOrderId: item.id })
           }
+          readOnly={!isAdmin}
         />
       </TableCell>
       <TableCell sx={DATA_CELL_SX}>

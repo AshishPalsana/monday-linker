@@ -403,7 +403,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
 
         <Divider sx={{ borderColor: "#e8e6e1" }} />
 
-        <Box sx={{ flex: 1, overflowY: "auto", px: 2.5, py: 2.5 }}>
+        <Box sx={{ flex: 1, overflowY: "auto", px: 2.5, py: 2.5, pointerEvents: !isAdmin ? "none" : undefined }}>
           <Section>Overview</Section>
           <Box sx={{ mb: 2.5 }}>
             <PropertyRow icon={PersonOutlineIcon} label="Customer">

@@ -126,6 +126,7 @@ export default function EquipmentBoard() {
             createLabel="location"
             onSelectExisting={(locId, locName) => handleLinkLocation(item, locId, locName)}
             onCreateNew={(inputValue) => setPendingNewLocation({ name: inputValue, equipmentId: item.id })}
+            readOnly={!isAdmin}
           />
         </TableCell>
         <TruncCell value={getColumnDisplayValue(item, EQ_COL.MANUFACTURER)} />
