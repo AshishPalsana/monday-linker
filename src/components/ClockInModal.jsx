@@ -63,8 +63,8 @@ export default function ClockInModal({ open, onClose, onConfirm, workOrders = []
       fullWidth
       PaperProps={{ sx: { borderRadius: "12px" } }}
     >
-      <DialogTitle sx={{ fontWeight: 800, color: "#333", pb: 0.5 }}>
-        {!isShiftActive ? "Start Your Day" : "Start New Task"}
+      <DialogTitle sx={{ fontWeight: 700, pb: 0.5 }}>
+        {!isShiftActive ? "Clock In" : "Start New Task"}
       </DialogTitle>
 
       <DialogContent sx={{ pt: "12px !important" }}>
@@ -194,17 +194,41 @@ export default function ClockInModal({ open, onClose, onConfirm, workOrders = []
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={onClose} sx={{ color: "text.secondary", fontWeight: 600 }}>
+      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        <Button
+          onClick={onClose}
+          sx={{
+            px: 2,
+            textTransform: "none",
+            fontWeight: 500,
+            fontSize: "0.85rem",
+            color: "#37352f",
+            bgcolor: "transparent",
+            border: "1px solid #e5e7eb",
+            borderRadius: "6px",
+            "&:hover": { bgcolor: "#f1f1ef" },
+          }}
+        >
           Cancel
         </Button>
-        <AppButton
+        <Button
+          variant="contained"
           onClick={handleConfirm}
           disabled={submitted && !isValid}
-          sx={{ px: 4 }}
+          sx={{
+            px: 2.5,
+            textTransform: "none",
+            fontWeight: 600,
+            fontSize: "0.85rem",
+            bgcolor: "#2383e2",
+            borderRadius: "6px",
+            boxShadow: "none",
+            "&:hover": { bgcolor: "#1a6fba", boxShadow: "none" },
+            "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
+          }}
         >
           Confirm
-        </AppButton>
+        </Button>
       </DialogActions>
     </Dialog>
   );

@@ -16,6 +16,7 @@ import {
   LinearProgress,
 } from "@mui/material";
 import NoteAltOutlinedIcon from "@mui/icons-material/NoteAltOutlined";
+import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useState, useEffect, useMemo } from "react";
@@ -29,6 +30,7 @@ const EXPENSE_TYPES = [
   { key: "meals", label: "Meals" },
   { key: "supplies", label: "Supplies" },
 ];
+
 
 export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, loading = false }) {
   const dispatch = useDispatch();
@@ -50,12 +52,15 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
   const [markComplete, setMarkComplete] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerType, setDrawerType] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [narrativeTouched, setNarrativeTouched] = useState(false);
 
   const isJobEntry = activeEntry?.entryType === "Job";
   const checkedExpenses = EXPENSE_TYPES.filter((e) => expenseChecks[e.key]);
   const expensesValid = checkedExpenses.every((e) => !!expenseData[e.key]);
   const narrativeValid = narrative.trim().length >= 10;
-  const isValid = narrativeValid && location !== null && expensesValid;
+  const narrativeRequired = narrative.trim().length === 0;
+  const isValid = !narrativeRequired && narrativeValid && location !== null && expensesValid;
 
   function handleExpenseClick(key) {
     if (expenseChecks[key]) {
@@ -93,7 +98,11 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
     setDrawerType(null);
   }
 
+
   function handleConfirm() {
+    setSubmitted(true);
+    setNarrativeTouched(true);
+    if (!isValid) return;
     const expenses = checkedExpenses.map((e) => {
       const { amount, description } = expenseData[e.key] || {};
       return {
@@ -125,6 +134,8 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
     setMarkComplete(false);
     setDrawerOpen(false);
     setDrawerType(null);
+    setSubmitted(false);
+    setNarrativeTouched(false);
   }
 
   const clockInLabel = activeEntry?.clockInTime
@@ -191,12 +202,20 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
               size="small"
               placeholder="Describe the work performed…"
               value={narrative}
-              onChange={(e) => setNarrative(e.target.value)}
-              error={narrative.length > 0 && !narrativeValid}
+              onChange={(e) => {
+                setNarrative(e.target.value);
+                setNarrativeTouched(true);
+              }}
+              error={
+                (submitted && narrativeRequired) ||
+                (narrativeTouched && !narrativeRequired && !narrativeValid)
+              }
               helperText={
-                narrative.length > 0 && !narrativeValid
-                  ? `At least 10 characters required (${narrative.trim().length}/10)`
-                  : " "
+                submitted && narrativeRequired
+                  ? "Work Narrative is required."
+                  : narrativeTouched && !narrativeRequired && !narrativeValid
+                    ? "Narrative must be at least 10 characters."
+                    : " "
               }
               FormHelperTextProps={{ sx: { mx: 0 } }}
             />
@@ -204,9 +223,12 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
 
           {/* Location */}
           <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" sx={{ color: "text.disabled", display: "block", mb: 0.5 }}>
-              Location / Site <span style={{ color: "#ef4444" }}>*</span>
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.75 }}>
+              <PlaceOutlinedIcon sx={{ fontSize: 15, color: "text.disabled" }} />
+              <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                Location / Site <span style={{ color: "#ef4444" }}>*</span>
+              </Typography>
+            </Box>
             <Autocomplete
               options={locations}
               loading={locationsLoading}
@@ -217,6 +239,9 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
                   {...params}
                   placeholder="Search locations…"
                   size="small"
+                  error={submitted && location === null}
+                  helperText={submitted && location === null ? "Please select a location before clocking out." : " "}
+                  FormHelperTextProps={{ sx: { mx: 0 } }}
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
@@ -290,21 +315,13 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
             })}
           </Box>
 
-          {checkedExpenses.length > 0 && !expensesValid && (
-            <Typography variant="caption" sx={{ color: "#ef4444", display: "block", mt: 1 }}>
+          {submitted && checkedExpenses.length > 0 && !expensesValid && (
+            <Typography variant="caption" sx={{ color: "#ef4444", display: "block", mt: 1, ml: 0.5 }}>
               Please complete details for all selected expenses.
             </Typography>
           )}
 
-          {!isValid && (narrative.length > 0 || location !== null) && expensesValid && (
-            <Typography variant="caption" sx={{ color: "#ef4444", display: "block", mt: 1.5 }}>
-              {!narrativeValid && narrative.length > 0
-                ? "Narrative must be at least 10 characters."
-                : location === null
-                  ? "Please select a location before clocking out."
-                  : "All required fields must be filled before clocking out."}
-            </Typography>
-          )}
+          {/* No general error at bottom; all errors are now field-specific */}
 
           {/* Mark as Complete */}
           {isJobEntry && (
@@ -332,15 +349,37 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={handleClose} sx={{ textTransform: "none", color: "text.secondary" }}>
+          <Button
+            onClick={handleClose}
+            sx={{
+              px: 2,
+              textTransform: "none",
+              fontWeight: 500,
+              fontSize: "0.85rem",
+              color: "#37352f",
+              bgcolor: "transparent",
+              border: "1px solid #e5e7eb",
+              borderRadius: "6px",
+              "&:hover": { bgcolor: "#f1f1ef" },
+            }}
+          >
             Cancel
           </Button>
           <Button
             variant="contained"
-            color="error"
-            disabled={!isValid || loading}
             onClick={handleConfirm}
-            sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2, minWidth: 110 }}
+            disabled={loading}
+            sx={{
+              px: 2.5,
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              bgcolor: "#2383e2",
+              borderRadius: "6px",
+              boxShadow: "none",
+              "&:hover": { bgcolor: "#1a6fba", boxShadow: "none" },
+              "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
+            }}
           >
             {loading ? (
               <CircularProgress size={18} sx={{ color: "rgba(255,255,255,0.8)" }} />

@@ -21,6 +21,7 @@ import { parseBoardStatusColors } from "../utils/mondayUtils";
 import { BOARD_IDS, MONDAY_COLUMNS, GROUP_IDS } from "../constants/monday";
 import { ENTRY_TYPE_HEX } from "../constants/status";
 import { BoardTable, DATA_CELL_SX, DASH } from "./BoardTable";
+import AttendanceActivityFeed from "./AttendanceActivityFeed";
 import { mondayClient } from "../services/monday/client";
 import { FETCH_BOARD_DATA } from "../services/monday/queries";
 import AppButton from "./AppButton";
@@ -431,60 +432,7 @@ function TimingPanel({
         <Divider sx={{ mt: 2 }} />
 
         {/* Activity Feed */}
-        <Box sx={{ px: 2, pt: 2, pb: 3 }}>
-          <Typography sx={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "#aaa", mb: 1.5 }}>
-            Attendance Activity
-          </Typography>
-
-          {activityFeed.length === 0 ? (
-            <Typography sx={{ fontSize: "0.78rem", color: "#ccc", fontWeight: 500 }}>No activity yet today</Typography>
-          ) : (
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
-              {activityFeed.map((item, idx) => {
-                const typeColor = ENTRY_TYPE_HEX[item.type] ?? "#888";
-                return (
-                  <Box key={idx} sx={{ display: "flex", gap: 1.25, position: "relative" }}>
-                    {/* Timeline */}
-                    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: "3px", flexShrink: 0 }}>
-                      <Box
-                        sx={{
-                          width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                          bgcolor: item.active ? "#22c55e" : typeColor,
-                          border: "2px solid white",
-                          boxShadow: item.active ? "0 0 0 2px rgba(34,197,94,0.35)" : `0 0 0 2px ${typeColor}33`,
-                        }}
-                      />
-                      {idx < activityFeed.length - 1 && (
-                        <Box sx={{ width: 1.5, flex: 1, minHeight: 18, bgcolor: "#ebebeb", my: 0.25 }} />
-                      )}
-                    </Box>
-                    {/* Content */}
-                    <Box sx={{ pb: 1.5, minWidth: 0, flex: 1 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontWeight: 700, fontSize: "0.75rem", color: "#333", lineHeight: 1.2 }}>
-                          {item.time}
-                        </Typography>
-                        {item.active && (
-                          <Typography component="span" sx={{ fontSize: "0.6rem", fontWeight: 800, color: "#22c55e", letterSpacing: "0.05em" }}>
-                            LIVE
-                          </Typography>
-                        )}
-                      </Box>
-                      <Typography sx={{ color: "text.disabled", fontSize: "0.7rem" }}>
-                        {item.active ? `Clocked in · ${item.type}` : item.event}
-                      </Typography>
-                      <Typography
-                        sx={{ color: typeColor, fontSize: "0.68rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                      >
-                        {item.label}
-                      </Typography>
-                    </Box>
-                  </Box>
-                );
-              })}
-            </Box>
-          )}
-        </Box>
+        <AttendanceActivityFeed activityFeed={activityFeed} />
       </Collapse>
     </Box>
   );
@@ -615,14 +563,14 @@ export default function TimeTrackingPage() {
 
         const techVal = item.column_values?.find((cv) => cv.id === MONDAY_COLUMNS.WORK_ORDERS.TECHNICIAN);
         const assignedIds = techVal?.persons_and_teams?.map((p) => String(p.id)) || [];
-        
+
         // Match if any of the technician's IDs match any of the assigned IDs on the board
         const isAssigned = assignedIds.some(aid => allowedIds.includes(aid));
-        
+
         if (!isAssigned && assignedIds.length > 0) {
           console.log(`[work-order-filter] No match for "${item.name}". Assigned: [${assignedIds.join(",")}], Your IDs: [${allowedIds.join(",")}]`);
         }
-        
+
         return isAssigned;
       })
       .map((item) => ({ id: item.id, label: item.name }));
@@ -866,9 +814,9 @@ export default function TimeTrackingPage() {
               { label: "Type", width: "120px" },
               { label: "Description", width: "auto" },
               { label: "Clock In", width: "90px" },
-              { label: "Clock Out", width: "90px" },
-              { label: "Hrs", width: "60px" },
-              { label: "Status", width: "90px" },
+              { label: "Clock Out", width: "100px" },
+              { label: "Hrs", width: "70px" },
+              { label: "Status", width: "120px" },
             ]}
             rows={tableRows}
             renderRow={(row) => {
