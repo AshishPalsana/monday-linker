@@ -25,6 +25,7 @@ import { updateLocation } from "../store/locationsSlice";
 import { LinkedGroup, RecordPill, LinkedTable } from "./LinkedRecordItem";
 import { isValidMondayId, parseRelationIds, getColumnDisplayValue } from "../utils/mondayUtils";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 const EMPTY_ARRAY = [];
 
@@ -133,6 +134,8 @@ const Section = ({ children }) => (
 export default function LocationDrawer({ location, onClose, onSaveNew, open, zIndex }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { auth } = useAuth();
+  const canSave = (auth?.technician?.isAdmin ?? false) || !!onSaveNew;
   const { creating: apiCreating, saving: apiSaving } = useSelector(
     (s) => s.locations,
   );
@@ -538,26 +541,28 @@ export default function LocationDrawer({ location, onClose, onSaveNew, open, zIn
         >
           Cancel
         </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          disableElevation
-          disabled={isBusy}
-          sx={{
-            px: 2.5,
-            textTransform: "none",
-            fontWeight: 600,
-            fontSize: "0.85rem",
-            bgcolor: "#2383e2",
-            borderRadius: "6px",
-            boxShadow: "none",
-            "&:hover": { bgcolor: "#1a6fba", boxShadow: "none" },
-            "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
-          }}
-        >
-          {isBusy ? <CircularProgress size={16} sx={{ color: "#fff", mr: 1 }} /> : null}
-          {isNew ? "Create" : "Save changes"}
-        </Button>
+        {canSave && (
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            disableElevation
+            disabled={isBusy}
+            sx={{
+              px: 2.5,
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              bgcolor: "#2383e2",
+              borderRadius: "6px",
+              boxShadow: "none",
+              "&:hover": { bgcolor: "#1a6fba", boxShadow: "none" },
+              "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
+            }}
+          >
+            {isBusy ? <CircularProgress size={16} sx={{ color: "#fff", mr: 1 }} /> : null}
+            {isNew ? "Create" : "Save changes"}
+          </Button>
+        )}
       </Box>
     </Drawer>
   );

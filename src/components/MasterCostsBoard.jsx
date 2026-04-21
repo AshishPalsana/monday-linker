@@ -60,12 +60,14 @@ export default function MasterCostsBoard() {
     setDrawerOpen(true);
   }, []);
 
+  const isAdmin = auth?.technician?.isAdmin ?? false;
+
   useBoardHeader({
     title: 'Master Costs',
     count: filteredItems.length,
     countLabel: 'cost lines found',
-    buttonLabel: 'Add Cost Item',
-    onButtonClick: handleAddCost,
+    buttonLabel: isAdmin ? 'Add Cost Item' : undefined,
+    onButtonClick: isAdmin ? handleAddCost : undefined,
   });
 
   const itemsByGroup = filteredItems.reduce((acc, item) => {

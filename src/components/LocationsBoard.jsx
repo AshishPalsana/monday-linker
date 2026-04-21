@@ -15,6 +15,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useBoardHeader, useBoardHeaderContext } from "../contexts/BoardHeaderContext";
+import { useAuth } from "../hooks/useAuth";
 import { MONDAY_COLUMNS } from "../constants/index";
 import { getColumnDisplayValue, getColumnSnapshot } from "../utils/mondayUtils";
 import StatusChip from "./StatusChip";
@@ -26,6 +27,8 @@ const COL = MONDAY_COLUMNS.LOCATIONS;
 
 export default function LocationsBoard() {
   const dispatch = useDispatch();
+  const { auth } = useAuth();
+  const isAdmin = auth?.technician?.isAdmin ?? false;
   const { board, loading, error, statusColors } = useSelector((state) => state.locations);
   const customers = useSelector((s) => s.customers.board?.items_page?.items || []);
   const workOrders = useSelector((s) => s.workOrders.board?.items_page?.items || []);
@@ -72,8 +75,8 @@ export default function LocationsBoard() {
   useBoardHeader({
     title: 'Locations',
     count: filteredLocations.length,
-    buttonLabel: 'New location',
-    onButtonClick: handleNew,
+    buttonLabel: isAdmin ? 'New location' : undefined,
+    onButtonClick: isAdmin ? handleNew : undefined,
   });
 
   const locationsByGroup = filteredLocations.reduce((acc, loc) => {

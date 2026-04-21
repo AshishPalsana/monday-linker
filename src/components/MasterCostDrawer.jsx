@@ -110,6 +110,7 @@ const InlineField = ({
 export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkOrderId }) {
   const dispatch = useDispatch();
   const { auth } = useAuth();
+  const isAdmin = auth?.technician?.isAdmin ?? false;
   const { creating, saving } = useSelector((s) => s.masterCosts);
   const workOrders = useSelector((s) => s.workOrders.board?.items_page?.items || EMPTY_ARRAY);
 
@@ -342,25 +343,27 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
         >
           Cancel
         </Button>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={creating || saving}
-          sx={{
-            px: 2.5,
-            textTransform: "none",
-            fontWeight: 600,
-            fontSize: "0.85rem",
-            bgcolor: "#2383e2",
-            borderRadius: "6px",
-            boxShadow: "none",
-            "&:hover": { bgcolor: "#1a6fba", boxShadow: "none" },
-            "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
-          }}
-        >
-          {creating || saving ? <CircularProgress size={16} sx={{ color: "#fff", mr: 1 }} /> : null}
-          {isNew ? "Add Item" : "Save Changes"}
-        </Button>
+        {isAdmin && (
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={creating || saving}
+            sx={{
+              px: 2.5,
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              bgcolor: "#2383e2",
+              borderRadius: "6px",
+              boxShadow: "none",
+              "&:hover": { bgcolor: "#1a6fba", boxShadow: "none" },
+              "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
+            }}
+          >
+            {creating || saving ? <CircularProgress size={16} sx={{ color: "#fff", mr: 1 }} /> : null}
+            {isNew ? "Add Item" : "Save Changes"}
+          </Button>
+        )}
       </Box>
     </Drawer>
   );

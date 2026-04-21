@@ -10,6 +10,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useBoardHeader, useBoardHeaderContext } from '../contexts/BoardHeaderContext';
+import { useAuth } from '../hooks/useAuth';
 import { fetchCustomers, createCustomer as createCustomerThunk } from '../store/customersSlice';
 import { MONDAY_COLUMNS } from '../constants/index';
 import { getColumnDisplayValue } from '../utils/mondayUtils';
@@ -21,6 +22,8 @@ const COL = MONDAY_COLUMNS.CUSTOMERS;
 
 export default function CustomersBoard() {
   const dispatch = useDispatch();
+  const { auth } = useAuth();
+  const isAdmin = auth?.technician?.isAdmin ?? false;
   const { board, loading, error, statusColors } = useSelector((state) => state.customers);
   const { search } = useBoardHeaderContext();
   const { id } = useParams();
@@ -61,8 +64,8 @@ export default function CustomersBoard() {
   useBoardHeader({
     title: 'Customers',
     count: filteredItems.length,
-    buttonLabel: 'New customer',
-    onButtonClick: handleNew,
+    buttonLabel: isAdmin ? 'New customer' : undefined,
+    onButtonClick: isAdmin ? handleNew : undefined,
   });
 
   const itemsByGroup = filteredItems.reduce((acc, item) => {

@@ -6,6 +6,7 @@ import {
   Tooltip, CircularProgress,
 } from '@mui/material';
 import { useBoardHeader, useBoardHeaderContext } from '../contexts/BoardHeaderContext';
+import { useAuth } from '../hooks/useAuth';
 import {
   fetchEquipment,
   createEquipment as createEquipmentThunk,
@@ -26,6 +27,8 @@ const EMPTY_ARRAY = [];
 
 export default function EquipmentBoard() {
   const dispatch = useDispatch();
+  const { auth } = useAuth();
+  const isAdmin = auth?.technician?.isAdmin ?? false;
   const { board, loading, error, statusColors } = useSelector((s) => s.equipment);
   const locations = useSelector((s) => s.locations.board?.items_page?.items || EMPTY_ARRAY);
   const { search } = useBoardHeaderContext();
@@ -76,8 +79,8 @@ export default function EquipmentBoard() {
   useBoardHeader({
     title: 'Equipment',
     count: filteredItems.length,
-    buttonLabel: 'New equipment',
-    onButtonClick: handleNew,
+    buttonLabel: isAdmin ? 'New equipment' : undefined,
+    onButtonClick: isAdmin ? handleNew : undefined,
   });
 
   // Group items by group.id

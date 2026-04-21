@@ -145,13 +145,14 @@ function SidebarContent({ collapsed, onToggle }) {
   const { auth } = useAuth();
   const isAdmin = auth?.technician?.isAdmin ?? false;
 
-  // Admin: all main pages + Time Board + Settings, no Time Tracker
-  // Non-admin: only Time Tracker
-  const visibleMain     = isAdmin ? NAV_MAIN : [];
+  // All users see Main boards and Settings
+  // Admin: Time Board only (no Time Tracker — they manage, not clock in)
+  // Non-admin: Time Tracker only (for clocking in/out)
+  const visibleMain     = NAV_MAIN;
   const visibleTimeNav  = isAdmin
     ? NAV_TIME.filter((n) => n.id !== 'time-tracker')
     : NAV_TIME.filter((n) => n.id === 'time-tracker');
-  const visibleSettings = isAdmin ? NAV_SETTINGS : [];
+  const visibleSettings = NAV_SETTINGS;
 
   return (
     <Box
@@ -229,20 +230,17 @@ function SidebarContent({ collapsed, onToggle }) {
 
       {/* Scrollable nav area */}
       <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', pt: 1.25 }}>
-        {/* Main nav — admin only */}
-        {visibleMain.length > 0 && (
-          <>
-            <SectionLabel collapsed={collapsed}>Main</SectionLabel>
-            <List dense disablePadding sx={{ px: collapsed ? 0.5 : 0.75 }}>
-              {visibleMain.map((item) => (
-                <NavItem key={item.id} {...item} collapsed={collapsed} clockedIn={clockedIn} />
-              ))}
-            </List>
-            <Divider sx={{ my: 1.25 }} />
-          </>
-        )}
+        {/* Main nav — all users */}
+        <SectionLabel collapsed={collapsed}>Main</SectionLabel>
+        <List dense disablePadding sx={{ px: collapsed ? 0.5 : 0.75 }}>
+          {visibleMain.map((item) => (
+            <NavItem key={item.id} {...item} collapsed={collapsed} clockedIn={clockedIn} />
+          ))}
+        </List>
 
-        {/* Time & Labor */}
+        <Divider sx={{ my: 1.25 }} />
+
+        {/* Time & Labor — Time Board for admin, Time Tracker for technician */}
         <SectionLabel collapsed={collapsed}>Time & Labor</SectionLabel>
         <List dense disablePadding sx={{ px: collapsed ? 0.5 : 0.75 }}>
           {visibleTimeNav.map((item) => (
@@ -250,18 +248,15 @@ function SidebarContent({ collapsed, onToggle }) {
           ))}
         </List>
 
-        {/* Settings — admin only */}
-        {visibleSettings.length > 0 && (
-          <>
-            <Divider sx={{ my: 1.25 }} />
-            <SectionLabel collapsed={collapsed}>Settings</SectionLabel>
-            <List dense disablePadding sx={{ px: collapsed ? 0.5 : 0.75 }}>
-              {visibleSettings.map((item) => (
-                <NavItem key={item.id} {...item} collapsed={collapsed} clockedIn={clockedIn} />
-              ))}
-            </List>
-          </>
-        )}
+        <Divider sx={{ my: 1.25 }} />
+
+        {/* Settings — all users */}
+        <SectionLabel collapsed={collapsed}>Settings</SectionLabel>
+        <List dense disablePadding sx={{ px: collapsed ? 0.5 : 0.75 }}>
+          {visibleSettings.map((item) => (
+            <NavItem key={item.id} {...item} collapsed={collapsed} clockedIn={clockedIn} />
+          ))}
+        </List>
       </Box>
     </Box>
   );

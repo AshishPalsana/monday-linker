@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import { fetchWorkOrders } from "../store/workOrderSlice";
 import {
   fetchCustomers,
@@ -39,6 +40,8 @@ const EMPTY_ARRAY = [];
 export default function WorkOrdersBoard() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { auth } = useAuth();
+  const isAdmin = auth?.technician?.isAdmin ?? false;
   const { board, loading, error, statusColors } = useSelector((s) => s.workOrders);
   const { search } = useBoardHeaderContext();
 
@@ -126,8 +129,8 @@ export default function WorkOrdersBoard() {
   useBoardHeader({
     title: "Work Orders",
     count: filteredItems.length,
-    buttonLabel: "New work order",
-    onButtonClick: handleNewBoardOrder,
+    buttonLabel: isAdmin ? "New work order" : undefined,
+    onButtonClick: isAdmin ? handleNewBoardOrder : undefined,
   });
 
   const itemsByGroup = filteredItems.reduce((acc, item) => {

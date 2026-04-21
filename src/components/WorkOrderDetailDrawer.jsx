@@ -233,6 +233,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
   const [promoting, setPromoting] = useState(false);
 
   const { auth } = useAuth();
+  const isAdmin = auth?.technician?.isAdmin ?? false;
   const allCosts = useSelector((s) => s.masterCosts.items);
   const costsLoading = useSelector((s) => s.masterCosts.loading);
   const [costDrawerOpen, setCostDrawerOpen] = useState(false);
@@ -1030,26 +1031,28 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            disableElevation
-            disabled={saving || isLocked}
-            sx={{
-              px: 2.5,
-              textTransform: "none",
-              fontWeight: 600,
-              fontSize: "0.85rem",
-              bgcolor: "#2383e2",
-              borderRadius: "6px",
-              boxShadow: "none",
-              "&:hover": { bgcolor: "#1a6fba", boxShadow: "none" },
-              "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
-            }}
-          >
-            {saving ? <CircularProgress size={16} sx={{ color: "#fff", mr: 1 }} /> : null}
-            Save changes
-          </Button>
+          {isAdmin && (
+            <Button
+              onClick={handleSave}
+              variant="contained"
+              disableElevation
+              disabled={saving || isLocked}
+              sx={{
+                px: 2.5,
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "0.85rem",
+                bgcolor: "#2383e2",
+                borderRadius: "6px",
+                boxShadow: "none",
+                "&:hover": { bgcolor: "#1a6fba", boxShadow: "none" },
+                "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
+              }}
+            >
+              {saving ? <CircularProgress size={16} sx={{ color: "#fff", mr: 1 }} /> : null}
+              Save changes
+            </Button>
+          )}
         </Box>
       </Drawer>
 
