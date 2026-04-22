@@ -92,17 +92,16 @@ export default function MasterCostsBoard() {
   const renderRow = (item) => {
     const type = getColValue(item, MC_COL.TYPE);
     
-    // Correctly extract the linked pulse ID from the relation column value
     const relCol = item.column_values?.find(c => c.id === MC_COL.WORK_ORDERS_REL);
     let woId = null;
-    if (relCol?.value) {
+    if (Array.isArray(relCol?.linked_item_ids) && relCol.linked_item_ids.length > 0) {
+      woId = String(relCol.linked_item_ids[0]);
+    } else if (relCol?.value) {
       try {
         const parsed = JSON.parse(relCol.value);
         const linkedIds = parsed.linkedPulseIds || parsed.item_ids || [];
-        woId = linkedIds[0]?.linkedPulseId || linkedIds[0]?.id || linkedIds[0];
-      } catch (e) {
-        woId = relCol.text; // fallback
-      }
+        woId = String(linkedIds[0]?.linkedPulseId || linkedIds[0]?.id || linkedIds[0] || "");
+      } catch (_) {}
     }
 
     return (
