@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { useBoardHeader, useBoardHeaderContext } from '../contexts/BoardHeaderContext';
 import { useAuth } from '../hooks/useAuth';
+import { useSocket } from '../hooks/useSocket';
 import { fetchCustomers, createCustomer as createCustomerThunk } from '../store/customersSlice';
 import { MONDAY_COLUMNS } from '../constants/index';
 import { getColumnDisplayValue } from '../utils/mondayUtils';
@@ -28,6 +29,7 @@ export default function CustomersBoard() {
   const { search } = useBoardHeaderContext();
   const { id } = useParams();
   const navigate = useNavigate();
+  const socket = useSocket();
 
   // Derived state for the selected customer based on the URL ID
   const openDialog = useMemo(() => {
@@ -49,6 +51,15 @@ export default function CustomersBoard() {
   useEffect(() => {
     dispatch(fetchCustomers());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!socket) return;
+    function onCustomerSynced() {
+      dispatch(fetchCustomers());
+    }
+    socket.on('customer:synced', onCustomerSynced);
+    return () => socket.off('customer:synced', onCustomerSynced);
+  }, [socket, dispatch]);
 
   const handleNew = useCallback(() => {
     navigate('/customers/__new__');
