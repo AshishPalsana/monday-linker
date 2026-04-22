@@ -67,6 +67,7 @@ export const MONDAY_COLUMNS = {
     TIME_ENTRIES_REL:  "board_relation_mm2cnxb5",
     EXPENSES_REL:      "board_relation_mm2cgry0",
     DESCRIPTION_OLD:   "long_text_mm14ee7h",     // Alias for clarity
+    TOTAL_JOB_COST:    "numeric_mm2n3zfq",
   },
   EQUIPMENT: {
     LOCATION: "board_relation_mm2c5c1q",
@@ -115,8 +116,8 @@ export const MONDAY_COLUMNS = {
     REVENUE_ACCOUNT: "color_mm1csz5m",
   },
   MASTER_COSTS: {
-    WORK_ORDERS_REL:  "board_relation_mm26prz0",  // Link to Work Orders
-    TECHNICIANS_REL:  "board_relation_mm26z5dh",  // Link to Technicians
+    WORK_ORDERS_REL:  "board_relation_mm26prz0",
+    TECHNICIANS_REL:  "board_relation_mm26z5dh",
     TYPE:             "color_mm25xk4h",            // Labor | Parts | Expense
     QUANTITY:         "numeric_mm256yw2",
     RATE:             "numeric_mm25xvx0",
@@ -124,6 +125,7 @@ export const MONDAY_COLUMNS = {
     TOTAL_COST:       "numeric_mm25953b",
     DATE:             "date_mm26snwa",
     INVOICE_STATUS:   "color_mm26qn4h",
+    XERO_SYNC_ID:     "text_mm2n27t6",
   },
   TECHNICIANS: {
     STATUS:          "color_mm0w8tnj",
