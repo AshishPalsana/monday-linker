@@ -1,4 +1,4 @@
-import { CREATE_ITEM, UPDATE_ITEM_COLUMNS } from "./mutations";
+import { CREATE_ITEM, UPDATE_ITEM_COLUMNS, UPDATE_ITEM_NAME } from "./mutations";
 import { executeMutation } from "./baseService";
 import { BOARD_IDS, MONDAY_COLUMNS } from "../../constants/monday";
 

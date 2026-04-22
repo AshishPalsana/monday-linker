@@ -24,6 +24,7 @@ import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import { MONDAY_COLUMNS, COST_TYPE_OPTIONS, COST_TYPE_HEX } from "../constants/index";
 import { createMasterCost, updateMasterCost } from "../store/masterCostsSlice";
 import { useAuth } from "../hooks/useAuth";
+import { useSnackbar } from "notistack";
 
 const EMPTY_ARRAY = [];
 const MC_COL = MONDAY_COLUMNS.MASTER_COSTS;
@@ -110,6 +111,7 @@ const InlineField = ({
 export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkOrderId }) {
   const dispatch = useDispatch();
   const { auth } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const isAdmin = auth?.technician?.isAdmin ?? false;
   const { creating, saving } = useSelector((s) => s.masterCosts);
   const workOrders = useSelector((s) => s.workOrders.board?.items_page?.items || EMPTY_ARRAY);
@@ -145,6 +147,19 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
   useEffect(() => {
     if (costItem && !isNew) {
       const getCol = (id) => costItem.column_values?.find(c => c.id === id);
+      const relCol = getCol(MC_COL.WORK_ORDERS_REL);
+      let existingWoId = defaultWorkOrderId || "";
+      if (!existingWoId && relCol) {
+        if (Array.isArray(relCol.linked_item_ids) && relCol.linked_item_ids.length > 0) {
+          existingWoId = String(relCol.linked_item_ids[0]);
+        } else if (relCol.value) {
+          try {
+            const parsed = JSON.parse(relCol.value);
+            const linkedIds = parsed.linkedPulseIds || parsed.item_ids || [];
+            existingWoId = String(linkedIds[0]?.linkedPulseId || linkedIds[0]?.id || linkedIds[0] || "");
+          } catch (_) {}
+        }
+      }
       setForm({
         name: costItem.name || "",
         type: getCol(MC_COL.TYPE)?.text || "Labor",
@@ -152,7 +167,7 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
         quantity: parseFloat(getCol(MC_COL.QUANTITY)?.text || 1),
         rate: parseFloat(getCol(MC_COL.RATE)?.text || 0),
         date: getCol(MC_COL.DATE)?.text || new Date().toISOString().split("T")[0],
-        workOrderId: defaultWorkOrderId || "", // Relation is handled differently, usually passed in
+        workOrderId: existingWoId,
       });
     } else {
       setForm(prev => ({ ...prev, workOrderId: defaultWorkOrderId || "" }));
@@ -174,16 +189,22 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
       rate: parseFloat(form.rate),
     };
 
-    if (isNew) {
-      await dispatch(createMasterCost({ payload, token: auth?.token })).unwrap();
-    } else {
-      await dispatch(updateMasterCost({
-        mondayItemId: costItem.id,
-        payload,
-        token: auth?.token
-      })).unwrap();
+    try {
+      if (isNew) {
+        await dispatch(createMasterCost({ payload, token: auth?.token })).unwrap();
+        enqueueSnackbar("Cost item created successfully.", { variant: "success" });
+      } else {
+        await dispatch(updateMasterCost({
+          mondayItemId: costItem.id,
+          payload,
+          token: auth?.token
+        })).unwrap();
+        enqueueSnackbar("Cost item updated successfully.", { variant: "success" });
+      }
+      onClose();
+    } catch (err) {
+      enqueueSnackbar(`Failed to save: ${err?.message || "Unknown error"}`, { variant: "error" });
     }
-    onClose();
   };
 
   const total = (parseFloat(form.quantity || 0) * parseFloat(form.rate || 0)).toFixed(2);

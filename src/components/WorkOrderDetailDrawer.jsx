@@ -234,8 +234,30 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
 
   const { auth } = useAuth();
   const isAdmin = auth?.technician?.isAdmin ?? false;
-  const allCosts = useSelector((s) => s.masterCosts.items);
+  const allCostsRaw = useSelector((s) => s.masterCosts.items);
   const costsLoading = useSelector((s) => s.masterCosts.loading);
+  const allCosts = useMemo(() => {
+    if (!workOrder?.id) return allCostsRaw;
+    return allCostsRaw.filter((cost) => {
+      const relCol = cost.column_values?.find(
+        (c) => c.id === MONDAY_COLUMNS.MASTER_COSTS.WORK_ORDERS_REL,
+      );
+      if (!relCol) return false;
+      if (Array.isArray(relCol.linked_item_ids) && relCol.linked_item_ids.length > 0) {
+        return relCol.linked_item_ids.map(String).includes(String(workOrder.id));
+      }
+      if (relCol.value) {
+        try {
+          const parsed = JSON.parse(relCol.value);
+          const linkedIds = parsed.linkedPulseIds || parsed.item_ids || [];
+          return linkedIds.some(
+            (id) => String(id?.linkedPulseId || id?.id || id) === String(workOrder.id),
+          );
+        } catch (_) {}
+      }
+      return false;
+    });
+  }, [allCostsRaw, workOrder?.id]);
   const [costDrawerOpen, setCostDrawerOpen] = useState(false);
   const [editingCost, setEditingCost] = useState(null);
 
@@ -275,6 +297,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
 
   const handleXeroRetry = async () => {
     setXeroRetrying(true);
+    enqueueSnackbar("Syncing to Xero…", { variant: "info" });
     try {
       const result = await integrationApi.retryXeroSync(workOrder.id);
       setXeroSync({
@@ -282,8 +305,10 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
         xeroProjectId: result.xeroProjectId,
         workOrderId: xeroSync?.workOrderId,
       });
+      enqueueSnackbar("Xero project synced successfully.", { variant: "success" });
     } catch (err) {
       setXeroSync((prev) => ({ ...prev, error: err.message }));
+      enqueueSnackbar(`Xero sync failed: ${err.message || "Unknown error"}`, { variant: "error" });
     } finally {
       setXeroRetrying(false);
     }

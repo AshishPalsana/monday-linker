@@ -72,7 +72,7 @@ export const updateMasterCost = createAsyncThunk(
   async ({ mondayItemId, payload, token }, { dispatch, rejectWithValue }) => {
     try {
       await updateMasterCostItem(mondayItemId, payload);
-      dispatch(fetchMasterCosts({ token }));
+      dispatch(fetchMasterCosts({ workOrderId: payload.workOrderId, token }));
       return { mondayItemId };
     } catch (err) {
       return rejectWithValue(err.message);
