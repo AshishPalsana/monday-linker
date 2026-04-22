@@ -32,6 +32,13 @@ function AdminRedirect({ children }) {
   return isAdmin ? children : <Navigate to="/time-tracker" replace />;
 }
 
+// Tech-only: redirect admins to workorders
+function TechRedirect({ children }) {
+  const { auth } = useAuth();
+  const isAdmin = auth?.technician?.isAdmin ?? false;
+  return isAdmin ? <Navigate to="/workorders" replace /> : children;
+}
+
 export default function AppRouter() {
   return (
     <ThemeProvider theme={theme}>
@@ -57,7 +64,16 @@ export default function AppRouter() {
                 <Route path="/time-board"       element={<AppShell><TimeBoard /></AppShell>} />
 
                 {/* Time Tracker: non-admins only (admins use Time Board) */}
-                <Route path="/time-tracker" element={<AppShell><TimeTrackingPage /></AppShell>} />
+                <Route
+                  path="/time-tracker"
+                  element={
+                    <TechRedirect>
+                      <AppShell>
+                        <TimeTrackingPage />
+                      </AppShell>
+                    </TechRedirect>
+                  }
+                />
 
                 {/* Settings: admin only */}
                 <Route path="/settings/integrations" element={<AdminRedirect><AppShell><IntegrationsPage /></AppShell></AdminRedirect>} />

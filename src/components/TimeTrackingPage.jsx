@@ -283,9 +283,9 @@ function TimingPanel({
             {userName}
           </Typography>
           <Typography
-            sx={{ color: isShiftActive ? "#22c55e" : "text.disabled", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}
+            sx={{ color: entriesLoading ? "#aaa" : (isShiftActive ? "#22c55e" : "text.disabled"), fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}
           >
-            {isShiftActive ? "● Clocked In" : "Off Duty"}
+            {entriesLoading ? "Updating Status…" : (isShiftActive ? "● Clocked In" : "Off Duty")}
           </Typography>
         </Box>
 
@@ -488,6 +488,7 @@ export default function TimeTrackingPage() {
       .catch((err) => {
         if (cancelled) return;
         console.error("[today-log] REST fetch error:", err);
+        setApiError("Unable to load shift data. Please check your connection.");
         setEntriesLoading(false);
       });
     return () => { cancelled = true; };
