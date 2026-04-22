@@ -403,7 +403,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
 
         <Divider sx={{ borderColor: "#e8e6e1" }} />
 
-        <Box sx={{ flex: 1, overflowY: "auto", px: 2.5, py: 2.5, pointerEvents: !isAdmin ? "none" : undefined }}>
+        <Box sx={{ flex: 1, overflowY: "auto", px: 2.5, py: 2.5, ...(!isAdmin && { '& .MuiInputBase-root, & .MuiSelect-root, & .MuiSwitch-root, & .MuiCheckbox-root, & .MuiAutocomplete-root, & .MuiButtonBase-root:not(.MuiIconButton-root)': { pointerEvents: 'none' } }) }}>
           <Section>Overview</Section>
           <Box sx={{ mb: 2.5 }}>
             <PropertyRow icon={PersonOutlineIcon} label="Customer">
@@ -431,6 +431,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                   );
                 }}
                 onCreateNew={(v) => setPendingNewCustomer({ name: v })}
+                readOnly={!isAdmin}
               />
             </PropertyRow>
             <PropertyRow icon={LocationOnOutlinedIcon} label="Location">
@@ -458,6 +459,7 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
                   );
                 }}
                 onCreateNew={(v) => setPendingNewLocation({ name: v })}
+                readOnly={!isAdmin}
               />
             </PropertyRow>
             <PropertyRow icon={VerifiedOutlinedIcon} label="Scheduling Status">

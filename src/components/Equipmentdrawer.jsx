@@ -301,7 +301,7 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
 
       <Divider sx={{ borderColor: "#e8e6e1" }} />
 
-      <Box sx={{ flex: 1, overflowY: "auto", px: 2.5, py: 2.5, pointerEvents: !canSave ? "none" : undefined }}>
+      <Box sx={{ flex: 1, overflowY: "auto", px: 2.5, py: 2.5, ...(!canSave && { '& .MuiInputBase-root, & .MuiSelect-root, & .MuiSwitch-root, & .MuiCheckbox-root, & .MuiAutocomplete-root, & .MuiButtonBase-root:not(.MuiIconButton-root)': { pointerEvents: 'none' } }) }}>
         {attempted && !isValid && (
           <Box
             sx={{
@@ -356,6 +356,7 @@ export default function EquipmentDrawer({ equipment, onClose, onSaveNew, open })
                 set("locationName", name);
               }}
               onCreateNew={(name) => setPendingNewLocation({ name })}
+              readOnly={!canSave}
             />
           </PropertyRow>
         </Box>

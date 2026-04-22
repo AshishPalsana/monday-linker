@@ -219,7 +219,7 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
 
       <Divider sx={{ borderColor: "#e8e6e1" }} />
 
-      <Box sx={{ flex: 1, overflowY: "auto", px: 2.5, py: 2.5, pointerEvents: !isAdmin ? "none" : undefined }}>
+      <Box sx={{ flex: 1, overflowY: "auto", px: 2.5, py: 2.5, ...(!isAdmin && { '& .MuiInputBase-root, & .MuiSelect-root, & .MuiSwitch-root, & .MuiCheckbox-root, & .MuiAutocomplete-root, & .MuiButtonBase-root:not(.MuiIconButton-root)': { pointerEvents: 'none' } }) }}>
         {attempted && !isValid && (
           <Box sx={{ mb: 2.5, px: 1.5, py: 1, bgcolor: "#fff3f3", borderRadius: "4px", border: "1px solid #fecaca" }}>
             <Typography sx={{ fontSize: "0.775rem", color: "#eb5757" }}>
