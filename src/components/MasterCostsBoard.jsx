@@ -8,6 +8,7 @@ import {
   TableCell,
   TableRow,
   CircularProgress,
+  LinearProgress,
 } from "@mui/material";
 import { useBoardHeader, useBoardHeaderContext } from "../contexts/BoardHeaderContext";
 import { MONDAY_COLUMNS } from "../constants/index";
@@ -22,7 +23,7 @@ const WO_COL = MONDAY_COLUMNS.WORK_ORDERS;
 export default function MasterCostsBoard() {
   const dispatch = useDispatch();
   const { auth } = useAuth();
-  const { items, groups, itemGroupMap, loading, error, statusColors } = useSelector((s) => s.masterCosts);
+  const { items, groups, itemGroupMap, loading, creating, error, statusColors } = useSelector((s) => s.masterCosts);
   const { board: woBoard } = useSelector((s) => s.workOrders);
   const { search } = useBoardHeaderContext();
   
@@ -146,6 +147,16 @@ export default function MasterCostsBoard() {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      {(loading || creating) && items.length > 0 && (
+        <LinearProgress
+          sx={{
+            height: 2,
+            flexShrink: 0,
+            "& .MuiLinearProgress-bar": { bgcolor: "#2383e2" },
+            bgcolor: "rgba(35,131,226,0.12)",
+          }}
+        />
+      )}
       <Box sx={{ flex: 1, overflow: "auto", px: 3, py: 2 }}>
         {boardGroups.map(group => {
           const rows = itemsByGroup[group.id] || [];
