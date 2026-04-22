@@ -3,7 +3,6 @@ import { mondayClient } from "../services/monday/client";
 import { FETCH_BOARD_DATA } from "../services/monday/queries";
 import { BOARD_IDS } from "../constants/monday";
 import { parseBoardStatusColors } from "../utils/mondayUtils";
-import { createMasterCostItem, updateMasterCostItem } from "../services/monday/masterCostService";
 
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -58,9 +57,9 @@ export const createMasterCost = createAsyncThunk(
   "masterCosts/create",
   async ({ payload, token }, { dispatch, rejectWithValue }) => {
     try {
-      const item = await createMasterCostItem(payload);
+      const result = await apiFetch("POST", "/api/master-costs", payload, token);
       await dispatch(fetchMasterCosts({ token })).unwrap();
-      return item;
+      return result.data;
     } catch (err) {
       return rejectWithValue(err.message);
     }
@@ -71,7 +70,7 @@ export const updateMasterCost = createAsyncThunk(
   "masterCosts/update",
   async ({ mondayItemId, payload, token }, { dispatch, rejectWithValue }) => {
     try {
-      await updateMasterCostItem(mondayItemId, payload);
+      await apiFetch("PATCH", `/api/master-costs/${mondayItemId}`, payload, token);
       await dispatch(fetchMasterCosts({ token })).unwrap();
       return { mondayItemId };
     } catch (err) {
