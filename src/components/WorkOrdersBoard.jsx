@@ -347,14 +347,15 @@ export default function WorkOrdersBoard() {
             : { id: "__new__", name: "", column_values: [] }
         }
         onClose={() => setPendingNewCustomer(null)}
-        onSaveNew={async (form) => {
-          await dispatch(
+        onSaveNew={(form) => {
+          const woId = pendingNewCustomer.workOrderId;
+          setPendingNewCustomer(null);
+          dispatch(
             createCustomerAndLink({
               form,
-              workOrderId: pendingNewCustomer.workOrderId,
+              workOrderId: woId,
             }),
           );
-          setPendingNewCustomer(null);
         }}
       />
 
@@ -366,14 +367,15 @@ export default function WorkOrdersBoard() {
             : { id: "__new__", name: "", column_values: [] }
         }
         onClose={() => setPendingNewLocation(null)}
-        onSaveNew={async (form) => {
-          await dispatch(
+        onSaveNew={(form) => {
+          const woId = pendingNewLocation.workOrderId;
+          setPendingNewLocation(null);
+          dispatch(
             createLocationAndLink({
               form,
-              workOrderId: pendingNewLocation.workOrderId,
+              workOrderId: woId,
             }),
           );
-          setPendingNewLocation(null);
         }}
       />
       <WorkOrderDrawer

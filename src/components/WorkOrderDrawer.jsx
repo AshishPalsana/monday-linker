@@ -164,9 +164,9 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
       setErrors(newErrors);
       return;
     }
-
-    await dispatch(createWorkOrder(form));
+    const payload = { ...form };
     onClose();
+    dispatch(createWorkOrder(payload));
   };
 
   return (

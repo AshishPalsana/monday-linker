@@ -109,7 +109,9 @@ const workOrderSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchWorkOrders.pending, (state) => {
-        state.loading = true;
+        if (!state.board) {
+          state.loading = true;
+        }
         state.error = null;
       })
       .addCase(fetchWorkOrders.fulfilled, (state, action) => {

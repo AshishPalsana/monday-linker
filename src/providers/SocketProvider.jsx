@@ -46,7 +46,12 @@ export function SocketProvider({ children }) {
 
     function onClockOut(payload) {
       if (payload.technicianId !== techId) return;
-      dispatch(clearActiveEntry());
+      if (payload.entryType === 'DailyShift') {
+        // Ending the shift clears everything (auto-closed tasks included)
+        dispatch(clearActiveEntry());
+      } else {
+        dispatch(clearActiveEntry(payload.entryType));
+      }
     }
 
     function onClockIn(payload) {
