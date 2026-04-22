@@ -59,7 +59,7 @@ export const createMasterCost = createAsyncThunk(
   async ({ payload, token }, { dispatch, rejectWithValue }) => {
     try {
       const item = await createMasterCostItem(payload);
-      dispatch(fetchMasterCosts({ workOrderId: payload.workOrderId, token }));
+      dispatch(fetchMasterCosts({ token }));
       return item;
     } catch (err) {
       return rejectWithValue(err.message);
@@ -72,7 +72,7 @@ export const updateMasterCost = createAsyncThunk(
   async ({ mondayItemId, payload, token }, { dispatch, rejectWithValue }) => {
     try {
       await updateMasterCostItem(mondayItemId, payload);
-      dispatch(fetchMasterCosts({ workOrderId: payload.workOrderId, token }));
+      dispatch(fetchMasterCosts({ token }));
       return { mondayItemId };
     } catch (err) {
       return rejectWithValue(err.message);
