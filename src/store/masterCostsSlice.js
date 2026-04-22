@@ -97,22 +97,22 @@ export const deleteMasterCost = createAsyncThunk(
 const masterCostsSlice = createSlice({
   name: "masterCosts",
   initialState: {
-    items:        [],
-    groups:       [],
+    items: [],
+    groups: [],
     itemGroupMap: {},
-    loading:      false,
-    creating:     false,
-    saving:       false,
-    error:        null,
+    loading: false,
+    creating: false,
+    saving: false,
+    error: null,
     statusColors: {},
   },
   reducers: {},
   extraReducers: (builder) => {
     builder
       // fetch
-      .addCase(fetchMasterCosts.pending,   (s) => { s.loading = true;  s.error = null; })
+      .addCase(fetchMasterCosts.pending, (s) => { s.loading = true; s.error = null; })
       .addCase(fetchMasterCosts.fulfilled, (s, { payload }) => { s.loading = false; s.items = payload ?? []; })
-      .addCase(fetchMasterCosts.rejected,  (s, { payload }) => { s.loading = false; s.error = payload; })
+      .addCase(fetchMasterCosts.rejected, (s, { payload }) => { s.loading = false; s.error = payload; })
       // metadata — extract groups, status colors, and item→group mapping
       .addCase(fetchMasterCostsMetadata.fulfilled, (s, { payload }) => {
         s.statusColors = parseBoardStatusColors(payload);
@@ -123,7 +123,7 @@ const masterCostsSlice = createSlice({
         for (const item of payload?.items_page?.items ?? []) {
           if (item.group?.id) {
             map[item.id] = {
-              id:    item.group.id,
+              id: item.group.id,
               title: item.group.title,
               color: colorByGroupId[item.group.id] ?? "#6b7280",
             };
@@ -132,13 +132,13 @@ const masterCostsSlice = createSlice({
         s.itemGroupMap = map;
       })
       // create
-      .addCase(createMasterCost.pending,   (s) => { s.creating = true; })
+      .addCase(createMasterCost.pending, (s) => { s.creating = true; })
       .addCase(createMasterCost.fulfilled, (s) => { s.creating = false; })
-      .addCase(createMasterCost.rejected,  (s, { payload }) => { s.creating = false; s.error = payload; })
+      .addCase(createMasterCost.rejected, (s, { payload }) => { s.creating = false; s.error = payload; })
       // update
-      .addCase(updateMasterCost.pending,   (s) => { s.saving = true; })
+      .addCase(updateMasterCost.pending, (s) => { s.saving = true; })
       .addCase(updateMasterCost.fulfilled, (s) => { s.saving = false; })
-      .addCase(updateMasterCost.rejected,  (s, { payload }) => { s.saving = false; s.error = payload; })
+      .addCase(updateMasterCost.rejected, (s, { payload }) => { s.saving = false; s.error = payload; })
       // delete
       .addCase(deleteMasterCost.fulfilled, (s, { payload }) => {
         s.items = s.items.filter((i) => i.id !== payload.mondayItemId);
