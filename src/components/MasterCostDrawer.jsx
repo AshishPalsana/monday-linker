@@ -116,6 +116,7 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
 
   const isNew = !costItem?.id || costItem.id === "__new__";
   const [form, setForm] = useState({
+    name: "",
     type: "Labor",
     description: "",
     quantity: 1,
@@ -127,6 +128,7 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
 
   const REQUIRED = [
     { key: "workOrderId", label: "Work Order" },
+    { key: "name", label: "Item Name" },
     { key: "description", label: "Description" },
     { key: "quantity", label: "Quantity" },
     { key: "rate", label: "Rate" },
@@ -144,6 +146,7 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
     if (costItem && !isNew) {
       const getCol = (id) => costItem.column_values?.find(c => c.id === id);
       setForm({
+        name: costItem.name || "",
         type: getCol(MC_COL.TYPE)?.text || "Labor",
         description: getCol(MC_COL.DESCRIPTION)?.text || "",
         quantity: parseFloat(getCol(MC_COL.QUANTITY)?.text || 1),
@@ -246,6 +249,15 @@ export default function MasterCostDrawer({ open, onClose, costItem, defaultWorkO
                 <MenuItem key={wo.id} value={wo.id}>{wo.name}</MenuItem>
               ))}
             </Select>
+          </PropertyRow>
+
+          <PropertyRow icon={ReceiptLongIcon} label="Item Name" required error={err("name")}>
+            <InlineField
+              value={form.name}
+              onChange={(e) => set("name", e.target.value)}
+              placeholder="e.g. Labor Hours, New Motor"
+              error={err("name")}
+            />
           </PropertyRow>
 
           <PropertyRow icon={CategoryOutlinedIcon} label="Type" required>

@@ -29,25 +29,37 @@ function buildColumnValues({ type, description, quantity, rate, date, workOrderI
   return JSON.stringify(cv);
 }
 
-export async function createMasterCostItem({ type, description, quantity, rate, date, workOrderId }) {
+export async function createMasterCostItem({ name, type, description, quantity, rate, date, workOrderId }) {
   const cv = buildColumnValues({ type, description, quantity, rate, date, workOrderId });
-
+ 
   const data = await executeMutation(
     CREATE_ITEM,
     {
       boardId: BOARD_IDS.MASTER_COSTS,
       groupId: "topics",
-      name: description || type || "Cost Item",
+      name: name || description || type || "Cost Item",
       cv,
     },
     "createMasterCostItem"
   );
-
+ 
   return data.create_item;
 }
 
-export async function updateMasterCostItem(mondayItemId, { type, description, quantity, rate, date, workOrderId }) {
+export async function updateMasterCostItem(mondayItemId, { name, type, description, quantity, rate, date, workOrderId }) {
   const cv = buildColumnValues({ type, description, quantity, rate, date, workOrderId });
+
+  if (name) {
+    await executeMutation(
+      UPDATE_ITEM_NAME,
+      {
+        boardId: BOARD_IDS.MASTER_COSTS,
+        itemId: String(mondayItemId),
+        name,
+      },
+      "updateMasterCostName"
+    );
+  }
 
   const data = await executeMutation(
     UPDATE_ITEM_COLUMNS,

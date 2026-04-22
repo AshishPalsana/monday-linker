@@ -79,6 +79,7 @@ export default function MasterCostsBoard() {
 
   const COLUMNS = [
     { label: "Date", width: 120 },
+    { label: "Item Name", width: 200 },
     { label: "Type", width: 100 },
     { label: "Work Order", width: 220 },
     { label: "Description", width: 300 },
@@ -92,8 +93,9 @@ export default function MasterCostsBoard() {
     const type = getColValue(item, MC_COL.TYPE);
     const woId = getColValue(item, MC_COL.WORK_ORDERS_REL);
     return (
-      <TableRow key={item.id} hover>
+      <TableRow key={item.id} hover onClick={() => { setSelectedItem(item); setDrawerOpen(true); }} sx={{ cursor: "pointer" }}>
         <TableCell sx={DATA_CELL_SX}>{getColValue(item, MC_COL.DATE) || "—"}</TableCell>
+        <TableCell sx={{ ...DATA_CELL_SX, fontWeight: 600 }}>{item.name || "—"}</TableCell>
         <TableCell sx={DATA_CELL_SX}>
           <StatusChip status={type} colorMap={statusColors} />
         </TableCell>
