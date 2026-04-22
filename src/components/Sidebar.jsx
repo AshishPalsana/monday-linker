@@ -142,7 +142,10 @@ function NavItem({ id, icon: Icon, label, path, collapsed, clockedIn }) {
 
 function SidebarContent({ collapsed, onToggle }) {
   const clockedIn = useSelector((state) => !!state.activeEntry);
-  const { auth } = useAuth();
+  const { auth, authLoading } = useAuth();
+  
+  if (authLoading) return null;
+  
   const isAdmin = auth?.technician?.isAdmin ?? false;
 
   // Non-admin: "Dashboard" (time-tracker) shown first; no Time Board

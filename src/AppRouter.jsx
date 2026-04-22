@@ -20,21 +20,24 @@ import NotificationManager from './components/NotificationManager';
 
 // Redirects to role-appropriate landing page
 function DefaultRedirect() {
-  const { auth } = useAuth();
+  const { auth, authLoading } = useAuth();
+  if (authLoading) return null;
   const isAdmin = auth?.technician?.isAdmin ?? false;
   return <Navigate to={isAdmin ? '/workorders' : '/time-tracker'} replace />;
 }
 
 // Admin-only: redirect non-admins to time-tracker instead of blocking entirely
 function AdminRedirect({ children }) {
-  const { auth } = useAuth();
+  const { auth, authLoading } = useAuth();
+  if (authLoading) return null;
   const isAdmin = auth?.technician?.isAdmin ?? false;
   return isAdmin ? children : <Navigate to="/time-tracker" replace />;
 }
 
 // Tech-only: redirect admins to workorders
 function TechRedirect({ children }) {
-  const { auth } = useAuth();
+  const { auth, authLoading } = useAuth();
+  if (authLoading) return null;
   const isAdmin = auth?.technician?.isAdmin ?? false;
   return isAdmin ? <Navigate to="/workorders" replace /> : children;
 }
