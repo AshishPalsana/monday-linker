@@ -59,12 +59,12 @@ export default function AppRouter() {
                 <Route path="/" element={<DefaultRedirect />} />
 
                 {/* All users can view boards (read-only enforced inside each board/drawer) */}
-                <Route path="/workorders/:id?"  element={<AppShell><WorkOrdersBoard /></AppShell>} />
-                <Route path="/customers/:id?"   element={<AppShell><CustomersBoard /></AppShell>} />
-                <Route path="/locations/:id?"   element={<AppShell><LocationsBoard /></AppShell>} />
-                <Route path="/equipment/:id?"   element={<AppShell><EquipmentBoard /></AppShell>} />
-                <Route path="/master-costs"     element={<AppShell><MasterCostsBoard /></AppShell>} />
-                <Route path="/time-board"       element={<AppShell><TimeBoard /></AppShell>} />
+                <Route path="/workorders/:id?" element={<AppShell><WorkOrdersBoard /></AppShell>} />
+                <Route path="/customers/:id?" element={<AppShell><CustomersBoard /></AppShell>} />
+                <Route path="/locations/:id?" element={<AppShell><LocationsBoard /></AppShell>} />
+                <Route path="/equipment/:id?" element={<AppShell><EquipmentBoard /></AppShell>} />
+                <Route path="/master-costs" element={<AppShell><MasterCostsBoard /></AppShell>} />
+                <Route path="/time-board" element={<AppShell><TimeBoard /></AppShell>} />
 
                 {/* Time Tracker: non-admins only (admins use Time Board) */}
                 <Route

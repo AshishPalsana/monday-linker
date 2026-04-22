@@ -143,16 +143,16 @@ function NavItem({ id, icon: Icon, label, path, collapsed, clockedIn }) {
 function SidebarContent({ collapsed, onToggle }) {
   const clockedIn = useSelector((state) => !!state.activeEntry);
   const { auth, authLoading } = useAuth();
-  
+
   if (authLoading) return null;
-  
+
   const isAdmin = auth?.technician?.isAdmin ?? false;
 
   // Non-admin: "Dashboard" (time-tracker) shown first; no Time Board
   // Admin: full Main section; Time Board in Time & Labor; no Time Tracker
   const dashboardItem = { id: 'time-tracker', icon: TimerOutlinedIcon, label: 'Dashboard', path: '/time-tracker' };
-  const visibleMain     = NAV_MAIN;
-  const visibleTimeNav  = isAdmin
+  const visibleMain = NAV_MAIN;
+  const visibleTimeNav = isAdmin
     ? NAV_TIME.filter((n) => n.id !== 'time-tracker')
     : [];
   const visibleSettings = isAdmin ? NAV_SETTINGS : [];

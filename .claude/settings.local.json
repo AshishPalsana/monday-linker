@@ -3,7 +3,17 @@
     "allow": [
       "Bash(grep -v \"^//\")",
       "Bash(xargs grep *)",
-      "Read(//d/Workspace/**)"
+      "Read(//d/Workspace/**)",
+      "WebFetch(domain:developer.xero.com)",
+      "WebSearch",
+      "WebFetch(domain:xeroapi.github.io)",
+      "WebFetch(domain:central.xero.com)",
+      "WebFetch(domain:github.com)"
+    ],
+    "additionalDirectories": [
+      "d:\\Workspace\\monday-linker-backend\\src\\lib",
+      "d:\\Workspace\\monday-linker-backend\\src\\services",
+      "d:\\Workspace\\monday-linker-backend\\src\\routes"
     ]
   }
 }
