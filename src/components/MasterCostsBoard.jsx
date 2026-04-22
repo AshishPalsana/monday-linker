@@ -91,7 +91,20 @@ export default function MasterCostsBoard() {
 
   const renderRow = (item) => {
     const type = getColValue(item, MC_COL.TYPE);
-    const woId = getColValue(item, MC_COL.WORK_ORDERS_REL);
+    
+    // Correctly extract the linked pulse ID from the relation column value
+    const relCol = item.column_values?.find(c => c.id === MC_COL.WORK_ORDERS_REL);
+    let woId = null;
+    if (relCol?.value) {
+      try {
+        const parsed = JSON.parse(relCol.value);
+        const linkedIds = parsed.linkedPulseIds || parsed.item_ids || [];
+        woId = linkedIds[0]?.linkedPulseId || linkedIds[0]?.id || linkedIds[0];
+      } catch (e) {
+        woId = relCol.text; // fallback
+      }
+    }
+
     return (
       <TableRow key={item.id} hover onClick={() => { setSelectedItem(item); setDrawerOpen(true); }} sx={{ cursor: "pointer" }}>
         <TableCell sx={DATA_CELL_SX}>{getColValue(item, MC_COL.DATE) || "—"}</TableCell>
@@ -101,7 +114,7 @@ export default function MasterCostsBoard() {
         </TableCell>
         <TableCell sx={DATA_CELL_SX}>
           <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>
-            {workOrderMap[`${woId}_display`] || woId || "—"}
+            {workOrderMap[`${woId}_display`] || workOrderMap[woId] || woId || "—"}
           </Typography>
         </TableCell>
         <TableCell sx={DATA_CELL_SX}>{getColValue(item, MC_COL.DESCRIPTION) || "—"}</TableCell>
