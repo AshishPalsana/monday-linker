@@ -19,6 +19,7 @@ import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import EngineeringOutlinedIcon from '@mui/icons-material/EngineeringOutlined';
 import { NavLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../hooks/useAuth';
@@ -40,7 +41,8 @@ const NAV_TIME = [
 ];
 
 const NAV_SETTINGS = [
-  { id: 'integrations', icon: BuildIcon, label: 'Integrations', path: '/settings/integrations' },
+  { id: 'integrations', icon: BuildIcon,                label: 'Integrations', path: '/settings/integrations' },
+  { id: 'technicians',  icon: EngineeringOutlinedIcon,  label: 'Technicians',  path: '/settings/technicians'  },
 ];
 
 function SectionLabel({ collapsed, children }) {

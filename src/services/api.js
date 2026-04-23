@@ -82,6 +82,11 @@ export const workOrderApi = {
   prepareInvoice: (id, token) => request('POST', `/api/billing/work-orders/${id}/prepare-invoice`, {}, token),
 };
 
+export const technicianApi = {
+  getAll:         (token)       => request('GET',  '/api/technicians',                  undefined, token),
+  syncFromMonday: (token)       => request('POST', '/api/technicians/sync-from-monday', {},        token),
+};
+
 export const locationsApi = {
   getAll: (token)         => request('GET',   '/api/locations',     undefined, token),
   create: (token, data)    => request('POST',  '/api/locations',     data, token),

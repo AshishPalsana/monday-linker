@@ -11,6 +11,7 @@ import TimeTrackingPage from './components/TimeTrackingPage';
 import TimeBoard from './components/TimeBoard';
 import MasterCostsBoard from './components/MasterCostsBoard';
 import IntegrationsPage from './components/IntegrationsPage';
+import TechniciansPage from './components/TechniciansPage';
 import { AuthProvider } from './providers/AuthProvider';
 import { SocketProvider } from './providers/SocketProvider';
 import { useAuth } from './hooks/useAuth';
@@ -80,6 +81,7 @@ export default function AppRouter() {
 
                 {/* Settings: admin only */}
                 <Route path="/settings/integrations" element={<AdminRedirect><AppShell><IntegrationsPage /></AppShell></AdminRedirect>} />
+                <Route path="/settings/technicians"  element={<AdminRedirect><AppShell><TechniciansPage /></AppShell></AdminRedirect>} />
               </Routes>
             </HashRouter>
           </SocketProvider>
