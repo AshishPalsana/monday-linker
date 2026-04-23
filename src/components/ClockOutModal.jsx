@@ -20,6 +20,7 @@ import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useState, useEffect, useMemo } from "react";
+import { formatCSTTime } from "../utils/cstTime";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchLocations, createLocation } from "../store/locationsSlice";
 import ExpenseDrawer from "./ExpenseDrawer";
@@ -148,9 +149,7 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
     setNarrativeTouched(false);
   }
 
-  const clockInLabel = activeEntry?.clockInTime
-    ? new Date(activeEntry.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : "—";
+  const clockInLabel = activeEntry?.clockInTime ? formatCSTTime(activeEntry.clockInTime) : "—";
 
   const activeDrawerExpense = EXPENSE_TYPES.find((e) => e.key === drawerType);
 

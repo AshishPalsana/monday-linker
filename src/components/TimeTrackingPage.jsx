@@ -35,6 +35,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { formatCSTTime, formatCSTDate } from "../utils/cstTime";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchWorkOrders } from "../store/workOrderSlice";
 import { fetchLocations } from "../store/locationsSlice";
@@ -90,10 +91,8 @@ function formatEntry(entry) {
     id: entry.id,
     entryType: entry.entryType === "NonJob" ? "Non-Job" : entry.entryType,
     description: entry.workOrderLabel || entry.taskDescription || "—",
-    clockIn: new Date(entry.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    clockOut: entry.clockOut
-      ? new Date(entry.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      : DASH,
+    clockIn: formatCSTTime(entry.clockIn),
+    clockOut: entry.clockOut ? formatCSTTime(entry.clockOut) : DASH,
     hours: parseFloat(entry.hoursWorked) || 0,
     status: entry.status,
   };
@@ -209,7 +208,7 @@ function useLiveClock() {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-  return now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  return formatCSTTime(now, { second: "2-digit" });
 }
 
 // ─── Sidebar TimingPanel ──────────────────────────────────────────────────────
@@ -507,8 +506,8 @@ export default function TimeTrackingPage() {
         id: payload.entryId,
         entryType: payload.entryType === "NonJob" ? "Non-Job" : payload.entryType,
         description: payload.workOrderLabel || payload.taskDescription || "—",
-        clockIn: new Date(payload.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        clockOut: new Date(payload.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        clockIn: formatCSTTime(payload.clockIn),
+        clockOut: formatCSTTime(payload.clockOut),
         hours: parseFloat(payload.hoursWorked) || 0,
         status: payload.status || "Complete",
       };
@@ -617,8 +616,8 @@ export default function TimeTrackingPage() {
     setClockOutLoading(true);
     const typeKey = activeToOut.entryType === "Non-Job" ? "NonJob" : activeToOut.entryType;
     const isEndingShift = typeKey === "DailyShift";
-    const inTime = new Date(activeToOut.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const nowTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const inTime = formatCSTTime(activeToOut.clockInTime);
+    const nowTime = formatCSTTime(new Date());
     const diffMs = Date.now() - new Date(activeToOut.clockInTime);
     const diffHours = Math.max(0, parseFloat((diffMs / 3_600_000).toFixed(2)));
     const optimisticEntry = {
@@ -665,7 +664,7 @@ export default function TimeTrackingPage() {
     }
   }
 
-  const todayDate = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const todayDate = formatCSTDate(new Date(), { weekday: "long", month: "long", day: "numeric" });
 
   const getEntryLabel = (entry) => {
     if (!entry) return null;
@@ -678,7 +677,7 @@ export default function TimeTrackingPage() {
     ...Object.entries(activeEntries)
       .filter(([_, entry]) => !!entry)
       .map(([key, entry]) => ({
-        time: new Date(entry.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        time: formatCSTTime(entry.clockInTime),
         label: getEntryLabel(entry),
         type: entry.entryType,
         active: true,
@@ -726,7 +725,7 @@ export default function TimeTrackingPage() {
         e.entryType === "Job" ? (e.workOrder?.label ?? "Work Order")
           : e.entryType === "DailyShift" ? "Daily Attendance"
             : (e.taskDescription ?? "Task"),
-      clockIn: new Date(e.clockInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      clockIn: formatCSTTime(e.clockInTime),
       clockOut: null, hours: null, status: "Open", _active: true,
     }));
 

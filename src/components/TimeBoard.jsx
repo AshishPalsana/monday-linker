@@ -27,6 +27,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { formatCSTTime, formatCSTDate, getCSTWeekStart } from "../utils/cstTime";
 import { useAuth } from "../hooks/useAuth";
 import { useSocket } from "../hooks/useSocket";
 
@@ -47,18 +48,14 @@ function addDays(date, n) {
 }
 
 function fmtShortDate(date) {
-  return date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "numeric",
-    day: "numeric",
-  });
+  return formatCSTDate(date, { weekday: "short", month: "numeric", day: "numeric" });
 }
 
 function fmtRangeLabel(start, end) {
   const opts = { month: "short", day: "numeric" };
   const yearOpts = { month: "short", day: "numeric", year: "numeric" };
   const sameYear = start.getFullYear() === end.getFullYear();
-  return `${start.toLocaleDateString("en-US", opts)} – ${end.toLocaleDateString("en-US", sameYear ? opts : yearOpts)}${sameYear ? `, ${start.getFullYear()}` : ""}`;
+  return `${formatCSTDate(start, opts)} – ${formatCSTDate(end, sameYear ? opts : yearOpts)}${sameYear ? `, ${start.getFullYear()}` : ""}`;
 }
 
 const ENTRY_TYPE_COLOR = { Job: "#4f8ef7", "Non-Job": "#a855f7" };
@@ -385,7 +382,7 @@ function GroupSection({ group, groupBy, statusColors, defaultOpen = true }) {
 }
 
 export default function TimeBoard() {
-  const [weekStart, setWeekStart] = useState(startOfWeek(new Date()));
+  const [weekStart, setWeekStart] = useState(getCSTWeekStart());
   const [groupBy, setGroupBy] = useState("technician");
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -404,16 +401,8 @@ export default function TimeBoard() {
       date: new Date(e.clockIn),
       entryType: e.entryType === "NonJob" ? "Non-Job" : e.entryType,
       description: e.workOrderLabel || e.taskDescription || "—",
-      clockIn: new Date(e.clockIn).toLocaleTimeString([], {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-      clockOut: e.clockOut
-        ? new Date(e.clockOut).toLocaleTimeString([], {
-          hour: "numeric",
-          minute: "2-digit",
-        })
-        : "Active",
+      clockIn: formatCSTTime(e.clockIn, { hour: "numeric" }),
+      clockOut: e.clockOut ? formatCSTTime(e.clockOut, { hour: "numeric" }) : "Active",
       hours: parseFloat(e.hoursWorked ?? 0) || 0,
       status: e.status,
     };
@@ -448,10 +437,7 @@ export default function TimeBoard() {
               payload.entryType === "NonJob" ? "Non-Job" : payload.entryType,
             description:
               payload.workOrderLabel || payload.taskDescription || "—",
-            clockIn: d.toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-            }),
+            clockIn: formatCSTTime(d, { hour: "numeric" }),
             clockOut: "Active",
             hours: 0,
             status: "Open",
@@ -466,10 +452,7 @@ export default function TimeBoard() {
           e.id === payload.entryId
             ? {
               ...e,
-              clockOut: new Date(payload.clockOut).toLocaleTimeString([], {
-                hour: "numeric",
-                minute: "2-digit",
-              }),
+              clockOut: formatCSTTime(payload.clockOut, { hour: "numeric" }),
               hours: parseFloat(payload.hoursWorked ?? e.hours) || 0,
               status: payload.status ?? "Complete",
             }
