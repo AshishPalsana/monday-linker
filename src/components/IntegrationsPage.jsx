@@ -229,7 +229,7 @@ export default function IntegrationsPage() {
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Links all customers already on the Monday Customers board to their Xero Contact.
-                    Customers that already exist in Xero are matched by account number or name — no duplicates created.
+                    Customers that already exist in Xero are matched by account number or name - no duplicates created.
                   </Typography>
                 </Box>
               </Box>
