@@ -597,6 +597,7 @@ export default function TimeTrackingPage() {
         ...(data.workOrder?.id && { workOrderRef: String(data.workOrder.id) }),
         ...(data.workOrder?.label && { workOrderLabel: data.workOrder.label }),
         ...(data.taskDescription && { taskDescription: data.taskDescription }),
+        ...(data.taskCategory && { taskCategory: data.taskCategory }),
       });
       setActiveEntry(typeKey, { ...optimistic, backendEntryId: result.data.id });
       if (typeKey === "NonJob" && data.taskDescription) ensureNonJobInRandomStuff(data.taskDescription);

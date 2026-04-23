@@ -87,6 +87,10 @@ export const technicianApi = {
   syncFromMonday: (token)       => request('POST', '/api/technicians/sync-from-monday', {},        token),
 };
 
+export const customerApi = {
+  syncAll: (token) => request('POST', '/api/customers/sync-all', {}, token),
+};
+
 export const locationsApi = {
   getAll: (token)         => request('GET',   '/api/locations',     undefined, token),
   create: (token, data)    => request('POST',  '/api/locations',     data, token),
