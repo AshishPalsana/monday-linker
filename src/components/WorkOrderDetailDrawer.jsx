@@ -327,7 +327,35 @@ export default function WorkOrderDetailDrawer({ open, onClose, workOrder }) {
     setPromoting(true);
     try {
       const { data } = await workOrderApi.prepareInvoice(workOrder.id, auth?.token);
-      enqueueSnackbar(`Successfully promoted ${data.promoted} items to invoice.`, { variant: "success" });
+
+      if (data.xeroInvoice) {
+        enqueueSnackbar(
+          `Promoted ${data.promoted} item(s). Xero invoice ${data.xeroInvoice.invoiceNumber} created.`,
+          {
+            variant: "success",
+            action: (
+              <Button
+                size="small"
+                sx={{ color: "#fff", textDecoration: "underline" }}
+                onClick={() => window.open(data.xeroInvoice.invoiceUrl, "_blank")}
+              >
+                Open in Xero
+              </Button>
+            ),
+            autoHideDuration: 10000,
+          }
+        );
+      } else {
+        enqueueSnackbar(`Successfully promoted ${data.promoted} item(s) to invoice.`, { variant: "success" });
+      }
+
+      if (data.xeroWarning) {
+        enqueueSnackbar(data.xeroWarning, { variant: "warning", autoHideDuration: 8000 });
+      }
+      if (data.xeroError) {
+        enqueueSnackbar(`Xero: ${data.xeroError}`, { variant: "error", autoHideDuration: 8000 });
+      }
+
       dispatch(fetchMasterCosts({ workOrderId: workOrder.id, token: auth?.token }));
     } catch (err) {
       enqueueSnackbar(`Failed to promote items: ${err.message}`, { variant: "error" });
