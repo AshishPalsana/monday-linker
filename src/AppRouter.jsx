@@ -81,7 +81,7 @@ export default function AppRouter() {
 
                 {/* Settings: admin only */}
                 <Route path="/settings/integrations" element={<AdminRedirect><AppShell><IntegrationsPage /></AppShell></AdminRedirect>} />
-                <Route path="/settings/technicians"  element={<AdminRedirect><AppShell><TechniciansPage /></AppShell></AdminRedirect>} />
+                {/* <Route path="/settings/technicians"  element={<AdminRedirect><AppShell><TechniciansPage /></AppShell></AdminRedirect>} /> */}
               </Routes>
             </HashRouter>
           </SocketProvider>

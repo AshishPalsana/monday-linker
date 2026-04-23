@@ -42,7 +42,7 @@ const NAV_TIME = [
 
 const NAV_SETTINGS = [
   { id: 'integrations', icon: BuildIcon,                label: 'Integrations', path: '/settings/integrations' },
-  { id: 'technicians',  icon: EngineeringOutlinedIcon,  label: 'Technicians',  path: '/settings/technicians'  },
+  // { id: 'technicians',  icon: EngineeringOutlinedIcon,  label: 'Technicians',  path: '/settings/technicians'  },
 ];
 
 function SectionLabel({ collapsed, children }) {
