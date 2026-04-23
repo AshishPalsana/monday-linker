@@ -10,7 +10,6 @@ import {
   TableCell,
   TableContainer,
   Paper,
-  Chip,
   CircularProgress,
   Alert,
 } from "@mui/material";
@@ -110,20 +109,19 @@ export default function TechniciansPage() {
             <TableRow sx={{ bgcolor: "grey.50" }}>
               <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.secondary" }}>Name</TableCell>
               <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.secondary" }}>Email</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.secondary" }}>Role</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.secondary" }} align="right">Burden Rate</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.secondary" }} align="right">Hourly Rate</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
                   <CircularProgress size={24} />
                 </TableCell>
               </TableRow>
             ) : technicians.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 4, color: "text.secondary", fontSize: "0.85rem" }}>
+                <TableCell colSpan={3} align="center" sx={{ py: 4, color: "text.secondary", fontSize: "0.85rem" }}>
                   No technicians yet — click <strong>Sync from Monday</strong> to populate
                 </TableCell>
               </TableRow>
@@ -132,23 +130,10 @@ export default function TechniciansPage() {
                 <TableRow key={tech.id} hover>
                   <TableCell sx={{ fontSize: "0.85rem", fontWeight: 500 }}>{tech.name}</TableCell>
                   <TableCell sx={{ fontSize: "0.82rem", color: "text.secondary" }}>{tech.email || "—"}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={tech.isAdmin ? "Admin" : "Technician"}
-                      size="small"
-                      sx={{
-                        fontSize: "0.7rem",
-                        height: 20,
-                        bgcolor: tech.isAdmin ? "rgba(79,142,247,0.1)" : "rgba(22,163,74,0.08)",
-                        color: tech.isAdmin ? "primary.main" : "#16a34a",
-                        fontWeight: 600,
-                      }}
-                    />
-                  </TableCell>
                   <TableCell align="right" sx={{ fontSize: "0.85rem", fontFamily: "monospace" }}>
                     {tech.burdenRate > 0 ? `$${parseFloat(tech.burdenRate).toFixed(2)}/hr` : (
                       <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.disabled" }}>
-                        Not set
+                        Not set — set on Technicians board
                       </Typography>
                     )}
                   </TableCell>
