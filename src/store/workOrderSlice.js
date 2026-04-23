@@ -46,8 +46,13 @@ export const createWorkOrder = createAsyncThunk(
   async (form, { dispatch, rejectWithValue }) => {
     try {
       const created = await svcCreateWorkOrder(form);
-      // Wait for refetch so the board is always up to date
+      // Immediate refetch — shows the new item on the board right away
       await dispatch(fetchWorkOrders());
+      // Delayed refetch — the Monday webhook that assigns the sequential WO-ID
+      // (WO-001, WO-002 …) runs asynchronously after item creation.  Waiting
+      // 3 s then re-fetching ensures the ID column is populated by the time
+      // the board re-renders.
+      setTimeout(() => dispatch(fetchWorkOrders()), 3000);
       return created;
     } catch (error) {
       return rejectWithValue(error.message);
