@@ -47,8 +47,32 @@ export default function IntegrationsPage() {
   };
 
   const handleConnectXero = () => {
-    // Redirect to backend connect endpoint
-    window.location.href = `${API_URL}/api/xero/connect`;
+    // Open OAuth in a new popup so Xero's page is not constrained by the
+    // Monday.com iframe (Xero blocks iframe embedding and returns a 500).
+    const popup = window.open(
+      `${API_URL}/api/xero/connect`,
+      'xero_connect',
+      'width=800,height=700,left=200,top=100,resizable=yes,scrollbars=yes'
+    );
+
+    // Listen for the success message that the callback page posts back
+    function onMessage(event) {
+      if (event.data?.type === 'xero_connected') {
+        window.removeEventListener('message', onMessage);
+        popup?.close();
+        fetchStatus();
+      }
+    }
+    window.addEventListener('message', onMessage);
+
+    // Fallback: poll until the popup closes, then refresh status
+    const timer = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(timer);
+        window.removeEventListener('message', onMessage);
+        fetchStatus();
+      }
+    }, 1000);
   };
 
   const handleDisconnectXero = async () => {
