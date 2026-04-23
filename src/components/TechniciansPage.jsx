@@ -103,16 +103,16 @@ export default function TechniciansPage() {
       )}
 
       {/* Table */}
-      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Table size="small" stickyHeader sx={{ minWidth: 650, height: '100%', display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <Table size="small" stickyHeader sx={{ minWidth: 650 }}>
           <TableHead>
-            <TableRow sx={{ bgcolor: "grey.50" }}>
-              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.secondary" }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.secondary" }}>Email</TableCell>
-              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.secondary" }} align="right">Hourly Rate</TableCell>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.secondary", bgcolor: "grey.50" }}>Name</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.secondary", bgcolor: "grey.50" }}>Email</TableCell>
+              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", color: "text.secondary", bgcolor: "grey.50" }} align="right">Hourly Rate</TableCell>
             </TableRow>
           </TableHead>
-          <TableBody sx={{ display: 'block', overflowY: 'auto', flex: 1 }}>
+          <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
@@ -126,21 +126,19 @@ export default function TechniciansPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              <Box component="tbody" sx={{ display: 'block', overflowY: 'auto', flex: 1 }}>
-                {technicians.map((tech) => (
-                  <TableRow key={tech.id} hover sx={{ display: 'table', tableLayout: 'fixed', width: '100%' }}>
-                    <TableCell sx={{ fontSize: "0.85rem", fontWeight: 500 }}>{tech.name}</TableCell>
-                    <TableCell sx={{ fontSize: "0.82rem", color: "text.secondary" }}>{tech.email || "—"}</TableCell>
-                    <TableCell align="right" sx={{ fontSize: "0.85rem", fontFamily: "monospace" }}>
-                      {tech.burdenRate > 0 ? `$${parseFloat(tech.burdenRate).toFixed(2)}/hr` : (
-                        <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.disabled" }}>
-                          Not set — set on Technicians board
-                        </Typography>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </Box>
+              technicians.map((tech) => (
+                <TableRow key={tech.id} hover>
+                  <TableCell sx={{ fontSize: "0.85rem", fontWeight: 500 }}>{tech.name}</TableCell>
+                  <TableCell sx={{ fontSize: "0.82rem", color: "text.secondary" }}>{tech.email || "—"}</TableCell>
+                  <TableCell align="right" sx={{ fontSize: "0.85rem", fontFamily: "monospace" }}>
+                    {tech.burdenRate > 0 ? `$${parseFloat(tech.burdenRate).toFixed(2)}/hr` : (
+                      <Typography component="span" sx={{ fontSize: "0.75rem", color: "text.disabled" }}>
+                        Not set — set on Technicians board
+                      </Typography>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>

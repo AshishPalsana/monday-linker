@@ -614,6 +614,16 @@ export default function TimeTrackingPage() {
 
   async function handleClockOut(data) {
     if (!activeToOut) return;
+
+    // Guard: clock-in API response hasn't come back yet — backendEntryId is still null.
+    // Proceeding would send PATCH /time-entries/null/clock-out → 404 → wipes the session.
+    if (!activeToOut.backendEntryId) {
+      setClockOutOpen(false);
+      setActiveToOut(null);
+      setApiError("Your clock-in is still being registered. Please wait a moment and try again.");
+      return;
+    }
+
     setClockOutLoading(true);
     const typeKey = activeToOut.entryType === "Non-Job" ? "NonJob" : activeToOut.entryType;
     const isEndingShift = typeKey === "DailyShift";
