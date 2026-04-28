@@ -654,7 +654,15 @@ export default function TimeTrackingPage() {
         markComplete: data.markComplete || false,
       });
 
-      if (clockInIsToday) setTodayEntries((prev) => [optimisticEntry, ...prev]);
+      if (clockInIsToday) {
+        setTodayEntries((prev) => 
+          prev.map((e) => 
+            e.id === captured.backendEntryId 
+              ? { ...e, clockOut: optimisticEntry.clockOut, hours: optimisticEntry.hours, status: optimisticEntry.status } 
+              : e
+          )
+        );
+      }
       if (isEndingShift) {
         clearActiveEntry("DailyShift"); clearActiveEntry("Job"); clearActiveEntry("NonJob");
       } else {

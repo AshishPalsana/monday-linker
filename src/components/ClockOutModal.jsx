@@ -163,11 +163,6 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
         disableEnforceFocus
         PaperProps={{ sx: { borderRadius: "12px", zIndex: 1300 } }}
       >
-        {loading && (
-          <LinearProgress
-            sx={{ position: "absolute", top: 0, left: 0, right: 0, borderRadius: "12px 12px 0 0" }}
-          />
-        )}
         <DialogTitle sx={{ fontWeight: 700, pb: 0.5 }}>
           {isDailyShift ? "End Shift" : "Clock Out"}
         </DialogTitle>
@@ -440,9 +435,8 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
               "&:disabled": { bgcolor: "#e3e2df", color: "#b0ada8" },
             }}
           >
-            {loading ? (
-              <CircularProgress size={18} sx={{ color: "rgba(255,255,255,0.8)" }} />
-            ) : isDailyShift ? "End Shift" : "Clock Out"}
+            {loading && <CircularProgress size={18} sx={{ color: "rgba(255,255,255,0.8)", mr: 1 }} />}
+            {isDailyShift ? "End Shift" : "Clock Out"}
           </Button>
         </DialogActions>
       </Dialog>
