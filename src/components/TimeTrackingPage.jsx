@@ -644,13 +644,7 @@ export default function TimeTrackingPage() {
     };
     let captured = activeToOut;
     const clockInIsToday = isToday(captured.clockInTime);
-    if (clockInIsToday) setTodayEntries((prev) => [optimisticEntry, ...prev]);
-    if (isEndingShift) {
-      clearActiveEntry("DailyShift"); clearActiveEntry("Job"); clearActiveEntry("NonJob");
-    } else {
-      clearActiveEntry(typeKey);
-    }
-    setClockOutOpen(false); setClockOutLoading(false); setActiveToOut(null);
+
     try {
       await timeEntriesApi.clockOut(token, captured.backendEntryId, {
         narrative: data.narrative,
@@ -659,17 +653,25 @@ export default function TimeTrackingPage() {
         expenses: data.expenses,
         markComplete: data.markComplete || false,
       });
+
+      if (clockInIsToday) setTodayEntries((prev) => [optimisticEntry, ...prev]);
+      if (isEndingShift) {
+        clearActiveEntry("DailyShift"); clearActiveEntry("Job"); clearActiveEntry("NonJob");
+      } else {
+        clearActiveEntry(typeKey);
+      }
+      setClockOutOpen(false); setClockOutLoading(false); setActiveToOut(null);
     } catch (err) {
       console.error("[clock-out] API error:", err);
-      if (clockInIsToday) setTodayEntries((prev) => prev.filter((e) => e.id !== optimisticEntry.id));
       
       // If the record was deleted from the database (404), don't restore it locally
       if (err.status === 404) {
         console.warn(`[clock-out] Record ${captured.backendEntryId} not found in database. Cleaning up local session…`);
         clearActiveEntry(typeKey);
         setApiError("Database record missing. Local session has been cleaned up.");
+        setClockOutOpen(false); setClockOutLoading(false); setActiveToOut(null);
       } else {
-        setActiveEntry(typeKey, captured);
+        setClockOutLoading(false);
         setApiError(`Clock-out failed: ${err.message || "server error"}.`);
       }
     }
