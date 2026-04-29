@@ -59,29 +59,30 @@ export default function AppRouter() {
               <Routes>
                 <Route path="/" element={<DefaultRedirect />} />
 
-                {/* All users can view boards (read-only enforced inside each board/drawer) */}
-                <Route path="/workorders/:id?" element={<AppShell><WorkOrdersBoard /></AppShell>} />
-                <Route path="/customers/:id?" element={<AppShell><CustomersBoard /></AppShell>} />
-                <Route path="/locations/:id?" element={<AppShell><LocationsBoard /></AppShell>} />
-                <Route path="/equipment/:id?" element={<AppShell><EquipmentBoard /></AppShell>} />
-                <Route path="/master-costs" element={<AppShell><MasterCostsBoard /></AppShell>} />
-                <Route path="/time-board" element={<AppShell><TimeBoard /></AppShell>} />
+                {/* Main Layout wrapper */}
+                <Route element={<AppShell />}>
+                  {/* All users can view boards (read-only enforced inside each board/drawer) */}
+                  <Route path="/workorders/:id?" element={<WorkOrdersBoard />} />
+                  <Route path="/customers/:id?" element={<CustomersBoard />} />
+                  <Route path="/locations/:id?" element={<LocationsBoard />} />
+                  <Route path="/equipment/:id?" element={<EquipmentBoard />} />
+                  <Route path="/master-costs" element={<MasterCostsBoard />} />
+                  <Route path="/time-board" element={<TimeBoard />} />
 
-                {/* Time Tracker: non-admins only (admins use Time Board) */}
-                <Route
-                  path="/time-tracker"
-                  element={
-                    <TechRedirect>
-                      <AppShell>
+                  {/* Time Tracker: non-admins only (admins use Time Board) */}
+                  <Route
+                    path="/time-tracker"
+                    element={
+                      <TechRedirect>
                         <TimeTrackingPage />
-                      </AppShell>
-                    </TechRedirect>
-                  }
-                />
+                      </TechRedirect>
+                    }
+                  />
 
-                {/* Settings: admin only */}
-                <Route path="/settings/integrations" element={<AdminRedirect><AppShell><IntegrationsPage /></AppShell></AdminRedirect>} />
-                <Route path="/settings/technicians"  element={<AdminRedirect><AppShell><TechniciansPage /></AppShell></AdminRedirect>} />
+                  {/* Settings: admin only */}
+                  <Route path="/settings/integrations" element={<AdminRedirect><IntegrationsPage /></AdminRedirect>} />
+                  <Route path="/settings/technicians"  element={<AdminRedirect><TechniciansPage /></AdminRedirect>} />
+                </Route>
               </Routes>
             </HashRouter>
           </SocketProvider>

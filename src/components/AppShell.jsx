@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Box, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { Outlet } from 'react-router-dom';
 import MenuIcon from '@mui/icons-material/Menu';
 import Sidebar from './Sidebar';
 import BoardHeader from './BoardHeader';
@@ -101,7 +102,7 @@ export default function AppShell({ children }) {
                 overflowX: 'hidden',
               }}
             >
-              {children}
+              <Outlet />
             </Box>
           </Box>
         </Box>
