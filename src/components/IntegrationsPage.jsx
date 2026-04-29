@@ -71,14 +71,10 @@ export default function IntegrationsPage() {
     }
     window.addEventListener('message', onMessage);
 
-    // Fallback: poll until the popup closes, then refresh status
-    const timer = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(timer);
-        window.removeEventListener('message', onMessage);
-        fetchStatus();
-      }
-    }, 1000);
+    // Rely purely on the postMessage event for success.
+    // We removed the popup?.closed polling because cross-origin 
+    // iframe restrictions often make it incorrectly return true, 
+    // causing an immediate fetchStatus() which looks like a page refresh.
   };
 
   const handleDisconnectXero = async () => {
