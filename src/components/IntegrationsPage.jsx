@@ -61,25 +61,37 @@ export default function IntegrationsPage() {
       'width=800,height=700,left=200,top=100,resizable=yes,scrollbars=yes'
     );
 
-    // Listen for the success message that the callback page posts back
-    function onMessage(event) {
-      if (event.data?.type === 'xero_connected') {
-        clearInterval(timer);
-        window.removeEventListener('message', onMessage);
-        popup?.close();
-        fetchStatus();
-      }
-    }
-    window.addEventListener('message', onMessage);
+    // Neither popup.closed nor postMessage are reliable here because:
+    // 1. popup.closed — Monday.com's iframe causes it to always return true immediately
+    // 2. window.opener.postMessage — Chrome 88+ nulls window.opener after any
+    //    cross-origin navigation (Xero's login pages), so the message never arrives.
+    //
+    // Solution: Poll our own backend every 2s. When it returns connected:true,
+    // we know the OAuth completed successfully.
+    let attempts = 0;
+    const MAX_ATTEMPTS = 150; // 5 minute max
 
-    // Fallback: poll until the popup closes, then refresh status
-    const timer = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(timer);
-        window.removeEventListener('message', onMessage);
-        fetchStatus();
+    const poll = setInterval(async () => {
+      attempts++;
+      if (attempts > MAX_ATTEMPTS) {
+        clearInterval(poll);
+        return;
       }
-    }, 1000);
+      try {
+        const { data } = await axios.get(`${API_URL}/api/xero/status`);
+        if (data.connected) {
+          clearInterval(poll);
+          // popup.closed is unreliable inside Monday.com's iframe (always true).
+          // Navigate popup to about:blank first to reset Chrome's cross-origin
+          // close restriction, then close it.
+          try { popup.location.href = 'about:blank'; } catch (e) {}
+          setTimeout(() => { try { popup.close(); } catch (e) {} }, 300);
+          fetchStatus();
+        }
+      } catch {
+        // Ignore transient network errors, keep polling
+      }
+    }, 2000);
   };
 
   const handleDisconnectXero = async () => {
