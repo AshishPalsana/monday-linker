@@ -64,6 +64,7 @@ export default function IntegrationsPage() {
     // Listen for the success message that the callback page posts back
     function onMessage(event) {
       if (event.data?.type === 'xero_connected') {
+        clearInterval(timer);
         window.removeEventListener('message', onMessage);
         popup?.close();
         fetchStatus();
@@ -71,10 +72,14 @@ export default function IntegrationsPage() {
     }
     window.addEventListener('message', onMessage);
 
-    // Rely purely on the postMessage event for success.
-    // We removed the popup?.closed polling because cross-origin 
-    // iframe restrictions often make it incorrectly return true, 
-    // causing an immediate fetchStatus() which looks like a page refresh.
+    // Fallback: poll until the popup closes, then refresh status
+    const timer = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(timer);
+        window.removeEventListener('message', onMessage);
+        fetchStatus();
+      }
+    }, 1000);
   };
 
   const handleDisconnectXero = async () => {
