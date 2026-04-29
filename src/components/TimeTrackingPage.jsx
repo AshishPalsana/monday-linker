@@ -658,7 +658,7 @@ export default function TimeTrackingPage() {
         setTodayEntries((prev) => 
           prev.map((e) => 
             e.id === captured.backendEntryId 
-              ? { ...e, clockOut: optimisticEntry.clockOut, hours: optimisticEntry.hours, status: optimisticEntry.status } 
+              ? { ...e, clockOut: optimisticEntry.clockOut, hours: optimisticEntry.hours, status: "Complete" } 
               : e
           )
         );
