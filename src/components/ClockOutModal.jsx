@@ -44,8 +44,16 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
   }, [rawLocations]);
 
   useEffect(() => {
-    if (open) dispatch(fetchLocations());
-  }, [open, dispatch]);
+    if (open) {
+      dispatch(fetchLocations());
+      if (isJobEntry && activeEntry?.workOrder) {
+        const wo = activeEntry.workOrder;
+        if (wo.locationId) {
+          setLocation({ id: wo.locationId, label: wo.locationLabel || "Linked Location" });
+        }
+      }
+    }
+  }, [open, dispatch, isJobEntry, activeEntry]);
 
   const [narrative, setNarrative] = useState("");
   const [location, setLocation] = useState(null);
@@ -66,7 +74,9 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
   const narrativeRequired = narrative.trim().length === 0;
   const isValid = isDailyShift
     ? true
-    : !narrativeRequired && narrativeValid && location !== null && expensesValid;
+    : isJobEntry
+      ? !narrativeRequired && narrativeValid && expensesValid
+      : !narrativeRequired && narrativeValid && location !== null && expensesValid;
 
   function handleExpenseClick(key) {
     if (expenseChecks[key]) {
@@ -234,82 +244,84 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
                 />
               </Box>
 
-              {/* Location */}
-              <Box sx={{ mb: 2 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.75 }}>
-                  <PlaceOutlinedIcon sx={{ fontSize: 15, color: "text.disabled" }} />
-                  <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                    Location / Site <span style={{ color: "#ef4444" }}>*</span>
-                  </Typography>
-                </Box>
-                <Autocomplete
-                  options={locations}
-                  loading={locationsLoading}
-                  value={location}
-                  onChange={(_, val) => {
-                    if (val?.id === "__new__") {
-                      setPendingNewLocation({ name: val.inputValue });
-                      return;
-                    }
-                    setLocation(val);
-                  }}
-                  filterOptions={(opts, { inputValue }) => {
-                    const filtered = opts.filter((o) =>
-                      (o.label || "").toLowerCase().includes(inputValue.toLowerCase())
-                    );
-                    if (
-                      inputValue &&
-                      !filtered.some(
-                        (o) => (o.label || "").toLowerCase() === inputValue.toLowerCase()
-                      )
-                    ) {
-                      filtered.push({
-                        id: "__new__",
-                        label: `Add "${inputValue}" as new location`,
-                        inputValue,
-                      });
-                    }
-                    return filtered;
-                  }}
-                  renderOption={(props, option) => {
-                    const { key, ...rest } = props;
-                    return (
-                      <Box
-                        component="li"
-                        key={key}
-                        {...rest}
-                        sx={{
-                          fontSize: "0.8rem",
-                          ...(option.id === "__new__"
-                            ? { color: "primary.main", fontWeight: 600 }
-                            : {}),
+              {/* Location - Hidden for Jobs as it's pre-linked */}
+              {!isJobEntry && (
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.75 }}>
+                    <PlaceOutlinedIcon sx={{ fontSize: 15, color: "text.disabled" }} />
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                      Location / Site <span style={{ color: "#ef4444" }}>*</span>
+                    </Typography>
+                  </Box>
+                  <Autocomplete
+                    options={locations}
+                    loading={locationsLoading}
+                    value={location}
+                    onChange={(_, val) => {
+                      if (val?.id === "__new__") {
+                        setPendingNewLocation({ name: val.inputValue });
+                        return;
+                      }
+                      setLocation(val);
+                    }}
+                    filterOptions={(opts, { inputValue }) => {
+                      const filtered = opts.filter((o) =>
+                        (o.label || "").toLowerCase().includes(inputValue.toLowerCase())
+                      );
+                      if (
+                        inputValue &&
+                        !filtered.some(
+                          (o) => (o.label || "").toLowerCase() === inputValue.toLowerCase()
+                        )
+                      ) {
+                        filtered.push({
+                          id: "__new__",
+                          label: `Add "${inputValue}" as new location`,
+                          inputValue,
+                        });
+                      }
+                      return filtered;
+                    }}
+                    renderOption={(props, option) => {
+                      const { key, ...rest } = props;
+                      return (
+                        <Box
+                          component="li"
+                          key={key}
+                          {...rest}
+                          sx={{
+                            fontSize: "0.8rem",
+                            ...(option.id === "__new__"
+                              ? { color: "primary.main", fontWeight: 600 }
+                              : {}),
+                          }}
+                        >
+                          {option.id === "__new__" ? `+ ${option.label}` : option.label}
+                        </Box>
+                      );
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="Search locations…"
+                        size="small"
+                        error={submitted && location === null}
+                        helperText={submitted && location === null ? "Please select a location before clocking out." : " "}
+                        FormHelperTextProps={{ sx: { mx: 0 } }}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {locationsLoading ? <CircularProgress size={16} /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
                         }}
-                      >
-                        {option.id === "__new__" ? `+ ${option.label}` : option.label}
-                      </Box>
-                    );
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      placeholder="Search locations…"
-                      size="small"
-                      error={submitted && location === null}
-                      helperText={submitted && location === null ? "Please select a location before clocking out." : " "}
-                      FormHelperTextProps={{ sx: { mx: 0 } }}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {locationsLoading ? <CircularProgress size={16} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                />
-              </Box>
+                      />
+                    )}
+                  />
+                </Box>
+              )}
 
               <Divider sx={{ my: 2 }} />
 
