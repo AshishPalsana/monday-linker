@@ -573,7 +573,29 @@ export default function TimeTrackingPage() {
 
         return isAssigned;
       })
-      .map((item) => ({ id: item.id, label: item.name }));
+      .map((item) => {
+        const locVal = item.column_values?.find((cv) => cv.id === MONDAY_COLUMNS.WORK_ORDERS.LOCATION);
+        let locationId = null;
+        let locationLabel = locVal?.display_value || locVal?.text || "";
+
+        if (locVal?.value) {
+          try {
+            const parsed = JSON.parse(locVal.value);
+            // board_relation values store IDs in linkedPulseIds or item_ids
+            const ids = parsed.linkedPulseIds || parsed.item_ids || [];
+            if (ids.length > 0) {
+              locationId = String(ids[0].linkedPulseId || ids[0]);
+            }
+          } catch (e) {}
+        }
+
+        return { 
+          id: item.id, 
+          label: item.name,
+          locationId,
+          locationLabel
+        };
+      });
 
     return filtered;
   }, [rawWorkOrders, auth]);
