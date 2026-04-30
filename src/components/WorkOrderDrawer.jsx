@@ -159,6 +159,8 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
   const handleSave = async () => {
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = true;
+    if (!form.customerId) newErrors.customer = true;
+    if (!form.locationId) newErrors.location = true;
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -236,7 +238,7 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
         />
 
         <Stack spacing={0.5}>
-          <PropertyRow icon={PersonOutlineIcon} label="Customer">
+          <PropertyRow icon={PersonOutlineIcon} label="Customer" required error={errors.customer}>
             <RelationCell
               value={form.customerName}
               options={customers}
@@ -245,14 +247,15 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
               chipTextColor="#3367d6"
               chipBorderColor="rgba(79, 142, 247, 0.2)"
               createLabel="customer"
-              onSelectExisting={(id, name) =>
-                setForm({ ...form, customerId: id, customerName: name })
-              }
+              onSelectExisting={(id, name) => {
+                setForm({ ...form, customerId: id, customerName: name });
+                if (errors.customer) setErrors({ ...errors, customer: false });
+              }}
               onCreateNew={(val) => setPendingNewCustomer({ name: val })}
             />
           </PropertyRow>
 
-          <PropertyRow icon={LocationOnOutlinedIcon} label="Location">
+          <PropertyRow icon={LocationOnOutlinedIcon} label="Location" required error={errors.location}>
             <RelationCell
               value={form.locationName}
               options={locations}
@@ -261,9 +264,10 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
               chipTextColor="#9333ea"
               chipBorderColor="rgba(168, 85, 247, 0.2)"
               createLabel="location"
-              onSelectExisting={(id, name) =>
-                setForm({ ...form, locationId: id, locationName: name })
-              }
+              onSelectExisting={(id, name) => {
+                setForm({ ...form, locationId: id, locationName: name });
+                if (errors.location) setErrors({ ...errors, location: false });
+              }}
               onCreateNew={(val) => setPendingNewLocation({ name: val })}
             />
           </PropertyRow>
@@ -555,6 +559,7 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
             customerId: result.id,
             customerName: result.name,
           }));
+          if (errors.customer) setErrors((prev) => ({ ...prev, customer: false }));
           setPendingNewCustomer(null);
         }}
       />
@@ -574,6 +579,7 @@ export default function WorkOrderDrawer({ open, onClose, defaultGroupId }) {
             locationId: result.id,
             locationName: result.name,
           }));
+          if (errors.location) setErrors((prev) => ({ ...prev, location: false }));
           setPendingNewLocation(null);
         }}
       />
