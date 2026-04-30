@@ -26,24 +26,26 @@ async function reauth() {
 
 async function request(method, path, body, token) {
   const tok = token ?? _currentToken;
-  const headers = { 'Content-Type': 'application/json' };
+  const isFormData = body instanceof FormData;
+  const headers = isFormData ? {} : { 'Content-Type': 'application/json' };
   if (tok) headers['Authorization'] = `Bearer ${tok}`;
 
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers,
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(body !== undefined ? { body: isFormData ? body : JSON.stringify(body) } : {}),
   });
 
   // On 401: silently refresh the JWT once and retry
   if (res.status === 401) {
     const newToken = await reauth();
     if (newToken) {
-      const retryHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${newToken}` };
+      const retryHeaders = isFormData ? {} : { 'Content-Type': 'application/json' };
+      retryHeaders['Authorization'] = `Bearer ${newToken}`;
       const retry = await fetch(`${BASE}${path}`, {
         method,
         headers: retryHeaders,
-        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        ...(body !== undefined ? { body: isFormData ? body : JSON.stringify(body) } : {}),
       });
       if (!retry.ok) {
         const errData = await retry.json().catch(() => ({}));

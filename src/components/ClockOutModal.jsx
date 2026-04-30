@@ -89,9 +89,9 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
     setDrawerOpen(true);
   }
 
-  function handleDrawerSave({ amount, description }) {
+  function handleDrawerSave({ amount, description, receipt }) {
     setExpenseChecks((prev) => ({ ...prev, [drawerType]: true }));
-    setExpenseData((prev) => ({ ...prev, [drawerType]: { amount, description } }));
+    setExpenseData((prev) => ({ ...prev, [drawerType]: { amount, description, receipt } }));
     setDrawerOpen(false);
     setDrawerType(null);
   }
@@ -115,11 +115,12 @@ export default function ClockOutModal({ open, onClose, onConfirm, activeEntry, l
       return;
     }
     const expenses = checkedExpenses.map((e) => {
-      const { amount, description } = expenseData[e.key] || {};
+      const { amount, description, receipt } = expenseData[e.key] || {};
       return {
         type: e.label, // This must match the dropdown value in Monday
         amount: amount ?? 0,
         description: description ?? "",
+        receipt: receipt ?? null,
       };
     });
     onConfirm({

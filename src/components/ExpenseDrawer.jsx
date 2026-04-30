@@ -11,6 +11,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import AttachMoneyOutlinedIcon from "@mui/icons-material/AttachMoneyOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { useState, useEffect } from "react";
 
 const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
@@ -51,12 +53,14 @@ const PropertyRow = ({ icon: Icon, label, required, error, children }) => (
 export default function ExpenseDrawer({ open, onClose, onSave, expenseType, initialData }) {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [receipt, setReceipt] = useState(null);
   const [attempted, setAttempted] = useState(false);
 
   useEffect(() => {
     if (open) {
       setAmount(initialData?.amount?.toString() ?? "");
       setDescription(initialData?.description ?? "");
+      setReceipt(initialData?.receipt ?? null);
       setAttempted(false);
     }
   }, [open, initialData]);
@@ -77,7 +81,11 @@ export default function ExpenseDrawer({ open, onClose, onSave, expenseType, init
   function handleSave() {
     setAttempted(true);
     if (!isValid) return;
-    onSave({ amount: parseFloat(amount), description: description.trim() });
+    onSave({ 
+      amount: parseFloat(amount), 
+      description: description.trim(),
+      receipt 
+    });
     reset();
   }
 
@@ -89,6 +97,7 @@ export default function ExpenseDrawer({ open, onClose, onSave, expenseType, init
   function reset() {
     setAmount("");
     setDescription("");
+    setReceipt(null);
     setAttempted(false);
   }
 
@@ -213,6 +222,37 @@ export default function ExpenseDrawer({ open, onClose, onSave, expenseType, init
               "& .MuiInputBase-inputMultiline": { p: 0 },
             }}
           />
+        </PropertyRow>
+
+        <PropertyRow icon={AttachFileIcon} label="Receipt">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
+             <Button
+                component="label"
+                variant="outlined"
+                size="small"
+                startIcon={<CloudUploadIcon sx={{ fontSize: 16 }} />}
+                sx={{ 
+                  textTransform: 'none', 
+                  fontSize: '0.75rem',
+                  borderColor: '#e5e7eb',
+                  color: '#37352f',
+                  '&:hover': { bgcolor: '#f1f1ef', borderColor: '#d1d5db' }
+                }}
+              >
+                {receipt ? "Change" : "Upload"}
+                <input
+                  type="file"
+                  hidden
+                  onChange={(e) => setReceipt(e.target.files[0])}
+                  accept="image/*,application/pdf"
+                />
+              </Button>
+              {receipt && (
+                <Typography sx={{ fontSize: '0.75rem', color: '#2383e2', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }}>
+                  {receipt.name}
+                </Typography>
+              )}
+          </Box>
         </PropertyRow>
       </Box>
 

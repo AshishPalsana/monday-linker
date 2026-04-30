@@ -646,13 +646,26 @@ export default function TimeTrackingPage() {
     const clockInIsToday = isToday(captured.clockInTime);
 
     try {
-      await timeEntriesApi.clockOut(token, captured.backendEntryId, {
-        narrative: data.narrative,
-        jobLocation: data.location?.label ?? data.location ?? "",
-        jobLocationId: data.location?.id ?? null,
-        expenses: data.expenses,
-        markComplete: data.markComplete || false,
+      const formData = new FormData();
+      formData.append("narrative", data.narrative);
+      formData.append("jobLocation", data.location?.label ?? data.location ?? "");
+      formData.append("jobLocationId", data.location?.id ?? "");
+      formData.append("markComplete", data.markComplete || false);
+
+      const expensesForJson = data.expenses.map((exp, i) => {
+        if (exp.receipt) {
+          formData.append(`receipt_${i}`, exp.receipt);
+        }
+        return {
+          type: exp.type,
+          amount: exp.amount,
+          description: exp.description,
+        };
       });
+
+      formData.append("expenses", JSON.stringify(expensesForJson));
+
+      await timeEntriesApi.clockOut(token, captured.backendEntryId, formData);
 
       if (clockInIsToday) {
         setTodayEntries((prev) => 
